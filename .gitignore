@@ -1,0 +1,8 @@
+*.exe
+*.exe
+*.zip
+apps/pocketbase/pb_data/
+apps/pocketbase/pocketbase
+apps/pocketbase/pb_migrations/1785371029_seed_shema_nicholas.js
+apps/pocketbase/pb_migrations/1764579159_create_superuser.js
+apps/pocketbase/pb_migrations/1764579159_create_superuser.js
