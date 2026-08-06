@@ -111,6 +111,21 @@ export default function InvoiceFormPage() {
         .catch(() => navigate('/invoices'));
     } else {
       genNumber().then(n => setForm(p => ({ ...p, invoice_number: n })));
+      // Pull company-wide defaults (currency, terms, payment instructions) so
+      // a Settings change is reflected on every new invoice without editing
+      // this form's hardcoded fallbacks.
+      pb.collection('company_settings').getList(1, 1, { requestKey: 'settings-for-invoice' })
+        .then(r => {
+          const cfg = r.items[0];
+          if (!cfg) return;
+          setForm(p => ({
+            ...p,
+            currency: cfg.currency || p.currency,
+            terms_conditions: cfg.default_terms_conditions || p.terms_conditions,
+            payment_instructions: cfg.default_payment_instructions || p.payment_instructions,
+          }));
+        })
+        .catch(() => {});
     }
   }, [isEdit, id]);
 

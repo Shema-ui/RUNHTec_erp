@@ -4,7 +4,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 
-const LOGO_URL = 'https://horizons-cdn.hostinger.com/2757b26b-44c6-4111-a4b2-af6d71351715/f9d1fad541d7f3b6fd43d5a1326794e7.jpg';
+// Fallback logo used only when no logo has been uploaded in Settings.
+const DEFAULT_LOGO_URL = 'https://horizons-cdn.hostinger.com/2757b26b-44c6-4111-a4b2-af6d71351715/f9d1fad541d7f3b6fd43d5a1326794e7.jpg';
+const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
+const BRAND = '#003DA5';
 
 const STATUS_COLORS = {
   draft:     { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
@@ -28,6 +31,49 @@ const PRINT_STYLE = `
 }
 `;
 
+// Convert an image URL (same-origin PocketBase file or an external default)
+// to a Base64 data URL so it embeds cleanly into the html2canvas render and
+// avoids CORS/tainted-canvas issues either way.
+async function toBase64Image(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
+    if (res.ok) {
+      const blob = await res.blob();
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image') && dataUrl.length > 100) {
+        return dataUrl;
+      }
+    }
+  } catch (err) {
+    console.warn('[InvoicePDF] fetch/blob image load failed, trying canvas:', err?.message || err);
+  }
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || 240;
+    canvas.height = img.naturalHeight || 240;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL('image/png');
+    if (dataUrl && dataUrl.length > 100) return dataUrl;
+  } catch (err) {
+    console.error('[InvoicePDF] canvas image load failed:', err?.message || err);
+  }
+  console.error('[InvoicePDF] could not convert image to Base64:', url);
+  return null;
+}
+
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -35,23 +81,12 @@ export default function InvoiceViewPage() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [logoData, setLogoData] = useState(LOGO_URL);
-  const logoDataRef = useRef(LOGO_URL);
-  const printRef = useRef(null);
 
-  // Preload the logo and convert it to a Base64 data URL so it embeds
-  // cleanly into the html2canvas render (avoids CORS/tainted-canvas issues).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const dataUrl = await toBase64Logo();
-      if (!cancelled && dataUrl) {
-        logoDataRef.current = dataUrl;
-        setLogoData(dataUrl);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // Base64-embedded copies of the logo/signature/stamp, keyed by their
+  // source URL, used for the PDF capture only (the on-screen render uses
+  // the plain PocketBase file URLs, which load fine in the browser).
+  const [embeds, setEmbeds] = useState({ logo: null, signature: null, stamp: null });
+  const printRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
@@ -65,73 +100,49 @@ export default function InvoiceViewPage() {
     }).catch(() => navigate('/invoices'));
   }, [id]);
 
-  const handlePrint = () => window.print();
+  const logoUrl = settings?.logo ? pb.files.getURL(settings, settings.logo) : DEFAULT_LOGO_URL;
+  const signatureUrl = settings?.signature ? pb.files.getURL(settings, settings.signature) : null;
+  const stampUrl = settings?.stamp ? pb.files.getURL(settings, settings.stamp) : null;
+  const showSignature = settings?.show_signature !== false && Boolean(signatureUrl);
+  const showStamp = settings?.show_stamp !== false && Boolean(stampUrl);
 
-  // Convert the remote logo to a Base64 data URL. Tries fetch->blob->FileReader
-  // first (most reliable for embedding), then falls back to an Image+canvas draw.
-  async function toBase64Logo() {
-    // Method 1: fetch as blob and read as data URL
-    try {
-      const res = await fetch(LOGO_URL, { mode: 'cors', cache: 'no-cache' });
-      if (res.ok) {
-        const blob = await res.blob();
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image') && dataUrl.length > 100) {
-          console.info('[InvoicePDF] logo embedded via fetch/blob, bytes:', dataUrl.length);
-          return dataUrl;
-        }
-      } else {
-        console.warn('[InvoicePDF] logo fetch returned status', res.status);
-      }
-    } catch (err) {
-      console.warn('[InvoicePDF] fetch/blob logo load failed, trying canvas:', err?.message || err);
-    }
-    // Method 2: Image element + canvas draw
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = LOGO_URL;
-      });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || 240;
-      canvas.height = img.naturalHeight || 240;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      const dataUrl = canvas.toDataURL('image/png');
-      if (dataUrl && dataUrl.length > 100) {
-        console.info('[InvoicePDF] logo embedded via canvas, bytes:', dataUrl.length);
-        return dataUrl;
-      }
-    } catch (err) {
-      console.error('[InvoicePDF] canvas logo load failed:', err?.message || err);
-    }
-    console.error('[InvoicePDF] could not convert logo to Base64 — falling back to remote URL');
-    return null;
-  }
+  // Preload and Base64-embed the logo (and signature/stamp if shown) once
+  // their URLs are known — avoids CORS/tainted-canvas issues in the PDF.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [logo, signature, stamp] = await Promise.all([
+        toBase64Image(logoUrl),
+        showSignature ? toBase64Image(signatureUrl) : Promise.resolve(null),
+        showStamp ? toBase64Image(stampUrl) : Promise.resolve(null),
+      ]);
+      if (!cancelled) setEmbeds({ logo: logo || logoUrl, signature: signature || signatureUrl, stamp: stamp || stampUrl });
+    })();
+    return () => { cancelled = true; };
+  }, [logoUrl, signatureUrl, stampUrl, showSignature, showStamp]);
+
+  const handlePrint = () => window.print();
 
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
       const { default: jsPDF } = await import('jspdf');
       const { default: html2canvas } = await import('html2canvas');
-      // Guarantee the logo is embedded as Base64 before we capture the DOM.
-      if (!String(logoDataRef.current).startsWith('data:image')) {
-        const dataUrl = await toBase64Logo();
-        if (dataUrl) {
-          logoDataRef.current = dataUrl;
-          setLogoData(dataUrl);
-          await new Promise((r) => setTimeout(r, 150));
-        }
+
+      // Guarantee embeds are ready before capture.
+      let currentEmbeds = embeds;
+      if (!String(currentEmbeds.logo).startsWith('data:image')) {
+        const [logo, signature, stamp] = await Promise.all([
+          toBase64Image(logoUrl),
+          showSignature ? toBase64Image(signatureUrl) : Promise.resolve(null),
+          showStamp ? toBase64Image(stampUrl) : Promise.resolve(null),
+        ]);
+        currentEmbeds = { logo: logo || logoUrl, signature: signature || signatureUrl, stamp: stamp || stampUrl };
+        setEmbeds(currentEmbeds);
+        await new Promise((r) => setTimeout(r, 150));
       }
+
       const el = document.getElementById('invoice-print');
-      // Ensure every image inside the invoice has fully loaded before capture.
       const imgs = Array.from(el.querySelectorAll('img'));
       await Promise.all(imgs.map((img) => (
         img.complete && img.naturalWidth > 0
@@ -180,15 +191,21 @@ export default function InvoiceViewPage() {
   const cfg = settings || {};
   const items = Array.isArray(inv.items) ? inv.items : [];
   const statusColor = STATUS_COLORS[inv.status] || STATUS_COLORS.draft;
-  const currency = inv.currency || 'ZAR';
+  const currency = inv.currency || cfg.currency || 'ZAR';
   const statusLabel = inv.status ? inv.status.charAt(0).toUpperCase() + inv.status.slice(1) : 'Draft';
+  const companyName = cfg.company_name || DEFAULT_COMPANY_NAME;
+  const logoSrc = embeds.logo || logoUrl;
+  const signatureSrc = embeds.signature || signatureUrl;
+  const stampSrc = embeds.stamp || stampUrl;
+
+  const cardLabel = { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '10px' };
 
   return (
     <div className="min-h-[100dvh] bg-slate-100">
       <style>{PRINT_STYLE}</style>
       <Helmet>
         <title>{inv.invoice_number} | RUNHTec Invoice</title>
-        <meta name="description" content={`Invoice ${inv.invoice_number} from RUNHTec Contractors`} />
+        <meta name="description" content={`Invoice ${inv.invoice_number} from ${companyName}`} />
       </Helmet>
 
       {/* Toolbar */}
@@ -243,22 +260,28 @@ export default function InvoiceViewPage() {
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div
           id="invoice-print"
+          ref={printRef}
           className="rounded-2xl bg-white shadow-xl"
           style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '13px', lineHeight: '1.5', color: '#1e293b' }}
         >
           {/* Header */}
-          <div style={{ background: '#003DA5', borderRadius: '16px 16px 0 0', padding: '32px 40px 28px' }}>
+          <div style={{ background: BRAND, borderRadius: '16px 16px 0 0', padding: '32px 40px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
               {/* Logo + Company */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ background: 'white', borderRadius: '10px', padding: '6px', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                  <img src={logoData} alt="RUNHTec" style={{ width: '52px', height: '52px', objectFit: 'contain' }} />
+                  <img src={logoSrc} alt={companyName} style={{ width: '52px', height: '52px', objectFit: 'contain' }} />
                 </div>
                 <div>
                   <div style={{ color: 'white', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.3px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    RUNHTec Contractors
+                    {companyName}
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '2px' }}>
+                  {cfg.company_tagline && (
+                    <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', fontStyle: 'italic', marginTop: '1px' }}>
+                      {cfg.company_tagline}
+                    </div>
+                  )}
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', marginTop: '4px' }}>
                     {cfg.company_address || 'Kigali, Rwanda'}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
@@ -281,13 +304,14 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          {/* Meta row */}
+          {/* Meta row: invoice number, dates, status kept clearly visible together */}
           <div style={{ background: '#f8fafc', padding: '20px 40px', borderBottom: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
             {[
+              { label: 'Invoice Number', value: inv.invoice_number || '—' },
               { label: 'Invoice Date', value: inv.invoice_date || '—' },
               { label: 'Due Date', value: inv.due_date || '—' },
               { label: 'Payment Terms', value: inv.payment_terms || '—' },
-              { label: 'Currency', value: inv.currency || 'ZAR' },
+              { label: 'Payment Status', value: statusLabel },
             ].map(m => (
               <div key={m.label}>
                 <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: '2px' }}>{m.label}</div>
@@ -296,10 +320,10 @@ export default function InvoiceViewPage() {
             ))}
           </div>
 
-          {/* Bill To / From */}
-          <div style={{ padding: '28px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', borderBottom: '1px solid #e2e8f0' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '10px' }}>Bill To</div>
+          {/* Bill To / From — card layout */}
+          <div style={{ padding: '28px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px 20px' }}>
+              <div style={cardLabel}>Bill To</div>
               {inv.bill_to_name && <div style={{ fontWeight: 700, fontSize: '15px' }}>{inv.bill_to_name}</div>}
               {inv.bill_to_company && <div style={{ fontWeight: inv.bill_to_name ? 500 : 700, fontSize: inv.bill_to_name ? '13px' : '15px', color: inv.bill_to_name ? '#475569' : '#1e293b' }}>{inv.bill_to_company}</div>}
               {inv.bill_to_address && <div style={{ color: '#64748b', marginTop: '4px', whiteSpace: 'pre-line' }}>{inv.bill_to_address}</div>}
@@ -307,9 +331,10 @@ export default function InvoiceViewPage() {
               {inv.bill_to_phone && <div style={{ color: '#64748b' }}>{inv.bill_to_phone}</div>}
               {!inv.bill_to_name && !inv.bill_to_company && <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No client specified</div>}
             </div>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '10px' }}>From</div>
-              <div style={{ fontWeight: 700, fontSize: '15px' }}>RUNHTec Contractors</div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px 20px' }}>
+              <div style={cardLabel}>From</div>
+              <div style={{ fontWeight: 700, fontSize: '15px' }}>{companyName}</div>
+              {cfg.company_registration_number && <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '2px' }}>Reg. No: {cfg.company_registration_number}</div>}
               {cfg.company_address && <div style={{ color: '#64748b', marginTop: '4px', whiteSpace: 'pre-line' }}>{cfg.company_address}</div>}
               {cfg.company_phone && <div style={{ color: '#64748b', marginTop: '4px' }}>{cfg.company_phone}</div>}
               {cfg.company_email && <div style={{ color: '#64748b' }}>{cfg.company_email}</div>}
@@ -321,7 +346,7 @@ export default function InvoiceViewPage() {
           <div style={{ padding: '28px 40px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#003DA5' }}>
+                <tr style={{ background: BRAND }}>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '6px 0 0 6px' }}>Description</th>
                   <th style={{ padding: '10px 14px', textAlign: 'center', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px' }}>Qty</th>
                   <th style={{ padding: '10px 14px', textAlign: 'right', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', width: '130px' }}>Unit Price</th>
@@ -342,26 +367,26 @@ export default function InvoiceViewPage() {
 
             {/* Totals */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <div style={{ width: '280px' }}>
+              <div style={{ width: '300px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
                   <span style={{ color: '#64748b' }}>Subtotal</span>
                   <span style={{ fontWeight: 500 }}>{fmt(inv.subtotal, currency)}</span>
                 </div>
-                {inv.tax_rate > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
-                    <span style={{ color: '#64748b' }}>VAT / Tax ({inv.tax_rate}%)</span>
-                    <span style={{ fontWeight: 500 }}>{fmt(inv.tax_amount, currency)}</span>
-                  </div>
-                )}
                 {inv.discount_amount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
                     <span style={{ color: '#64748b' }}>Discount</span>
                     <span style={{ fontWeight: 500, color: '#16a34a' }}>-{fmt(inv.discount_amount, currency)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', marginTop: '4px', background: '#003DA5', borderRadius: '8px' }}>
-                  <span style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>TOTAL DUE</span>
-                  <span style={{ color: 'white', fontWeight: 800, fontSize: '16px' }}>{fmt(inv.total, currency)}</span>
+                {inv.tax_rate > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
+                    <span style={{ color: '#64748b' }}>VAT / Tax ({inv.tax_rate}%)</span>
+                    <span style={{ fontWeight: 500 }}>{fmt(inv.tax_amount, currency)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 14px', marginTop: '6px', background: BRAND, borderRadius: '8px' }}>
+                  <span style={{ color: 'white', fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total Due</span>
+                  <span style={{ color: 'white', fontWeight: 800, fontSize: '19px' }}>{fmt(inv.total, currency)}</span>
                 </div>
               </div>
             </div>
@@ -387,7 +412,7 @@ export default function InvoiceViewPage() {
 
           {/* Bank Details */}
           <div style={{ margin: '0 40px 24px', padding: '20px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#003DA5', marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: BRAND, marginBottom: '12px' }}>
               Payment / Banking Details
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 24px' }}>
@@ -409,42 +434,61 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          {/* Terms & Signature */}
-          <div style={{ padding: '0 40px 32px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '40px', borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
+          {/* Terms & Digital Authorization */}
+          <div style={{ padding: '0 40px 32px', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '40px', borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
             {inv.terms_conditions && (
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: '8px' }}>Terms &amp; Conditions</div>
                 <div style={{ color: '#64748b', whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '11px' }}>{inv.terms_conditions}</div>
               </div>
             )}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: '8px' }}>Authorized Signature &amp; Stamp</div>
-              {cfg.signature ? (
-                <div style={{ height: '60px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '8px' }}>
-                  <img
-                    src={pb.files.getURL(cfg, cfg.signature)}
-                    alt="Signature"
-                    crossOrigin="anonymous"
-                    style={{ maxHeight: '56px', maxWidth: '200px', objectFit: 'contain' }}
-                  />
+
+            {/* Digital authorization: stamp + signature, no manual signing required */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '16px' }}>
+              {showStamp && (
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', width: '80px', height: '80px', flexShrink: 0, opacity: 0.9 }}>
+                  <img src={stampSrc} alt="Company stamp" crossOrigin="anonymous" style={{ maxWidth: '80px', maxHeight: '80px', objectFit: 'contain' }} />
                 </div>
-              ) : (
-                <div style={{ height: '56px' }} />
               )}
-              <div style={{ borderTop: '2px solid #003DA5', paddingTop: '8px' }}>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>Authorized Representative</div>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#003DA5', marginTop: '2px' }}>RUNHTec Contractors</div>
+              <div style={{ textAlign: 'center', flex: 1 }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', marginBottom: '8px' }}>Authorized By</div>
+                {showSignature ? (
+                  <div style={{ height: '52px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '6px' }}>
+                    <img
+                      src={signatureSrc}
+                      alt="Authorized signature"
+                      crossOrigin="anonymous"
+                      style={{ maxHeight: '48px', maxWidth: '180px', objectFit: 'contain' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ height: '52px' }} />
+                )}
+                <div style={{ borderTop: `2px solid ${BRAND}`, paddingTop: '8px' }}>
+                  {cfg.signature_name && <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{cfg.signature_name}</div>}
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>{cfg.signature_position || 'Authorized Representative'}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: BRAND, marginTop: '2px' }}>{companyName}</div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div style={{ background: '#003DA5', borderRadius: '0 0 16px 16px', padding: '14px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
-              Generated by RUNHTec Business Portal
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', fontWeight: 600 }}>
-              {inv.invoice_number} • {inv.invoice_date || new Date().toLocaleDateString()}
+          <div style={{ background: BRAND, borderRadius: '0 0 16px 16px', padding: '18px 40px' }}>
+            {cfg.invoice_footer_text && (
+              <div style={{ color: 'white', fontSize: '13px', fontWeight: 600, marginBottom: '8px', textAlign: 'center' }}>
+                {cfg.invoice_footer_text}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>
+                {companyName}
+                {cfg.company_registration_number ? ` • Reg. No: ${cfg.company_registration_number}` : ''}
+                {' • Generated by RUNHTec Business Portal'}
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', fontWeight: 600 }}>
+                {inv.invoice_number} • {inv.invoice_date || new Date().toLocaleDateString()}
+              </div>
             </div>
           </div>
         </div>
