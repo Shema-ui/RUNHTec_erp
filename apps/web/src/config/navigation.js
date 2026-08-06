@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   ScrollText,
+  Bell,
 } from 'lucide-react';
 
 // Primary operating modules. `to` is null for placeholders that are not yet
@@ -23,16 +24,17 @@ export const MODULE_NAV = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
   { key: 'crm', label: 'CRM', icon: Contact, to: '/crm' },
   { key: 'clients', label: 'Clients', icon: Building2, to: '/crm/clients' },
-  { key: 'rfq', label: 'Request for Quotations', icon: FileQuestion, to: null },
-  { key: 'quotations', label: 'Quotations', icon: FileText, to: null },
-  { key: 'work_orders', label: 'Work Orders', icon: ClipboardList, to: null },
-  { key: 'projects', label: 'Projects', icon: FolderKanban, to: null },
-  { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: null },
+  { key: 'rfq', label: 'Request for Quotations', icon: FileQuestion, to: '/rfqs' },
+  { key: 'quotations', label: 'Quotations', icon: FileText, to: '/quotations' },
+  { key: 'work_orders', label: 'Work Orders', icon: ClipboardList, to: '/projects' },
+  { key: 'projects', label: 'Projects', icon: FolderKanban, to: '/projects' },
+  { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },
   { key: 'invoices', label: 'Invoices', icon: ReceiptText, to: '/invoices' },
-  { key: 'payments', label: 'Payments', icon: CreditCard, to: null },
-  { key: 'employees', label: 'Employees', icon: Users, to: null },
-  { key: 'reports', label: 'Reports', icon: BarChart3, to: null },
-  { key: 'documents', label: 'Documents', icon: FolderArchive, to: null },
+  { key: 'payments', label: 'Payments', icon: CreditCard, to: '/payments' },
+  { key: 'employees', label: 'Employees', icon: Users, to: '/employees' },
+  { key: 'reports', label: 'Reports', icon: BarChart3, to: '/reports' },
+  { key: 'documents', label: 'Documents', icon: FolderArchive, to: '/documents' },
+  { key: 'notifications', label: 'Notifications', icon: Bell, to: '/notifications' },
   { key: 'settings', label: 'Settings', icon: Settings, to: '/settings' },
 ];
 

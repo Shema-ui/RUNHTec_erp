@@ -20,6 +20,15 @@ import InvoicesPage from '@/pages/invoices/InvoicesPage';
 import InvoiceFormPage from '@/pages/invoices/InvoiceFormPage';
 import InvoiceViewPage from '@/pages/invoices/InvoiceViewPage';
 import SettingsPage from '@/pages/SettingsPage';
+import RfqsPage from '@/pages/ops/RfqsPage';
+import QuotationsPage from '@/pages/ops/QuotationsPage';
+import ProjectsPage from '@/pages/ops/ProjectsPage';
+import MaintenancePage from '@/pages/ops/MaintenancePage';
+import ReportsPage from '@/pages/ops/ReportsPage';
+import EmployeesPage from '@/pages/ops/EmployeesPage';
+import DocumentsPage from '@/pages/ops/DocumentsPage';
+import NotificationsPage from '@/pages/ops/NotificationsPage';
+import PaymentsPage from '@/pages/ops/PaymentsPage';
 
 function App() {
   return (
@@ -62,6 +71,17 @@ function App() {
           <Route path="/invoices/new" element={<RequireAuth><InvoiceFormPage /></RequireAuth>} />
           <Route path="/invoices/:id/edit" element={<RequireAuth><InvoiceFormPage /></RequireAuth>} />
           <Route path="/invoices/:id/view" element={<RequireAuth><InvoiceViewPage /></RequireAuth>} />
+
+          {/* ERP / Operations Modules */}
+          <Route path="/rfqs" element={<RequireAuth><RfqsPage /></RequireAuth>} />
+          <Route path="/quotations" element={<RequireAuth><QuotationsPage /></RequireAuth>} />
+          <Route path="/projects" element={<RequireAuth><ProjectsPage /></RequireAuth>} />
+          <Route path="/maintenance" element={<RequireAuth><MaintenancePage /></RequireAuth>} />
+          <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
+          <Route path="/employees" element={<RequireAuth><EmployeesPage /></RequireAuth>} />
+          <Route path="/documents" element={<RequireAuth><DocumentsPage /></RequireAuth>} />
+          <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+          <Route path="/payments" element={<RequireAuth><PaymentsPage /></RequireAuth>} />
 
           {/* Settings */}
           <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
