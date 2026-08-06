@@ -14,7 +14,7 @@ export default function QuotationsPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const result = await pb.collection('quotations').getList(1, 100, { sort: '-created' });
+        const result = await pb.collection('quotations').getList(1, 100, { sort: '-created', expand: 'client' });
         if (!cancelled) setQuotes(result.items || []);
       } catch (error) {
         console.error('Quotations load error', error);
@@ -29,7 +29,8 @@ export default function QuotationsPage() {
   }, []);
 
   const filtered = useMemo(() => quotes.filter((quote) => {
-    const matchesQuery = !query || [quote.number, quote.client].join(' ').toLowerCase().includes(query.toLowerCase());
+    const clientName = quote.expand?.client?.company_name || '';
+    const matchesQuery = !query || [quote.number, clientName].join(' ').toLowerCase().includes(query.toLowerCase());
     const matchesStatus = status === 'all' || quote.status === status;
     return matchesQuery && matchesStatus;
   }), [query, status, quotes]);
@@ -85,7 +86,7 @@ export default function QuotationsPage() {
                     <h3 className="font-display text-lg font-semibold text-foreground">{quote.number}</h3>
                     <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-muted-foreground">{quote.status}</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{quote.client}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{quote.expand?.client?.company_name || 'No client linked'}</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
                     <span>Total: {quote.total}</span>
                     <span>Valid until: {quote.valid_until}</span>

@@ -49,36 +49,6 @@ function StatCard({ stat, index }) {
   );
 }
 
-function StatCard({ stat, index }) {
-  const Icon = stat.icon;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.04, ease: 'easeOut' }}
-      className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
-    >
-      <div className="flex items-start justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-primary">
-          <Icon className="h-5 w-5" strokeWidth={2} />
-        </span>
-        <span
-          className={`flex items-center gap-0.5 text-xs font-semibold ${
-            stat.up ? 'text-emerald-600' : 'text-rose-500'
-          }`}
-        >
-          {stat.up ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-          {stat.delta}
-        </span>
-      </div>
-      <p className="mt-4 font-display text-2xl font-extrabold tracking-tight text-foreground">
-        {stat.value}
-      </p>
-      <p className="mt-0.5 text-[13px] text-muted-foreground">{stat.label}</p>
-    </motion.div>
-  );
-}
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState([]);
@@ -92,12 +62,14 @@ export default function DashboardPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const [clientsRes, rfqsRes, quotesRes, projectsRes, maintenanceRes, activitiesRes] = await Promise.all([
+        const openRequestFilter = "request_status = '' || request_status = 'new' || request_status = 'reviewing'";
+        const [clientsRes, enquiriesRes, quoteRfqsRes, quotesRes, projectsRes, maintenanceRes, activitiesRes] = await Promise.all([
           pb.collection('clients').getList(1, 1),
-          pb.collection('rfqs').getList(1, 1, { filter: "status = 'new' || status = 'reviewing'" }),
+          pb.collection('rfqs').getList(1, 1, { filter: `request_type = 'contact_enquiry' && (${openRequestFilter})` }),
+          pb.collection('rfqs').getList(1, 1, { filter: `request_type = 'quote_request' && (${openRequestFilter})` }),
           pb.collection('quotations').getList(1, 1),
           pb.collection('projects').getList(1, 1, { filter: "status = 'scheduled' || status = 'in_progress'" }),
-          pb.collection('maintenance_contracts').getList(1, 1),
+          pb.collection('maintenance_contracts').getList(1, 1, { filter: 'active = true' }),
           pb.collection('client_activities').getList(1, 8, { sort: '-created' }),
         ]);
 
@@ -105,8 +77,8 @@ export default function DashboardPage() {
 
         const liveStats = [
           { key: 'clients', label: 'Total Clients', value: clientsRes.totalItems ?? 0, icon: Building2 },
-          { key: 'enquiries', label: 'New Enquiries', value: rfqsRes.totalItems ?? 0, icon: FileQuestion },
-          { key: 'rfq', label: 'Pending RFQs', value: rfqsRes.totalItems ?? 0, icon: FileQuestion },
+          { key: 'enquiries', label: 'New Enquiries', value: enquiriesRes.totalItems ?? 0, icon: FileQuestion },
+          { key: 'rfq', label: 'Pending RFQs', value: quoteRfqsRes.totalItems ?? 0, icon: FileQuestion },
           { key: 'quotations', label: 'Quotations', value: quotesRes.totalItems ?? 0, icon: FileText },
           { key: 'projects', label: 'Active Projects', value: projectsRes.totalItems ?? 0, icon: FolderKanban },
           { key: 'maintenance', label: 'Maintenance Requests', value: maintenanceRes.totalItems ?? 0, icon: Wrench },
