@@ -67,6 +67,7 @@ export default function UsersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [roleTarget, setRoleTarget] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -185,6 +186,9 @@ export default function UsersPage() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => setRoleTarget(u)}>
+                                <ShieldCheck className="mr-2 h-4 w-4" /> Change role
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setResetTarget(u)}>
                                 <KeyRound className="mr-2 h-4 w-4" /> Reset password
                               </DropdownMenuItem>
@@ -220,15 +224,71 @@ export default function UsersPage() {
       </p>
 
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />
+      <ChangeRoleDialog target={roleTarget} onClose={() => setRoleTarget(null)} onChanged={load} />
       <ResetPasswordDialog target={resetTarget} onClose={() => setResetTarget(null)} />
       <DeleteUserDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={load} />
     </PortalLayout>
   );
 }
 
+function ChangeRoleDialog({ target, onClose, onChanged }) {
+  const { toast } = useToast();
+  const [role, setRole] = useState('sales');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (target) setRole(target.role); }, [target]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await pb.collection('users').update(target.id, { role });
+      logActivity('Changed role', `${target.email} -> ${roleLabel(role)}`);
+      toast({ title: 'Role updated', description: `${target.email} is now ${roleLabel(role)}` });
+      onChanged();
+      onClose();
+    } catch (err) {
+      toast({ title: 'Could not change role', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={Boolean(target)} onOpenChange={(v) => { if (!v && !saving) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change role</DialogTitle>
+          <DialogDescription>Update what {target?.email} can access in the portal.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.values(ROLES).filter((r) => r.key !== 'super_admin').map((r) => (
+                  <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{ROLES[role]?.description}</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save role'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CreateUserDialog({ open, onOpenChange, onCreated }) {
   const { toast } = useToast();
-  const empty = { name: '', email: '', job_title: '', role: 'admin', password: '' };
+  const empty = { name: '', email: '', job_title: '', role: 'sales', password: '' };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

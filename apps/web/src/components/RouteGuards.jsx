@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { canAccessModule } from '@/lib/permissions';
 import { Loader2 } from 'lucide-react';
 
 function FullScreenLoader() {
@@ -23,6 +24,18 @@ export function RequireRole({ roles, children }) {
   const { user, ready } = useAuth();
   if (!ready) return <FullScreenLoader />;
   if (!user || !roles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
+// Gates a route by the same MODULE_ACCESS map that drives sidebar
+// visibility, so a role can't reach a module by typing its URL directly
+// even though it's hidden from navigation.
+export function RequireModule({ moduleKey, children }) {
+  const { user, ready } = useAuth();
+  if (!ready) return <FullScreenLoader />;
+  if (!canAccessModule(user, moduleKey)) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;

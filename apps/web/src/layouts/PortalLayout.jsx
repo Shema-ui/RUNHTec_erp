@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { useAuth } from '@/context/AuthContext';
-import { roleLabel } from '@/lib/permissions';
+import { roleLabel, canAccessModule } from '@/lib/permissions';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -74,6 +74,7 @@ function NavItem({ item, collapsed }) {
 }
 
 function SidebarContent({ collapsed, user }) {
+  const moduleItems = MODULE_NAV.filter((i) => canAccessModule(user, i.key));
   const adminItems = ADMIN_NAV.filter((i) => !i.roles || i.roles.includes(user?.role));
   return (
     <nav className="portal-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -82,7 +83,7 @@ function SidebarContent({ collapsed, user }) {
           Modules
         </p>
       )}
-      {MODULE_NAV.map((item) => (
+      {moduleItems.map((item) => (
         <NavItem key={item.key} item={item} collapsed={collapsed} />
       ))}
 
