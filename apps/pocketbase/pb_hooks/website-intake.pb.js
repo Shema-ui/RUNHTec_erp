@@ -1,8 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 routerAdd("POST", "/api/website-intake", (e) => {
-  const body = e.request?.json?.() || {};
-  const payload = body || {};
+  // `e.request` is the raw Go *http.Request and has no JS `.json()` helper —
+  // that call silently resolved to undefined, so `body` was always `{}` and
+  // every real submission was rejected with "Missing submission data".
+  // `e.requestInfo().body` is the correct way to read a parsed JSON body in
+  // a custom PocketBase JSVM route.
+  const payload = e.requestInfo().body || {};
   const source = String(payload.source || "website").toLowerCase();
   const type = String(payload.type || "contact").toLowerCase();
   const name = String(payload.name || "").trim();

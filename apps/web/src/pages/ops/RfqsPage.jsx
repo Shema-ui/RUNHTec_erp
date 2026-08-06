@@ -94,14 +94,20 @@ export default function RfqsPage() {
     setBusyId(rfq.id);
     try {
       const number = `Q-${Date.now().toString(36).toUpperCase()}`;
-      await pb.collection('quotations').create({
+      const quotation = await pb.collection('quotations').create({
         rfq: rfq.id,
         client: rfq.client || null,
         number,
+        bill_to_name: rfq.name || '',
+        bill_to_company: rfq.company || '',
+        bill_to_email: rfq.email || '',
+        bill_to_phone: rfq.phone || '',
+        bill_to_address: rfq.address || '',
         items: [],
         subtotal: 0,
         tax_rate: 0,
         tax_amount: 0,
+        discount_amount: 0,
         total: 0,
         currency: 'RWF',
         status: 'draft',
@@ -110,7 +116,7 @@ export default function RfqsPage() {
       await pb.collection('rfqs').update(rfq.id, { status: 'quoted', request_status: 'reviewing' });
       setRfqs((prev) => prev.map((item) => (item.id === rfq.id ? { ...item, status: 'quoted', request_status: 'reviewing' } : item)));
       toast({ title: 'Draft quotation created', description: `${number} was added to the Quotations workflow.` });
-      navigate('/quotations');
+      navigate(`/quotations/${quotation.id}/edit`);
     } catch (error) {
       console.error('Convert to quotation error', error);
       toast({ variant: 'destructive', title: 'Could not create quotation', description: error?.message || 'Please try again.' });

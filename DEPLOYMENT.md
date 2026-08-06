@@ -15,9 +15,10 @@ Target topology:
    `horizons migrations:up` / `migrations:revert` commands are implemented in
    `pb_hooks/custom-migrations-cmd.pb.js`, so any standard PocketBase build
    works — no Hostinger-specific binary is required.
-2. Set the encryption key as an environment variable before starting:
+2. Copy `apps/pocketbase/.env.example` and set `PB_ENCRYPTION_KEY` as an
+   environment variable before starting:
    ```
-   export PB_ENCRYPTION_KEY="<32+ char random secret, generate once and keep it>"
+   export PB_ENCRYPTION_KEY="<32-byte random secret, generate once and keep it>"
    ```
    Losing this key after storing encrypted settings makes them unrecoverable — store it in a secrets manager.
 3. Create the superuser account. Two of the original migration files that did
@@ -25,7 +26,8 @@ Target topology:
    are intentionally gitignored (they'd otherwise ship a hardcoded account).
    On a fresh server, run:
    ```
-   ./pocketbase superuser create you@runhteccontractors.com "<strong-password>"
+   ./pocketbase superuser upsert you@runhteccontractors.com "<strong-password>" \
+     --encryptionEnv=PB_ENCRYPTION_KEY --dir=./pb_data
    ```
 4. Start the server (this also applies all `pb_migrations/*.js` automatically):
    ```
@@ -40,11 +42,11 @@ Target topology:
    `api.runhteccontractors.com`, proxying to `127.0.0.1:8090`.
 6. **Note on `/`:** `pb_hooks/external-dashboard.pb.js` proxies the PocketBase
    admin UI HTML from a Hostinger-hosted CDN URL instead of using the
-   built-in embedded admin UI. This is an external dependency outside your
-   infrastructure — if it goes down or the URL changes, `/` (and only `/`)
-   on the API domain will fail to load the admin dashboard, though the API
-   itself keeps working. If you'd rather not depend on it, delete this hook
-   file and PocketBase will serve its own bundled admin UI at `/_/` instead.
+   built-in embedded admin UI, kept for parity with Horizons hosting. If
+   that external fetch fails for any reason (CDN down, blocked network,
+   version mismatch), it now falls back to redirecting to PocketBase's own
+   bundled admin UI at `/_/` rather than returning a hard error — so `/` on
+   the API domain stays reachable either way.
 7. Confirm collections applied correctly:
    ```
    curl https://api.runhteccontractors.com/api/health

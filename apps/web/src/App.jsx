@@ -22,6 +22,8 @@ import InvoiceViewPage from '@/pages/invoices/InvoiceViewPage';
 import SettingsPage from '@/pages/SettingsPage';
 import RfqsPage from '@/pages/ops/RfqsPage';
 import QuotationsPage from '@/pages/ops/QuotationsPage';
+import QuotationFormPage from '@/pages/ops/QuotationFormPage';
+import QuotationViewPage from '@/pages/ops/QuotationViewPage';
 import ProjectsPage from '@/pages/ops/ProjectsPage';
 import MaintenancePage from '@/pages/ops/MaintenancePage';
 import ReportsPage from '@/pages/ops/ReportsPage';
@@ -75,6 +77,9 @@ function App() {
           {/* ERP / Operations Modules */}
           <Route path="/rfqs" element={<RequireAuth><RfqsPage /></RequireAuth>} />
           <Route path="/quotations" element={<RequireAuth><QuotationsPage /></RequireAuth>} />
+          <Route path="/quotations/new" element={<RequireAuth><QuotationFormPage /></RequireAuth>} />
+          <Route path="/quotations/:id/edit" element={<RequireAuth><QuotationFormPage /></RequireAuth>} />
+          <Route path="/quotations/:id/view" element={<RequireAuth><QuotationViewPage /></RequireAuth>} />
           <Route path="/projects" element={<RequireAuth><ProjectsPage /></RequireAuth>} />
           <Route path="/maintenance" element={<RequireAuth><MaintenancePage /></RequireAuth>} />
           <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />

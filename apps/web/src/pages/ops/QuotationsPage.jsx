@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { Link } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, CheckCircle2, Clock3 } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+
+function fmt(n, currency = 'ZAR') {
+  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+}
 
 export default function QuotationsPage() {
   const [quotes, setQuotes] = useState([]);
@@ -29,7 +34,7 @@ export default function QuotationsPage() {
   }, []);
 
   const filtered = useMemo(() => quotes.filter((quote) => {
-    const clientName = quote.expand?.client?.company_name || '';
+    const clientName = quote.expand?.client?.company_name || quote.bill_to_company || '';
     const matchesQuery = !query || [quote.number, clientName].join(' ').toLowerCase().includes(query.toLowerCase());
     const matchesStatus = status === 'all' || quote.status === status;
     return matchesQuery && matchesStatus;
@@ -47,9 +52,9 @@ export default function QuotationsPage() {
           <p className="text-sm font-semibold text-primary">Quotation workflow</p>
           <p className="text-sm text-muted-foreground">Approved quotes automatically trigger projects and operational follow-up.</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground">
+        <Link to="/quotations/new" className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground">
           <Plus className="h-4 w-4" /> New quotation
-        </button>
+        </Link>
       </div>
 
       <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -61,9 +66,11 @@ export default function QuotationsPage() {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-transparent text-sm outline-none">
             <option value="all">All statuses</option>
+            <option value="draft">Draft</option>
             <option value="sent">Sent</option>
             <option value="accepted">Accepted</option>
             <option value="declined">Declined</option>
+            <option value="expired">Expired</option>
           </select>
         </div>
       </div>
@@ -71,11 +78,15 @@ export default function QuotationsPage() {
       {loading ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">Loading quotations…</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">No quotations found yet.</div>
+        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">No quotations found yet. Create one from an RFQ or start a new one.</div>
       ) : (
         <div className="grid gap-4">
           {filtered.map((quote) => (
-          <div key={quote.id} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <Link
+            key={quote.id}
+            to={`/quotations/${quote.id}/view`}
+            className="block rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+          >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <div className="rounded-xl bg-accent p-3 text-primary">
@@ -84,12 +95,12 @@ export default function QuotationsPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-display text-lg font-semibold text-foreground">{quote.number}</h3>
-                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-muted-foreground">{quote.status}</span>
+                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold capitalize text-muted-foreground">{quote.status}</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{quote.expand?.client?.company_name || 'No client linked'}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{quote.expand?.client?.company_name || quote.bill_to_company || 'No client linked'}</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    <span>Total: {quote.total}</span>
-                    <span>Valid until: {quote.valid_until}</span>
+                    <span>Total: {fmt(quote.total, quote.currency)}</span>
+                    {quote.valid_until && <span>Valid until: {quote.valid_until}</span>}
                   </div>
                 </div>
               </div>
@@ -98,7 +109,7 @@ export default function QuotationsPage() {
                 {quote.status === 'accepted' ? 'Accepted — project ready' : 'Pending client approval'}
               </div>
             </div>
-          </div>
+          </Link>
           ))}
         </div>
       )}
