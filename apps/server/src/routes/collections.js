@@ -33,6 +33,23 @@ function serializeValue(field, value) {
   return value;
 }
 
+// Fields that must never leave the server, keyed by collection. Kept
+// separate from `deserializeRow` (which is also used internally for RBAC
+// rule checks and audit diffing, where the full row is legitimately
+// needed) so this only strips things right before they go out over HTTP.
+const SENSITIVE_FIELDS = {
+  users: ['password_hash', 'reset_token_hash', 'reset_token_expires'],
+};
+
+function toPublic(collectionName, record) {
+  if (!record) return record;
+  const strip = SENSITIVE_FIELDS[collectionName];
+  if (!strip) return record;
+  const out = { ...record };
+  strip.forEach((f) => delete out[f]);
+  return out;
+}
+
 function collectionMiddleware(req, res, next) {
   const def = collections[req.params.name];
   if (!def) return res.status(404).json({ message: 'Unknown collection.' });
@@ -51,7 +68,7 @@ async function expandRecord(def, record, expandParam) {
     const relatedDef = collections[relatedCollection];
     if (!relatedDef) continue;
     const [rows] = await pool.query(`SELECT * FROM \`${relatedDef.table}\` WHERE id = ?`, [record[field]]);
-    if (rows[0]) expand[field] = deserializeRow(rows[0]);
+    if (rows[0]) expand[field] = toPublic(relatedCollection, deserializeRow(rows[0]));
   }
   if (Object.keys(expand).length) record.expand = expand;
   return record;
@@ -116,7 +133,7 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
     }
 
     res.json({
-      items,
+      items: items.map((item) => toPublic(req.collectionName, item)),
       page,
       perPage,
       totalItems: items.length === rows.length ? totalItems : items.length,
@@ -136,7 +153,7 @@ router.get('/:name/records/:id', collectionMiddleware, requireAuth, async (req, 
     let record = deserializeRow(rows[0]);
     if (!def.rules.view(req.user, record)) return res.status(404).json({ message: 'Not found.' });
     if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
-    res.json(record);
+    res.json(toPublic(req.collectionName, record));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -196,7 +213,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
-    res.status(200).json(record);
+    res.status(200).json(toPublic(req.collectionName, record));
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ message: 'A record with that unique value already exists.' });
     res.status(400).json({ message: err.message });
@@ -248,7 +265,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     }
 
     if (setClauses.length === 0) {
-      return res.json(before);
+      return res.json(toPublic(req.collectionName, before));
     }
 
     values.push(req.params.id);
@@ -258,7 +275,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: req.collectionName, record: after, changes });
-    res.json(after);
+    res.json(toPublic(req.collectionName, after));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
