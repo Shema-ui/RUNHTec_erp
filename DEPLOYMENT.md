@@ -1,81 +1,122 @@
-# Deployment Guide
+# Deployment Guide — Hostinger Shared/Business Hosting
+
+This supersedes an earlier version of this file that described a
+PocketBase + VPS topology. The backend was rebuilt as Node/Express/MySQL
+specifically so the **entire system** — frontend and backend — can run on
+a single Hostinger shared/Business plan, no VPS required.
 
 Target topology:
 
 - `app.runhteccontractors.com` — static build of `apps/web` (Vite/React)
-- `api.runhteccontractors.com` — `apps/pocketbase` (PocketBase server)
-- Public marketing site (`runhteccontractors.com`, separate project) submits
-  form data to `https://api.runhteccontractors.com/api/website-intake`
+- `api.runhteccontractors.com` — `apps/server` (Node/Express), deployed via
+  Hostinger's Node.js Web App hosting
+- MySQL database — a standard Hostinger-provisioned MySQL database
+- Public marketing site (`runhteccontractors.com`, separate project) posts
+  to `https://api.runhteccontractors.com/api/website-intake`
 
-## 1. Backend (PocketBase) — api.runhteccontractors.com
+## 1. Create the MySQL database
 
-1. Download the official PocketBase binary matching your server OS from
-   https://pocketbase.io/docs/ and place it at `apps/pocketbase/pocketbase`
-   (or point `--dir`/binary path at wherever you install it). The custom
-   `horizons migrations:up` / `migrations:revert` commands are implemented in
-   `pb_hooks/custom-migrations-cmd.pb.js`, so any standard PocketBase build
-   works — no Hostinger-specific binary is required.
-2. Copy `apps/pocketbase/.env.example` and set `PB_ENCRYPTION_KEY` as an
-   environment variable before starting:
+hPanel → Databases → MySQL Databases → create a new database and a new
+database user with full privileges on it. Note down:
+
+- Database name
+- Database username
+- Database password
+- Database host (Hostinger shared hosting almost always uses `localhost`
+  when the Node app and MySQL are on the same account — confirm in hPanel)
+
+## 2. Deploy the backend (`apps/server`) as a Node.js Web App
+
+1. hPanel → Websites → your domain → **Node.js** (or **Deploy Web App** →
+   Node.js, wording varies by Hostinger's current UI).
+2. Connect your GitHub account, select `Shema-ui/RUNHTec_erp`, branch
+   `main`.
+3. **Application root**: `apps/server`
+4. **Startup file**: `src/index.js`
+5. **Node version**: 18 or later
+6. Hostinger installs dependencies (`npm install`) and starts the app
+   automatically on deploy; redeploys happen automatically on new commits
+   to `main` (confirm auto-redeploy is enabled in the Git settings).
+7. **Environment variables** — set these in the Node.js app's environment
+   variable panel (do not commit a real `.env` file):
    ```
-   export PB_ENCRYPTION_KEY="<32-byte random secret, generate once and keep it>"
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=<your MySQL username>
+   DB_PASSWORD=<your MySQL password>
+   DB_NAME=<your MySQL database name>
+   JWT_SECRET=<generate with: openssl rand -hex 32>
+   CORS_ORIGINS=https://app.runhteccontractors.com
+   APP_URL=https://app.runhteccontractors.com
+   PORT=8090
    ```
-   Losing this key after storing encrypted settings makes them unrecoverable — store it in a secrets manager.
-3. Create the superuser account. Two of the original migration files that did
-   this (`1785371029_seed_shema_nicholas.js`, `1764579159_create_superuser.js`)
-   are intentionally gitignored (they'd otherwise ship a hardcoded account).
-   On a fresh server, run:
+   `PORT` may be overridden by Hostinger's platform — check their Node.js
+   hosting docs for whether they inject their own `PORT` value; the app
+   reads `process.env.PORT` either way.
+8. On first successful boot, the app runs the SQL migration automatically
+   and creates all 21 tables. Check the deploy log for
+   `[migrate] applied 001_init.sql`.
+9. Point `api.runhteccontractors.com` at this Node.js app (Hostinger's
+   Node.js hosting panel provides the subdomain/domain binding step; SSL
+   is typically automatic via their shared hosting TLS).
+
+### Create the first Super Administrator account
+
+There is no seeded account in this backend (unlike the earlier PocketBase
+version, which shipped one in a migration file — deliberately not repeated
+here). The simplest way to create the first account is the included
+script — if your Hostinger plan includes SSH/terminal access to the Node
+app, run this once from inside `apps/server` (it reads the same database
+environment variables the app itself uses):
+
+```bash
+node scripts/create-superuser.js you@runhteccontractors.com "a-strong-password" "Your Name"
+```
+
+Safe to re-run — if the email already exists it just resets the password
+instead of failing.
+
+If your plan doesn't offer SSH access, do it directly through hPanel's
+phpMyAdmin (Databases → phpMyAdmin) instead:
+```sql
+INSERT INTO users (id, email, password_hash, name, role, status)
+VALUES ('changeme01', 'you@runhteccontractors.com', '<bcrypt hash>', 'Your Name', 'super_admin', 'active');
+```
+Generate the bcrypt hash on any machine with Node installed:
+```
+node -e "require('bcryptjs').hash('your-password', 10).then(console.log)"
+```
+
+## 3. Deploy the frontend (`apps/web`) to shared hosting
+
+1. hPanel → Websites → your domain → **Add subdomain**: `app.runhteccontractors.com`.
+2. hPanel → that subdomain → **Advanced → Git**. Connect the same repo,
+   branch `main`.
+3. Settings:
+   - **Root/subdirectory**: `apps/web`
+   - **Build command**: `npm run build`
+   - **Output directory**: `dist`
+4. **Environment variable**:
    ```
-   ./pocketbase superuser upsert you@runhteccontractors.com "<strong-password>" \
-     --encryptionEnv=PB_ENCRYPTION_KEY --dir=./pb_data
+   VITE_API_URL=https://api.runhteccontractors.com
    ```
-4. Start the server (this also applies all `pb_migrations/*.js` automatically):
-   ```
-   ./pocketbase serve --http=0.0.0.0:8090 \
-     --encryptionEnv=PB_ENCRYPTION_KEY \
-     --dir=/data \
-     --migrationsDir=./pb_migrations \
-     --hooksDir=./pb_hooks \
-     --hooksWatch=false
-   ```
-5. Put this behind a reverse proxy (nginx/Caddy) terminating TLS at
-   `api.runhteccontractors.com`, proxying to `127.0.0.1:8090`.
-6. **Note on `/`:** `pb_hooks/external-dashboard.pb.js` proxies the PocketBase
-   admin UI HTML from a Hostinger-hosted CDN URL instead of using the
-   built-in embedded admin UI, kept for parity with Horizons hosting. If
-   that external fetch fails for any reason (CDN down, blocked network,
-   version mismatch), it now falls back to redirecting to PocketBase's own
-   bundled admin UI at `/_/` rather than returning a hard error — so `/` on
-   the API domain stays reachable either way.
-7. Confirm collections applied correctly:
-   ```
-   curl https://api.runhteccontractors.com/api/health
+5. Deploy. Add this `.htaccess` in the deployed folder (via File Manager)
+   so React Router doesn't 404 on refresh:
+   ```apache
+   <IfModule mod_rewrite.c>
+     RewriteEngine On
+     RewriteBase /
+     RewriteRule ^index\.html$ - [L]
+     RewriteCond %{REQUEST_FILENAME} !-f
+     RewriteCond %{REQUEST_FILENAME} !-d
+     RewriteRule . /index.html [L]
+   </IfModule>
    ```
 
-## 2. Frontend (Vite/React) — app.runhteccontractors.com
+## 4. Public website integration
 
-1. Copy `apps/web/.env.example` to `apps/web/.env.production` and set:
-   ```
-   VITE_POCKETBASE_URL=https://api.runhteccontractors.com
-   ```
-2. Build:
-   ```
-   npm install
-   npm run build   # outputs to dist/apps/web
-   ```
-3. Deploy the contents of `dist/apps/web` as a static site (Nginx, Cloudflare
-   Pages, Vercel static, etc.) at `app.runhteccontractors.com`.
-4. Because this is a client-side router (React Router), configure your host
-   to rewrite all unmatched paths to `index.html` (SPA fallback), or deep
-   links like `/crm/clients/abc123` will 404 on refresh.
-5. Set CORS on the PocketBase server to allow `https://app.runhteccontractors.com`
-   as an origin (PocketBase Admin UI → Settings → or via API rules if you
-   lock this down further).
-
-## 3. Public website integration
-
-The public site only needs to `POST` JSON to one endpoint — it never talks
-to PocketBase collections directly:
+Unchanged in shape from before — the public site only needs to `POST` JSON
+to one endpoint:
 
 ```
 POST https://api.runhteccontractors.com/api/website-intake
@@ -83,26 +124,35 @@ Content-Type: application/json
 
 {
   "type": "quote" | "service" | "contact",
-  "name": "...",
-  "email": "...",
-  "phone": "...",
-  "company": "...",
-  "message": "...",
-  "serviceType": "...",
-  "urgency": "low" | "medium" | "high"
+  "name": "...", "email": "...", "phone": "...", "company": "...",
+  "message": "...", "serviceType": "...", "urgency": "low" | "medium" | "high"
 }
 ```
 
-This creates/reuses a client record, links a contact, and creates the
-appropriate `rfqs` record (`quote_request` / `service_request` /
-`contact_enquiry`), all visible immediately in the internal app's RFQs page.
+## 5. Known gaps to close before real production use
 
-## 4. Verification checklist before going live
+- **Password reset emails are not wired up.** `apps/server/src/routes/auth.js`
+  currently logs the reset link to the server console instead of emailing
+  it. Needs an SMTP integration (nodemailer + Hostinger's own email
+  hosting SMTP credentials, or a transactional email provider) before
+  "Forgot password" works for real users.
+- **No first-run browser QA.** Everything so far was verified via direct
+  API calls against a real MySQL instance, and the frontend build/lint
+  passed clean — but no one has clicked through the actual running app in
+  a browser yet. Do a full pass through each module after deploying.
+- **Backup strategy for MySQL.** Uploaded files (logos, signatures, client
+  documents) live inside the database now (as BLOBs), not just structured
+  data — make sure whatever MySQL backup schedule you set up in hPanel
+  covers this database, since it's now the single source of truth for
+  everything, including files.
 
-- [ ] `npm run build` completes with no errors (fixed — see summary)
-- [ ] Login works against the production PocketBase URL
-- [ ] Submitting the public site's contact/quote/service forms creates
-      records visible in `/crm/clients` and `/rfqs`
-- [ ] Dashboard stat cards show non-zero, correct-looking counts
-- [ ] Browser console shows no failed requests to `/hcgi/platform` (that
-      path only resolves inside Hostinger Horizons hosting)
+## Verification checklist
+
+- [ ] `https://api.runhteccontractors.com/api/health` returns
+      `{"message":"API is healthy.","code":200}`
+- [ ] `https://app.runhteccontractors.com` loads and login works with the
+      Super Administrator account created in step 2
+- [ ] Browser console shows no CORS errors
+- [ ] A test submission through the public website's contact/quote form
+      creates a client + RFQ visible in the internal app
+- [ ] File upload (Settings → Company Logo) round-trips correctly
