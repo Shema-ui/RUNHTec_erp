@@ -1,0 +1,23 @@
+{
+  "name": "runhtec-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RUNHTec ERP backend — Node/Express/MySQL, built to run on Hostinger's Node.js Web App hosting (Business shared plan and above). Replaces the PocketBase backend used in earlier iterations of this project; see apps/server/README.md for why and for the migration path.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.0",
+    "mysql2": "^3.11.0"
+  }
+}
