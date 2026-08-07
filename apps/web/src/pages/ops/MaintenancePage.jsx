@@ -70,7 +70,7 @@ export default function MaintenancePage() {
                   <p className="mt-1 text-sm text-muted-foreground">{contract.client}</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
                     <span>Frequency: {contract.frequency}</span>
-                    <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> Next due {contract.next_due}</span>
+                    <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> Next due {contract.next_due_date}</span>
                   </div>
                 </div>
               </div>
