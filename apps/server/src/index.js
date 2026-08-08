@@ -1,4 +1,15 @@
-require('dotenv').config();
+// dotenv is a local-development convenience only — it reads a .env file
+// into process.env. In production hosting (e.g. Hostinger's Node.js App
+// panel), environment variables are already injected directly into
+// process.env by the platform, so this is entirely optional there. Wrapped
+// in a try/catch and requiring it lazily so a missing/broken dotenv
+// install can never prevent the app from starting in production.
+try {
+  require('dotenv').config();
+} catch (_) {
+  // dotenv not installed or not needed — fine, process.env already has
+  // whatever the hosting platform injected.
+}
 
 const express = require('express');
 const cors = require('cors');
