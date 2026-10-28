@@ -1,0 +1,47 @@
+# Render Blueprint for the RUNHTec ERP backend (apps/server).
+# In Render: New → Blueprint → pick this repository. Render reads this file,
+# creates the web service and asks you to fill in the values marked
+# "sync: false" (database details and the first admin account).
+services:
+  - type: web
+    name: runhtec-erp-api
+    runtime: node
+    plan: free
+    region: frankfurt          # closest Render region to Rwanda and Uganda
+    rootDir: apps/server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # --- Database (TiDB Cloud Starter, free MySQL-compatible) ---
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "4000"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: runhtec_erp
+      - key: DB_SSL
+        value: "true"
+      - key: DB_POOL_SIZE
+        value: "5"
+      # --- Security ---
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://erp.runhteccontractors.si,https://runhteccontractors.si,https://www.runhteccontractors.si
+      - key: APP_URL
+        value: https://erp.runhteccontractors.si
+      # --- First Super Administrator (created once, on first start) ---
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Super Administrator

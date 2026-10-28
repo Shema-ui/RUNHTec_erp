@@ -342,7 +342,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="c-email">Email</Label>
-            <Input id="c-email" type="email" required value={form.email} onChange={set('email')} placeholder="user@runhteccontractors.com" />
+            <Input id="c-email" type="email" required value={form.email} onChange={set('email')} placeholder="user@runhteccontractors.si" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">

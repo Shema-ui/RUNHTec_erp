@@ -15,6 +15,7 @@ const express = require('express');
 const cors = require('cors');
 
 const { runMigrations } = require('./migrate');
+const { bootstrapAdmin } = require('./bootstrapAdmin');
 const { attachUser } = require('./auth');
 const authRoutes = require('./routes/auth');
 const collectionsRoutes = require('./routes/collections');
@@ -30,8 +31,12 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 
 async function main() {
   await runMigrations();
+  await bootstrapAdmin();
 
   const app = express();
+  // Behind a hosting platform's proxy (Render, Hostinger): trust the first
+  // proxy so client IPs and https detection are correct.
+  app.set('trust proxy', 1);
   app.use(cors({
     origin: allowedOrigins.length ? allowedOrigins : true,
     credentials: true,

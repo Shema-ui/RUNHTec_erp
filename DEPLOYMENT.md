@@ -1,158 +1,79 @@
-# Deployment Guide — Hostinger Shared/Business Hosting
+# Deployment Guide — Free Hosting
 
-This supersedes an earlier version of this file that described a
-PocketBase + VPS topology. The backend was rebuilt as Node/Express/MySQL
-specifically so the **entire system** — frontend and backend — can run on
-a single Hostinger shared/Business plan, no VPS required.
+The RUNHTec ERP runs on three free services:
 
-Target topology:
+| Part | Service | Address |
+|---|---|---|
+| Frontend (`apps/web`, React) | GitHub Pages | https://erp.runhteccontractors.si |
+| Backend (`apps/server`, Node/Express) | Render (free web service) | https://api.runhteccontractors.si |
+| Database (MySQL-compatible) | TiDB Cloud Starter (free) | private — only the backend connects |
 
-- `app.runhteccontractors.com` — static build of `apps/web` (Vite/React)
-- `api.runhteccontractors.com` — `apps/server` (Node/Express), deployed via
-  Hostinger's Node.js Web App hosting
-- MySQL database — a standard Hostinger-provisioned MySQL database
-- Public marketing site (`runhteccontractors.com`, separate project) posts
-  to `https://api.runhteccontractors.com/api/website-intake`
+Domain DNS is managed in Hostinger (hPanel → Domains → runhteccontractors.si → DNS / Nameservers → DNS records).
 
-## 1. Create the MySQL database
+> Free-plan behaviour: the Render backend sleeps after ~15 minutes without
+> traffic. The first request after that takes about a minute while it wakes up.
 
-hPanel → Databases → MySQL Databases → create a new database and a new
-database user with full privileges on it. Note down:
+## 1. Database — TiDB Cloud Starter
 
-- Database name
-- Database username
-- Database password
-- Database host (Hostinger shared hosting almost always uses `localhost`
-  when the Node app and MySQL are on the same account — confirm in hPanel)
+1. Sign up at https://tidbcloud.com and create a **Starter** cluster. Pick an AWS region in Europe (Frankfurt) to be close to the backend.
+2. Open the cluster → **Connect**. Note the **Host**, **Port** (4000), **User** (looks like `xxxxxxxx.root`) and generate a **Password**.
+3. Nothing else: the backend creates the `runhtec_erp` database and all tables on its first start.
 
-## 2. Deploy the backend (`apps/server`) as a Node.js Web App
+## 2. Backend — Render
 
-1. hPanel → Websites → your domain → **Node.js** (or **Deploy Web App** →
-   Node.js, wording varies by Hostinger's current UI).
-2. Connect your GitHub account, select `Shema-ui/RUNHTec_erp`, branch
-   `main`.
-3. **Application root**: `apps/server`
-4. **Startup file**: `src/index.js`
-5. **Node version**: 18 or later
-6. Hostinger installs dependencies (`npm install`) and starts the app
-   automatically on deploy; redeploys happen automatically on new commits
-   to `main` (confirm auto-redeploy is enabled in the Git settings).
-7. **Environment variables** — set these in the Node.js app's environment
-   variable panel (do not commit a real `.env` file):
-   ```
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=<your MySQL username>
-   DB_PASSWORD=<your MySQL password>
-   DB_NAME=<your MySQL database name>
-   JWT_SECRET=<generate with: openssl rand -hex 32>
-   CORS_ORIGINS=https://app.runhteccontractors.com
-   APP_URL=https://app.runhteccontractors.com
-   PORT=8090
-   ```
-   `PORT` may be overridden by Hostinger's platform — check their Node.js
-   hosting docs for whether they inject their own `PORT` value; the app
-   reads `process.env.PORT` either way.
-8. On first successful boot, the app runs the SQL migration automatically
-   and creates all 21 tables. Check the deploy log for
-   `[migrate] applied 001_init.sql`.
-9. Point `api.runhteccontractors.com` at this Node.js app (Hostinger's
-   Node.js hosting panel provides the subdomain/domain binding step; SSL
-   is typically automatic via their shared hosting TLS).
+1. Sign up at https://render.com with GitHub.
+2. **New → Blueprint** → select `Shema-ui/RUNHTec_erp`. Render reads `render.yaml`.
+3. Fill in the values it asks for:
+   - `DB_HOST`, `DB_USER`, `DB_PASSWORD` — from TiDB (step 1)
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — the first Super Administrator login (password ≥ 8 characters)
+4. **Apply**. When the deploy finishes, open `https://<service>.onrender.com/api/health` — it should return `{"message":"API is healthy.","code":200}`. The log shows `[migrate] applied 001_init.sql` and `[bootstrap] Created first super_admin account`.
+5. Service → **Settings → Custom Domains → Add** `api.runhteccontractors.si`. In Hostinger DNS add a **CNAME**: Name `api`, Target = the `xxxx.onrender.com` address Render shows. Wait until Render shows the domain as verified (it issues HTTPS automatically).
 
-### Create the first Super Administrator account
+The first admin account is only created when no super_admin exists, so the `ADMIN_*` variables can't be used to take over a running system. `ADMIN_PASSWORD` can be deleted after the first login.
 
-There is no seeded account in this backend (unlike the earlier PocketBase
-version, which shipped one in a migration file — deliberately not repeated
-here). The simplest way to create the first account is the included
-script — if your Hostinger plan includes SSH/terminal access to the Node
-app, run this once from inside `apps/server` (it reads the same database
-environment variables the app itself uses):
+## 3. Frontend — GitHub Pages
 
-```bash
-node scripts/create-superuser.js you@runhteccontractors.com "a-strong-password" "Your Name"
-```
+1. Repository **Settings → Pages → Source: GitHub Actions**.
+2. **Actions** tab → **Deploy ERP frontend** → **Run workflow** (it also runs automatically on every change under `apps/web`).
+3. **Settings → Pages → Custom domain**: `erp.runhteccontractors.si` → Save. In Hostinger DNS add a **CNAME**: Name `erp`, Target `shema-ui.github.io`. When the DNS check passes, tick **Enforce HTTPS**.
 
-Safe to re-run — if the email already exists it just resets the password
-instead of failing.
+The build points the app at `https://api.runhteccontractors.si` (see `VITE_API_URL` in `.github/workflows/deploy-web.yml`).
 
-If your plan doesn't offer SSH access, do it directly through hPanel's
-phpMyAdmin (Databases → phpMyAdmin) instead:
-```sql
-INSERT INTO users (id, email, password_hash, name, role, status)
-VALUES ('changeme01', 'you@runhteccontractors.com', '<bcrypt hash>', 'Your Name', 'super_admin', 'active');
-```
-Generate the bcrypt hash on any machine with Node installed:
-```
-node -e "require('bcryptjs').hash('your-password', 10).then(console.log)"
-```
+## 4. Public website integration (optional)
 
-## 3. Deploy the frontend (`apps/web`) to shared hosting
-
-1. hPanel → Websites → your domain → **Add subdomain**: `app.runhteccontractors.com`.
-2. hPanel → that subdomain → **Advanced → Git**. Connect the same repo,
-   branch `main`.
-3. Settings:
-   - **Root/subdirectory**: `apps/web`
-   - **Build command**: `npm run build`
-   - **Output directory**: `dist`
-4. **Environment variable**:
-   ```
-   VITE_API_URL=https://api.runhteccontractors.com
-   ```
-5. Deploy. Add this `.htaccess` in the deployed folder (via File Manager)
-   so React Router doesn't 404 on refresh:
-   ```apache
-   <IfModule mod_rewrite.c>
-     RewriteEngine On
-     RewriteBase /
-     RewriteRule ^index\.html$ - [L]
-     RewriteCond %{REQUEST_FILENAME} !-f
-     RewriteCond %{REQUEST_FILENAME} !-d
-     RewriteRule . /index.html [L]
-   </IfModule>
-   ```
-
-## 4. Public website integration
-
-Unchanged in shape from before — the public site only needs to `POST` JSON
-to one endpoint:
+The marketing site can send enquiries straight into the ERP:
 
 ```
-POST https://api.runhteccontractors.com/api/website-intake
+POST https://api.runhteccontractors.si/api/website-intake
 Content-Type: application/json
 
-{
-  "type": "quote" | "service" | "contact",
-  "name": "...", "email": "...", "phone": "...", "company": "...",
-  "message": "...", "serviceType": "...", "urgency": "low" | "medium" | "high"
-}
+{ "type": "quote" | "service" | "contact", "name": "...", "email": "...", "phone": "...",
+  "company": "...", "message": "...", "serviceType": "...", "urgency": "low" | "medium" | "high" }
 ```
 
-## 5. Known gaps to close before real production use
+`CORS_ORIGINS` in `render.yaml` already allows `runhteccontractors.si`.
 
-- **Password reset emails are not wired up.** `apps/server/src/routes/auth.js`
-  currently logs the reset link to the server console instead of emailing
-  it. Needs an SMTP integration (nodemailer + Hostinger's own email
-  hosting SMTP credentials, or a transactional email provider) before
-  "Forgot password" works for real users.
-- **No first-run browser QA.** Everything so far was verified via direct
-  API calls against a real MySQL instance, and the frontend build/lint
-  passed clean — but no one has clicked through the actual running app in
-  a browser yet. Do a full pass through each module after deploying.
-- **Backup strategy for MySQL.** Uploaded files (logos, signatures, client
-  documents) live inside the database now (as BLOBs), not just structured
-  data — make sure whatever MySQL backup schedule you set up in hPanel
-  covers this database, since it's now the single source of truth for
-  everything, including files.
+## Environment variables (backend)
+
+| Variable | Purpose |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Database connection |
+| `DB_SSL=true` | Encrypted connection (required by cloud MySQL). Optional `DB_SSL_CA` for a provider-specific CA certificate |
+| `JWT_SECRET` | Signs login tokens (Render generates it) |
+| `CORS_ORIGINS` | Comma-separated sites allowed to call the API |
+| `APP_URL` | Frontend address, used in links |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | First Super Administrator, created once |
+
+## Known gaps before heavy production use
+
+- **Password reset emails are not wired up** — `routes/auth.js` logs the reset link to the server log. Render's free plan also blocks outbound email ports, so this needs an HTTP email API (e.g. a transactional email service) when it's added.
+- **Backups:** uploaded files are stored in the database. Export the database regularly from TiDB Cloud.
+- **Do a full click-through** of every module after the first deploy.
 
 ## Verification checklist
 
-- [ ] `https://api.runhteccontractors.com/api/health` returns
-      `{"message":"API is healthy.","code":200}`
-- [ ] `https://app.runhteccontractors.com` loads and login works with the
-      Super Administrator account created in step 2
-- [ ] Browser console shows no CORS errors
-- [ ] A test submission through the public website's contact/quote form
-      creates a client + RFQ visible in the internal app
-- [ ] File upload (Settings → Company Logo) round-trips correctly
+- [ ] `https://api.runhteccontractors.si/api/health` returns `{"message":"API is healthy.","code":200}`
+- [ ] `https://erp.runhteccontractors.si` loads and the Super Administrator can log in
+- [ ] Refreshing a page like `/clients` still loads the app
+- [ ] No CORS errors in the browser console
+- [ ] Settings → Company Logo upload works

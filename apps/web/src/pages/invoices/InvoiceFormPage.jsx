@@ -18,7 +18,7 @@ const DEFAULT_TERMS = `1. Payment is due within the stated payment terms from th
 4. RUNHTec Contractors reserves the right to suspend services for overdue accounts.
 5. Disputes must be raised in writing within 7 days of invoice receipt.`;
 
-const DEFAULT_PAYMENT_INSTRUCTIONS = `Please use the invoice number as the payment reference.\nEFT payments to the bank account details below.\nFor queries, contact accounts@runhteccontractors.com`;
+const DEFAULT_PAYMENT_INSTRUCTIONS = `Please use the invoice number as the payment reference.\nEFT payments to the bank account details below.\nFor queries, contact contact@runhteccontractors.si`;
 
 const emptyItem = () => ({ id: crypto.randomUUID(), description: '', quantity: 1, unit_price: 0, amount: 0 });
 

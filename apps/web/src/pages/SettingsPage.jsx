@@ -90,7 +90,7 @@ const DEFAULT_TERMS = `1. Payment is due within the stated payment terms from th
 4. RUNHTec Contractors reserves the right to suspend services for overdue accounts.
 5. Disputes must be raised in writing within 7 days of invoice receipt.`;
 
-const DEFAULT_PAYMENT_INSTRUCTIONS = `Please use the invoice number as the payment reference.\nEFT payments to the bank account details below.\nFor queries, contact accounts@runhteccontractors.com`;
+const DEFAULT_PAYMENT_INSTRUCTIONS = `Please use the invoice number as the payment reference.\nEFT payments to the bank account details below.\nFor queries, contact contact@runhteccontractors.si`;
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -284,7 +284,7 @@ export default function SettingsPage() {
               <input
                 className={`${inputCls} ${!isSuperAdmin ? 'opacity-70 cursor-not-allowed' : ''}`}
                 type="email"
-                placeholder="info@runhteccontractors.com"
+                placeholder="contact@runhteccontractors.si"
                 value={form.company_email}
                 onChange={e => isSuperAdmin && setField('company_email', e.target.value)}
                 readOnly={!isSuperAdmin}
@@ -293,7 +293,7 @@ export default function SettingsPage() {
             <Field label="Website">
               <input
                 className={`${inputCls} ${!isSuperAdmin ? 'opacity-70 cursor-not-allowed' : ''}`}
-                placeholder="www.runhteccontractors.com"
+                placeholder="runhteccontractors.si"
                 value={form.company_website}
                 onChange={e => isSuperAdmin && setField('company_website', e.target.value)}
                 readOnly={!isSuperAdmin}

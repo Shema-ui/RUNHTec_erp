@@ -1,0 +1,72 @@
+# Builds the ERP frontend (apps/web) and publishes it free on GitHub Pages
+# at https://erp.runhteccontractors.si
+#
+# One-time setup: repository Settings → Pages → Source → "GitHub Actions".
+name: Deploy ERP frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  VITE_API_URL: https://api.runhteccontractors.si
+  ERP_DOMAIN: erp.runhteccontractors.si
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build
+        env:
+          NODE_ENV: production
+        run: npm run build --prefix apps/web
+
+      - name: Prepare for GitHub Pages
+        run: |
+          OUT=dist/apps/web
+          # Single-page app: send unknown paths (e.g. a refreshed /clients page) back to the app
+          cp "$OUT/index.html" "$OUT/404.html"
+          echo "$ERP_DOMAIN" > "$OUT/CNAME"
+          touch "$OUT/.nojekyll"
+          # The internal ERP should not appear in search engines
+          printf 'User-agent: *\nDisallow: /\n' > "$OUT/robots.txt"
+          rm -f "$OUT/sitemap.xml"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/apps/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

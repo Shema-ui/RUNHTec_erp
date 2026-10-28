@@ -4,7 +4,7 @@
 // DB_PASSWORD, DB_NAME must be set — e.g. via `.env` locally, or paste
 // them inline on Hostinger's SSH/terminal if available):
 //
-//   node scripts/create-superuser.js you@runhteccontractors.com "a-strong-password" "Your Name"
+//   node scripts/create-superuser.js you@runhteccontractors.si "a-strong-password" "Your Name"
 //
 // Safe to re-run: if the email already exists, it updates the password
 // and role instead of failing.
