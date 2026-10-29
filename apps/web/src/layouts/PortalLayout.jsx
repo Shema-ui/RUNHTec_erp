@@ -11,6 +11,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
+import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule } from '@/lib/permissions';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
@@ -191,27 +192,7 @@ export default function PortalLayout({ children, title, subtitle }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 md:gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="relative rounded-md p-2 text-slate-500 transition-colors hover:bg-secondary hover:text-foreground">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
-                <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold">Notifications</p>
-                  <p className="text-xs text-muted-foreground">System alerts will appear here</p>
-                </div>
-                <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-                  <Bell className="mb-2 h-6 w-6 text-muted-foreground/50" />
-                  <p className="text-sm font-medium text-foreground">You are all caught up</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Notifications from future modules will surface in this panel.
-                  </p>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

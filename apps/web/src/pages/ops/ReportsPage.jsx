@@ -1,73 +1,102 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { BarChart3, TrendingUp, HardHat, ReceiptText } from 'lucide-react';
+import { TrendingUp, ReceiptText, FileText, FolderKanban, Banknote, HardHat } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+import { Card, StatCard, Loading } from '@/components/erp/kit';
+import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
+import { PROJECT_STATUSES, SERVICE_CATEGORIES } from '@/lib/projects';
 
-const REPORTS = [
-  { label: 'Revenue this month', value: 'R 1.24M', icon: TrendingUp },
-  { label: 'Technician utilization', value: '82%', icon: HardHat },
-  { label: 'Outstanding invoices', value: 'R 486k', icon: ReceiptText },
-];
+const C = DEFAULT_CURRENCY;
+const ymd = () => new Date().toISOString().slice(0, 10);
+const safe = (p) => p.catch(() => []);
+
+function Bars({ rows, money }) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  if (!rows.some((r) => r.value)) return <p className="text-sm text-muted-foreground">No data yet.</p>;
+  return (
+    <ul className="space-y-2.5">
+      {rows.map((r) => (
+        <li key={r.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
+          <span className="truncate">{r.label}</span>
+          <span className="font-semibold">{money ? formatMoney(r.value, C) : r.value}</span>
+          <span className="col-span-2 h-1.5 overflow-hidden rounded-full bg-secondary"><span className="block h-full rounded-full bg-primary" style={{ width: `${(r.value / max) * 100}%` }} /></span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function ReportsPage() {
-  const [stats, setStats] = useState({ invoices: 0, projects: 0, rfqs: 0 });
+  const [d, setD] = useState(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [invoices, projects, rfqs] = await Promise.all([
-          pb.collection('invoices').getList(1, 1),
-          pb.collection('projects').getList(1, 1),
-          pb.collection('rfqs').getList(1, 1),
-        ]);
-        setStats({ invoices: invoices.totalItems || 0, projects: projects.totalItems || 0, rfqs: rfqs.totalItems || 0 });
-      } catch (error) {
-        console.error('Reports load error', error);
-      }
-    };
-    load();
+    Promise.all([
+      safe(pb.collection('invoices').getFullList({})),
+      safe(pb.collection('payments').getFullList({})),
+      safe(pb.collection('quotations').getFullList({})),
+      safe(pb.collection('projects').getFullList({})),
+      safe(pb.collection('rfqs').getFullList({})),
+      safe(pb.collection('project_assignments').getFullList({})),
+    ]).then(([invoices, payments, quotes, projects, rfqs, assignments]) => setD({ invoices, payments, quotes, projects, rfqs, assignments }));
   }, []);
+
+  const r = useMemo(() => {
+    if (!d) return null;
+    const month = ymd().slice(0, 7);
+    const year = ymd().slice(0, 4);
+    const paid = d.payments.filter((p) => p.status === 'completed');
+    const sumPaid = (prefix) => paid.filter((p) => String(p.paid_date || p.created).startsWith(prefix)).reduce((s, p) => s + Number(p.amount || 0), 0);
+    const live = d.invoices.filter((i) => !['draft', 'cancelled'].includes(i.status));
+    const invoicedYear = live.filter((i) => String(i.invoice_date || i.created).startsWith(year)).reduce((s, i) => s + Number(i.total || 0), 0);
+    const paidByInv = {};
+    paid.forEach((p) => { if (p.invoice) paidByInv[p.invoice] = (paidByInv[p.invoice] || 0) + Number(p.amount || 0); });
+    const open = d.invoices.filter((i) => ['sent', 'overdue'].includes(i.status));
+    const outstanding = open.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - (paidByInv[i.id] || 0)), 0);
+    const overdue = open.filter((i) => i.status === 'overdue' || (i.due_date && i.due_date < ymd()));
+    const decided = d.quotes.filter((q) => ['accepted', 'declined', 'expired'].includes(q.status));
+    const won = d.quotes.filter((q) => q.status === 'accepted');
+    const winRate = decided.length ? Math.round((won.length / decided.length) * 100) : 0;
+    const pipeline = d.quotes.filter((q) => q.status === 'sent').reduce((s, q) => s + Number(q.total || 0), 0);
+    const owedContractors = d.assignments.filter((a) => a.status !== 'cancelled').reduce((s, a) => s + Math.max(0, Number(a.agreed_amount || 0) - Number(a.amount_paid || 0)), 0);
+    const months = Array.from({ length: 6 }, (_, k) => {
+      const dt = new Date(); dt.setDate(1); dt.setMonth(dt.getMonth() - (5 - k));
+      const key = dt.toISOString().slice(0, 7);
+      return { label: dt.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }), value: sumPaid(key) };
+    });
+    const byStatus = PROJECT_STATUSES.map((s) => ({ label: s.label, value: d.projects.filter((p) => p.status === s.value).length }));
+    const byService = SERVICE_CATEGORIES.map((s) => ({ label: s.label, value: d.projects.filter((p) => p.service_category === s.value).reduce((t, p) => t + Number(p.value || 0), 0) }))
+      .filter((x) => x.value).sort((a, b) => b.value - a.value);
+    const rfqMonth = d.rfqs.filter((x) => String(x.created).startsWith(month)).length;
+    return { month: sumPaid(month), year: sumPaid(year), invoicedYear, outstanding, overdue: overdue.length, winRate, won: won.length, decided: decided.length, pipeline, owedContractors, months, byStatus, byService, rfqMonth };
+  }, [d]);
+
   return (
-    <PortalLayout title="Reports" subtitle="Revenue, utilization and SLA insight">
-      <Helmet>
-        <title>Reports | RUNHTec Business Portal</title>
-        <meta name="description" content="View project, finance and workforce operative reports." />
-      </Helmet>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {REPORTS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-accent p-3 text-primary"><Icon className="h-5 w-5" /></div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className="font-display text-xl font-semibold text-foreground">{item.value}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-semibold text-foreground">Operations snapshot</h3>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-border bg-background p-4">
-            <p className="text-sm font-semibold text-foreground">RFQs in system</p>
-            <p className="mt-2 font-display text-2xl font-semibold text-foreground">{stats.rfqs}</p>
+    <PortalLayout title="Reports" subtitle="Cash, sales and delivery at a glance">
+      <Helmet><title>Reports | RUNHTec Business Portal</title></Helmet>
+      {!r ? <Loading /> : (
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard icon={TrendingUp} label="Cash received this month" value={formatMoney(r.month, C)} note={`${formatMoney(r.year, C)} this year`} tone="green" />
+            <StatCard icon={ReceiptText} label="Outstanding from clients" value={formatMoney(r.outstanding, C)} note={`${r.overdue} invoice(s) past due`} tone={r.overdue ? 'red' : 'amber'} />
+            <StatCard icon={FileText} label="Quotation win rate" value={`${r.winRate}%`} note={`${r.won} won of ${r.decided} decided · ${formatMoney(r.pipeline, C)} awaiting reply`} />
+            <StatCard icon={HardHat} label="Owed to contractors" value={formatMoney(r.owedContractors, C)} tone={r.owedContractors ? 'red' : 'green'} />
           </div>
-          <div className="rounded-xl border border-border bg-background p-4">
-            <p className="text-sm font-semibold text-foreground">Projects tracked</p>
-            <p className="mt-2 font-display text-2xl font-semibold text-foreground">{stats.projects}</p>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card title="Cash received — last 6 months"><Bars rows={r.months} money /></Card>
+            <Card title="Projects by status"><Bars rows={r.byStatus} /></Card>
+            <Card title="Project value by service"><Bars rows={r.byService} money /></Card>
+            <Card title="This year">
+              <ul className="space-y-2 text-sm">
+                <li className="flex justify-between"><span className="inline-flex items-center gap-2"><ReceiptText className="h-4 w-4 text-muted-foreground" />Invoiced</span><strong>{formatMoney(r.invoicedYear, C)}</strong></li>
+                <li className="flex justify-between"><span className="inline-flex items-center gap-2"><Banknote className="h-4 w-4 text-muted-foreground" />Received</span><strong>{formatMoney(r.year, C)}</strong></li>
+                <li className="flex justify-between"><span className="inline-flex items-center gap-2"><FolderKanban className="h-4 w-4 text-muted-foreground" />Website requests this month</span><strong>{r.rfqMonth}</strong></li>
+              </ul>
+              <p className="mt-4 text-xs text-muted-foreground">Figures are in {C}; amounts recorded in other currencies are added as entered.</p>
+            </Card>
           </div>
         </div>
-      </div>
+      )}
     </PortalLayout>
   );
 }

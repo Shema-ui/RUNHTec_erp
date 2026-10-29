@@ -29,6 +29,11 @@ export const ROLES = {
     label: 'Accountant',
     description: 'Manages invoices, payments and financial reports.',
   },
+  hr: {
+    key: 'hr',
+    label: 'HR Officer',
+    description: 'Manages contractor applications, the contractor register and project engagements.',
+  },
   technician: {
     key: 'technician',
     label: 'Technician',
@@ -40,19 +45,19 @@ export const ROLES = {
 // every module (checked separately in canAccessModule) so it doesn't need
 // to be repeated in every array below.
 export const MODULE_ACCESS = {
-  dashboard: ['sales', 'project_manager', 'accountant', 'technician'],
+  dashboard: ['sales', 'project_manager', 'accountant', 'technician', 'hr'],
   crm: ['sales'],
   clients: ['sales'],
   rfq: ['sales'],
   quotations: ['sales'],
-  projects: ['project_manager', 'technician'],
+  projects: ['project_manager', 'technician', 'sales', 'accountant', 'hr'],
   maintenance: ['project_manager', 'technician'],
   invoices: ['accountant'],
   payments: ['accountant'],
   reports: ['accountant'],
-  employees: ['project_manager'],
-  documents: ['project_manager', 'technician'],
-  notifications: ['sales', 'project_manager', 'accountant', 'technician'],
+  hr: ['hr', 'project_manager'],
+  documents: ['project_manager', 'technician', 'hr'],
+  notifications: ['sales', 'project_manager', 'accountant', 'technician', 'hr'],
   settings: [],
 };
 

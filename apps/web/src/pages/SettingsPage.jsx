@@ -118,7 +118,7 @@ export default function SettingsPage() {
     account_number: '',
     branch_code: '',
     swift_code: '',
-    currency: 'ZAR',
+    currency: 'RWF',
     signature_name: '',
     signature_position: '',
     show_signature: true,
@@ -148,7 +148,7 @@ export default function SettingsPage() {
             account_number: rec.account_number || '',
             branch_code: rec.branch_code || '',
             swift_code: rec.swift_code || '',
-            currency: rec.currency || 'ZAR',
+            currency: rec.currency || 'RWF',
             signature_name: rec.signature_name || '',
             signature_position: rec.signature_position || '',
             show_signature: rec.show_signature !== false,
@@ -274,7 +274,7 @@ export default function SettingsPage() {
             <Field label="Phone Number">
               <input
                 className={`${inputCls} ${!isSuperAdmin ? 'opacity-70 cursor-not-allowed' : ''}`}
-                placeholder="+27 XX XXX XXXX"
+                placeholder="+250 7XX XXX XXX"
                 value={form.company_phone}
                 onChange={e => isSuperAdmin && setField('company_phone', e.target.value)}
                 readOnly={!isSuperAdmin}
@@ -327,12 +327,12 @@ export default function SettingsPage() {
         <SectionCard icon={CreditCard} title="Payment / Banking Details" description="These bank details appear on every invoice. Ensure accuracy before saving.">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { key: 'bank_name', label: 'Bank Name', placeholder: 'e.g. First National Bank' },
+              { key: 'bank_name', label: 'Bank Name', placeholder: 'e.g. Bank of Kigali' },
               { key: 'account_name', label: 'Account Name', placeholder: 'Registered account name' },
               { key: 'account_number', label: 'Account Number', placeholder: 'Bank account number' },
               { key: 'branch_code', label: 'Branch / Sort Code', placeholder: 'e.g. 250655' },
-              { key: 'swift_code', label: 'SWIFT / BIC Code', placeholder: 'e.g. FIRNZAJJ' },
-              { key: 'currency', label: 'Default Currency', placeholder: 'ZAR' },
+              { key: 'swift_code', label: 'SWIFT / BIC Code', placeholder: 'e.g. BKIGRWRW' },
+              { key: 'currency', label: 'Default Currency', placeholder: 'RWF' },
             ].map(f => (
               <Field key={f.key} label={f.label}>
                 {f.key === 'currency' ? (
@@ -342,12 +342,12 @@ export default function SettingsPage() {
                     onChange={e => isSuperAdmin && setField('currency', e.target.value)}
                     disabled={!isSuperAdmin}
                   >
-                    <option value="ZAR">ZAR — South African Rand</option>
+                    <option value="RWF">RWF — Rwandan Franc</option>
+                    <option value="UGX">UGX — Ugandan Shilling</option>
                     <option value="USD">USD — US Dollar</option>
                     <option value="EUR">EUR — Euro</option>
-                    <option value="GBP">GBP — British Pound</option>
-                    <option value="RWF">RWF — Rwandan Franc</option>
                     <option value="KES">KES — Kenyan Shilling</option>
+                    <option value="TZS">TZS — Tanzanian Shilling</option>
                   </select>
                 ) : (
                   <input

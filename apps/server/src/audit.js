@@ -1,7 +1,7 @@
 const pool = require('./db');
 const { genId } = require('./idGen');
 
-const AUDITED = new Set(['users', 'company_settings', 'invoices', 'payments', 'quotations', 'rfqs', 'clients', 'projects']);
+const AUDITED = new Set(['users', 'company_settings', 'invoices', 'payments', 'quotations', 'rfqs', 'clients', 'projects', 'contractors', 'job_applications', 'project_assignments']);
 
 const LABEL_FIELD = {
   users: 'email',
@@ -11,6 +11,9 @@ const LABEL_FIELD = {
   rfqs: 'company',
   clients: 'company_name',
   projects: 'title',
+  contractors: 'full_name',
+  job_applications: 'full_name',
+  project_assignments: 'role_on_project',
   company_settings: null, // static label below
 };
 

@@ -140,15 +140,15 @@ export default function ContactsTab({ clientId }) {
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Mobile</label>
-              <input value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})} placeholder="+27 82 123 4567" className={inputCls} />
+              <input value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})} placeholder="+250 788 123 456" className={inputCls} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Office Number</label>
-              <input value={form.office} onChange={e => setForm({...form, office: e.target.value})} placeholder="+27 12 123 4567" className={inputCls} />
+              <input value={form.office} onChange={e => setForm({...form, office: e.target.value})} placeholder="+250 252 123 456" className={inputCls} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">WhatsApp</label>
-              <input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} placeholder="+27 82 123 4567" className={inputCls} />
+              <input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} placeholder="+250 788 123 456" className={inputCls} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Email Address</label>

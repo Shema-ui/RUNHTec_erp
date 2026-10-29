@@ -21,6 +21,7 @@ const authRoutes = require('./routes/auth');
 const collectionsRoutes = require('./routes/collections');
 const filesRoutes = require('./routes/files');
 const websiteIntakeRoutes = require('./routes/websiteIntake');
+const careersRoutes = require('./routes/careers');
 
 const PORT = process.env.PORT || 8090;
 
@@ -58,6 +59,7 @@ async function main() {
   app.use('/api/collections', collectionsRoutes);
   app.use('/api/files', filesRoutes);
   app.use('/api/website-intake', websiteIntakeRoutes);
+  app.use('/api/careers', careersRoutes);
 
   app.use((req, res) => res.status(404).json({ message: 'Not found.' }));
   // eslint-disable-next-line no-unused-vars

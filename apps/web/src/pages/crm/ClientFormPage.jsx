@@ -166,7 +166,7 @@ export default function ClientFormPage() {
         {/* Company Information */}
         <Section title="Company Information">
           <Field label="Company Name" required error={errors.company_name?.message}>
-            <input {...register('company_name')} placeholder="e.g. Meridian Facilities (Pty) Ltd" className={inputCls} />
+            <input {...register('company_name')} placeholder="e.g. Kivu Lodge Ltd" className={inputCls} />
           </Field>
           <Field label="Trading Name" error={errors.trading_name?.message}>
             <input {...register('trading_name')} placeholder="Trading as (if different)" className={inputCls} />

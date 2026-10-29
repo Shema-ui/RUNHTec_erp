@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, CheckCircle2, Clock3 } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
-function fmt(n, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+function fmt(n, currency = DEFAULT_CURRENCY) {
+  return formatMoney(n, currency);
 }
 
 export default function QuotationsPage() {

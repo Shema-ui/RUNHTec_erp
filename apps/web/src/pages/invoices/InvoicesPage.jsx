@@ -8,6 +8,7 @@ import {
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 const STATUS_INFO = {
   draft:     { label: 'Draft',     cls: 'bg-slate-100 text-slate-600 border-slate-200', icon: FileText },
@@ -28,8 +29,8 @@ function StatusBadge({ status }) {
   );
 }
 
-function fmt(amount, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', maximumFractionDigits: 2 }).format(amount || 0);
+function fmt(amount, currency = DEFAULT_CURRENCY) {
+  return formatMoney(amount, currency);
 }
 
 export default function InvoicesPage() {

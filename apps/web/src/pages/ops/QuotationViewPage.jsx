@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight } from 'lucide-react';
+import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight, ReceiptText, FolderKanban } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessModule } from '@/lib/permissions';
 import pb from '@/lib/pocketbaseClient';
 import { useToast } from '@/hooks/use-toast';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 const DEFAULT_LOGO_URL = 'https://horizons-cdn.hostinger.com/2757b26b-44c6-4111-a4b2-af6d71351715/f9d1fad541d7f3b6fd43d5a1326794e7.jpg';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
@@ -17,8 +20,8 @@ const STATUS_COLORS = {
   expired:  { bg: '#f9fafb', text: '#6b7280', border: '#e5e7eb' },
 };
 
-function fmt(n, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+function fmt(n, currency = DEFAULT_CURRENCY) {
+  return formatMoney(n, currency);
 }
 
 const PRINT_STYLE = `
@@ -70,6 +73,15 @@ export default function QuotationViewPage() {
   const [downloading, setDownloading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [logoEmbed, setLogoEmbed] = useState(null);
+  const [linkedProject, setLinkedProject] = useState(null);
+  const { user } = useAuth();
+  const canInvoice = canAccessModule(user, 'invoices');
+  const canProject = ['super_admin', 'project_manager', 'sales'].includes(user?.role);
+
+  useEffect(() => {
+    pb.collection('projects').getList(1, 1, { filter: `quotation = '${id}'` })
+      .then((r) => setLinkedProject(r.items[0] || null)).catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     Promise.all([
@@ -144,16 +156,21 @@ export default function QuotationViewPage() {
   const convertToProject = async () => {
     setBusy(true);
     try {
+      if (linkedProject) { navigate(`/projects/${linkedProject.id}`); return; }
       const project = await pb.collection('projects').create({
         quotation: quote.id,
         client: quote.client || null,
         title: `${quote.bill_to_company || quote.bill_to_name || 'Project'} — ${quote.number}`,
         status: 'scheduled',
+        priority: 'medium',
         site_address: quote.bill_to_address || '',
+        value: Number(quote.total) || 0,
+        currency: quote.currency || 'RWF',
+        progress: 0,
+        description: (Array.isArray(quote.items) ? quote.items : []).map((i) => `• ${i.description || ''}${i.quantity ? ` × ${i.quantity}` : ''}`).join('\n'),
       });
-      toast({ title: 'Project created', description: 'The accepted quotation is now an active project.' });
-      navigate(`/projects`);
-      void project;
+      toast({ title: 'Project created', description: 'Plan tasks and engage contractors on the project page.' });
+      navigate(`/projects/${project.id}`);
     } catch (e) {
       toast({ title: 'Could not create project', description: e.message, variant: 'destructive' });
     } finally {
@@ -173,7 +190,7 @@ export default function QuotationViewPage() {
   const cfg = settings || {};
   const items = Array.isArray(q.items) ? q.items : [];
   const statusColor = STATUS_COLORS[q.status] || STATUS_COLORS.draft;
-  const currency = q.currency || cfg.currency || 'ZAR';
+  const currency = q.currency || cfg.currency || DEFAULT_CURRENCY;
   const statusLabel = q.status ? q.status.charAt(0).toUpperCase() + q.status.slice(1) : 'Draft';
   const companyName = cfg.company_name || DEFAULT_COMPANY_NAME;
   const logoSrc = logoEmbed || logoUrl;
@@ -211,7 +228,23 @@ export default function QuotationViewPage() {
             <option value="expired">Expired</option>
           </select>
           <div className="ml-auto flex gap-2">
-            {q.status === 'accepted' && (
+            {canInvoice && (
+              <Link
+                to={`/invoices/new?fromQuote=${id}`}
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+              >
+                <ReceiptText className="h-4 w-4" /> Create invoice
+              </Link>
+            )}
+            {linkedProject && (
+              <Link
+                to={`/projects/${linkedProject.id}`}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
+              >
+                <FolderKanban className="h-4 w-4" /> Open project
+              </Link>
+            )}
+            {q.status === 'accepted' && !linkedProject && canProject && (
               <button
                 onClick={convertToProject}
                 disabled={busy}

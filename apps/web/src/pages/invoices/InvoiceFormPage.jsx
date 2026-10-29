@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft, Plus, Trash2, Save, Eye, Loader2, Search,
 } from 'lucide-react';
@@ -8,6 +8,7 @@ import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const IN30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -26,8 +27,8 @@ function calcItem(item) {
   return { ...item, amount: parseFloat((Number(item.quantity) * Number(item.unit_price)).toFixed(2)) };
 }
 
-function fmt(n, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+function fmt(n, currency = DEFAULT_CURRENCY) {
+  return formatMoney(n, currency);
 }
 
 function Field({ label, required, children, className = '' }) {
@@ -50,6 +51,10 @@ export default function InvoiceFormPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isEdit = Boolean(id);
+  const [searchParams] = useSearchParams();
+  const fromQuote = searchParams.get('fromQuote');
+  const fromProject = searchParams.get('fromProject');
+  const [source, setSource] = useState('');
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -60,6 +65,8 @@ export default function InvoiceFormPage() {
   const [form, setForm] = useState({
     invoice_number: '',
     client: '',
+    quotation: '',
+    project: '',
     bill_to_name: '',
     bill_to_company: '',
     bill_to_address: '',
@@ -68,8 +75,8 @@ export default function InvoiceFormPage() {
     invoice_date: TODAY,
     due_date: IN30,
     payment_terms: 'Net 30',
-    currency: 'ZAR',
-    tax_rate: 15,
+    currency: DEFAULT_CURRENCY,
+    tax_rate: DEFAULT_TAX_RATE,
     discount_amount: 0,
     notes: '',
     payment_instructions: DEFAULT_PAYMENT_INSTRUCTIONS,
@@ -111,6 +118,54 @@ export default function InvoiceFormPage() {
         .catch(() => navigate('/invoices'));
     } else {
       genNumber().then(n => setForm(p => ({ ...p, invoice_number: n })));
+      // Started from a quotation or a project: copy client, items, VAT,
+      // discount and currency so Finance only has to review and send.
+      (async () => {
+        try {
+          let project = null;
+          let quote = null;
+          if (fromProject) {
+            project = await pb.collection('projects').getOne(fromProject);
+            if (project.quotation) quote = await pb.collection('quotations').getOne(project.quotation).catch(() => null);
+          } else if (fromQuote) {
+            quote = await pb.collection('quotations').getOne(fromQuote);
+            const linked = await pb.collection('projects').getList(1, 1, { filter: `quotation = '${fromQuote}'` }).catch(() => ({ items: [] }));
+            project = linked.items[0] || null;
+          }
+          if (!quote && !project) return;
+          const clientId = quote?.client || project?.client || '';
+          let clientName = quote?.bill_to_company || '';
+          if (!clientName && clientId) clientName = (await pb.collection('clients').getOne(clientId).catch(() => null))?.company_name || '';
+          setForm(p => ({
+            ...p,
+            client: clientId,
+            quotation: quote?.id || '',
+            project: project?.id || '',
+            bill_to_name: quote?.bill_to_name || p.bill_to_name,
+            bill_to_company: clientName || p.bill_to_company,
+            bill_to_address: quote?.bill_to_address || project?.site_address || p.bill_to_address,
+            bill_to_email: quote?.bill_to_email || p.bill_to_email,
+            bill_to_phone: quote?.bill_to_phone || p.bill_to_phone,
+            currency: quote?.currency || project?.currency || p.currency,
+            tax_rate: quote ? Number(quote.tax_rate) : p.tax_rate,
+            discount_amount: quote ? Number(quote.discount_amount) || 0 : p.discount_amount,
+            notes: quote ? `Ref: quotation ${quote.number}${project ? ` · project ${project.title}` : ''}` : `Ref: project ${project.title}`,
+          }));
+          if (clientName) setClientSearch(clientName);
+          const qItems = Array.isArray(quote?.items) ? quote.items : [];
+          if (qItems.length) {
+            setItems(qItems.map(i => calcItem({
+              id: crypto.randomUUID(),
+              description: i.description || i.name || '',
+              quantity: Number(i.quantity ?? i.qty ?? 1),
+              unit_price: Number(i.unit_price ?? i.rate ?? i.price ?? 0),
+            })));
+          } else if (project) {
+            setItems([calcItem({ id: crypto.randomUUID(), description: project.title, quantity: 1, unit_price: Number(project.value) || 0 })]);
+          }
+          setSource(quote ? `quotation ${quote.number}` : `project ${project.title}`);
+        } catch (_) { /* start from a blank invoice */ }
+      })();
       // Pull company-wide defaults (currency, terms, payment instructions) so
       // a Settings change is reflected on every new invoice without editing
       // this form's hardcoded fallbacks.
@@ -120,7 +175,8 @@ export default function InvoiceFormPage() {
           if (!cfg) return;
           setForm(p => ({
             ...p,
-            currency: cfg.currency || p.currency,
+            // Keep the quotation's currency when the invoice was started from one.
+            currency: (fromQuote || fromProject) ? p.currency : (cfg.currency || p.currency),
             terms_conditions: cfg.default_terms_conditions || p.terms_conditions,
             payment_instructions: cfg.default_payment_instructions || p.payment_instructions,
           }));
@@ -207,6 +263,12 @@ export default function InvoiceFormPage() {
         <meta name="description" content="Create or edit a professional invoice." />
       </Helmet>
 
+      {source && (
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Filled in from {source}. Check the details, then save.
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <Link to="/invoices" className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary">
@@ -268,12 +330,7 @@ export default function InvoiceFormPage() {
             </Field>
             <Field label="Currency">
               <select className={inputCls} value={form.currency} onChange={e => setField('currency', e.target.value)}>
-                <option value="ZAR">ZAR (R)</option>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="RWF">RWF (Fr)</option>
-                <option value="KES">KES (Ksh)</option>
+                {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </Field>
           </div>
@@ -328,7 +385,7 @@ export default function InvoiceFormPage() {
               <input className={inputCls} type="email" placeholder="billing@company.com" value={form.bill_to_email} onChange={e => setField('bill_to_email', e.target.value)} />
             </Field>
             <Field label="Phone">
-              <input className={inputCls} placeholder="+27 XX XXX XXXX" value={form.bill_to_phone} onChange={e => setField('bill_to_phone', e.target.value)} />
+              <input className={inputCls} placeholder="+250 7XX XXX XXX" value={form.bill_to_phone} onChange={e => setField('bill_to_phone', e.target.value)} />
             </Field>
             <Field label="Billing Address" className="sm:col-span-2">
               <textarea className={textareaCls} rows={2} placeholder="Street, City, Province, Country" value={form.bill_to_address} onChange={e => setField('bill_to_address', e.target.value)} />

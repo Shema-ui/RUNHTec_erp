@@ -29,7 +29,7 @@ export const MODULE_NAV = [
   { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },
   { key: 'invoices', label: 'Invoices', icon: ReceiptText, to: '/invoices' },
   { key: 'payments', label: 'Payments', icon: CreditCard, to: '/payments' },
-  { key: 'employees', label: 'Employees', icon: Users, to: '/employees' },
+  { key: 'hr', label: 'HR & Contractors', icon: Users, to: '/hr' },
   { key: 'reports', label: 'Reports', icon: BarChart3, to: '/reports' },
   { key: 'documents', label: 'Documents', icon: FolderArchive, to: '/documents' },
   { key: 'notifications', label: 'Notifications', icon: Bell, to: '/notifications' },

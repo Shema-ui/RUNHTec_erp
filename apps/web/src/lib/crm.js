@@ -127,7 +127,7 @@ export function pipelineStageInfo(stage) {
 
 export function formatCurrency(value) {
   if (!value && value !== 0) return '—';
-  return `R ${Number(value).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `RWF ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 export function getInitials(name) {

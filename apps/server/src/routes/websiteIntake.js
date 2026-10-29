@@ -8,6 +8,7 @@ const express = require('express');
 const pool = require('../db');
 const { genId } = require('../idGen');
 const { createLimiter } = require('../rateLimit');
+const { notifyRoles } = require('../notify');
 
 const router = express.Router();
 
@@ -123,6 +124,7 @@ router.post('/', async (req, res) => {
       [genId(), clientId, 'other', `Website ${type} submitted by ${name || email || company}`, 'Website']
     );
 
+    await notifyRoles(['sales', 'super_admin'], 'rfq', `New website ${requestType === 'quote_request' ? 'quote request' : requestType === 'service_request' ? 'site-visit / service request' : 'enquiry'} from ${name}${company ? ` (${company})` : ''}`);
     res.status(200).json({ success: true, message: 'Submission received', type });
   } catch (err) {
     console.error('website-intake error:', err);

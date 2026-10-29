@@ -16,6 +16,9 @@ const SALES_WRITE = (user) => any(user, ['sales']);
 const PM_WRITE = (user) => any(user, ['project_manager']);
 const PM_TECH_WRITE = (user) => any(user, ['project_manager', 'technician']);
 const FINANCE = (user) => any(user, ['accountant']);
+const HR = (user) => any(user, ['hr']);
+const HR_PM = (user) => any(user, ['hr', 'project_manager']);
+const PEOPLE_READ = (user) => any(user, ['hr', 'project_manager', 'accountant']);
 
 const collections = {
   clients: {
@@ -81,12 +84,13 @@ const collections = {
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'created', 'updated'],
-    relations: { quotation: 'quotations', client: 'clients' },
+    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'created', 'updated'],
+    relations: { quotation: 'quotations', client: 'clients', project_manager: 'users' },
     rules: {
       list: AUTHED,
       view: AUTHED,
-      create: PM_WRITE,
+      // Sales can hand an accepted quotation over as a new project.
+      create: (user) => any(user, ['project_manager', 'sales']),
       // Technicians may update only a project they're assigned to —
       // mirrors the assigned_technicians.id ?= @request.auth.id rule.
       update: (user, record) => PM_WRITE(user) || (user?.role === 'technician' && Array.isArray(record?.assigned_technicians) && record.assigned_technicians.includes(user.id)),
@@ -95,8 +99,8 @@ const collections = {
   },
   maintenance_contracts: {
     table: 'maintenance_contracts',
-    fields: ['id', 'client', 'service_type', 'frequency', 'next_due_date', 'active', 'assigned_technician', 'created', 'updated'],
-    relations: { client: 'clients', assigned_technician: 'users' },
+    fields: ['id', 'client', 'service_type', 'frequency', 'next_due_date', 'active', 'assigned_technician', 'contract_value', 'currency', 'start_date', 'end_date', 'contractor', 'site', 'notes', 'created', 'updated'],
+    relations: { client: 'clients', assigned_technician: 'users', contractor: 'contractors' },
     rules: {
       list: AUTHED,
       view: AUTHED,
@@ -111,6 +115,31 @@ const collections = {
     relations: { client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: PM_TECH_WRITE, update: PM_TECH_WRITE, delete: PM_WRITE },
   },
+  // HR: independent contractors engaged per project (not employees).
+  contractors: {
+    table: 'contractors',
+    fields: ['id', 'code', 'full_name', 'email', 'phone', 'whatsapp', 'department', 'trade', 'skills', 'experience_years', 'qualifications', 'certifications', 'country', 'city', 'rate_amount', 'rate_unit', 'currency', 'has_tools', 'has_transport', 'status', 'verified', 'rating', 'cv', 'id_document', 'certificate_file', 'emergency_contact', 'payment_details', 'notes', 'source', 'application', 'user', 'created', 'updated'],
+    relations: { user: 'users', application: 'job_applications' },
+    fileFields: ['cv', 'id_document', 'certificate_file'],
+    rules: { list: PEOPLE_READ, view: PEOPLE_READ, create: HR_PM, update: HR_PM, delete: HR },
+    watchedFields: ['status', 'verified', 'rate_amount'],
+  },
+  // Applications arrive from the public website form (routes/careers.js).
+  job_applications: {
+    table: 'job_applications',
+    fields: ['id', 'ref', 'full_name', 'email', 'phone', 'whatsapp', 'country', 'city', 'department', 'trade', 'other_skills', 'experience_years', 'qualifications', 'certifications', 'previous_projects', 'availability', 'expected_rate', 'rate_unit', 'has_tools', 'has_transport', 'cv', 'certificate_file', 'status', 'score', 'review_notes', 'reviewed_by', 'contractor', 'created', 'updated'],
+    relations: { reviewed_by: 'users', contractor: 'contractors' },
+    rules: { list: HR_PM, view: HR_PM, create: HR, update: HR_PM, delete: HR },
+    watchedFields: ['status'],
+  },
+  // One contract per contractor per project: scope, fee, dates, payment.
+  project_assignments: {
+    table: 'project_assignments',
+    fields: ['id', 'project', 'contractor', 'role_on_project', 'scope_of_work', 'payment_basis', 'agreed_amount', 'currency', 'start_date', 'end_date', 'status', 'contract_signed', 'payment_status', 'amount_paid', 'performance_rating', 'notes', 'created', 'updated'],
+    relations: { project: 'projects', contractor: 'contractors' },
+    rules: { list: PEOPLE_READ, view: PEOPLE_READ, create: HR_PM, update: PEOPLE_READ, delete: HR_PM },
+    watchedFields: ['status', 'agreed_amount', 'payment_status', 'amount_paid'],
+  },
   employees: {
     table: 'employees',
     fields: ['id', 'user', 'role', 'phone', 'skills', 'active', 'created', 'updated'],
@@ -119,15 +148,15 @@ const collections = {
   },
   documents: {
     table: 'documents',
-    fields: ['id', 'title', 'client', 'type', 'file', 'created'],
-    relations: { client: 'clients' },
+    fields: ['id', 'title', 'client', 'project', 'type', 'file', 'notes', 'uploaded_by_name', 'created'],
+    relations: { client: 'clients', project: 'projects' },
     fileFields: ['file'],
     rules: { list: AUTHED, view: AUTHED, create: PM_TECH_WRITE, update: PM_WRITE, delete: PM_WRITE },
   },
   invoices: {
     table: 'invoices',
-    fields: ['id', 'invoice_number', 'client', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'created', 'updated'],
-    relations: { client: 'clients', created_by: 'users' },
+    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'created', 'updated'],
+    relations: { client: 'clients', created_by: 'users', quotation: 'quotations', project: 'projects' },
     // Financial data — protected per the RBAC requirements: read AND write
     // restricted to accountant + super_admin, not just write.
     rules: { list: FINANCE, view: FINANCE, create: FINANCE, update: FINANCE, delete: FINANCE },
@@ -135,8 +164,8 @@ const collections = {
   },
   payments: {
     table: 'payments',
-    fields: ['id', 'client', 'reference', 'amount', 'currency', 'status', 'transaction_reference', 'created'],
-    relations: { client: 'clients' },
+    fields: ['id', 'client', 'invoice', 'reference', 'amount', 'currency', 'status', 'transaction_reference', 'method', 'paid_date', 'notes', 'recorded_by_name', 'created'],
+    relations: { client: 'clients', invoice: 'invoices' },
     rules: { list: FINANCE, view: FINANCE, create: FINANCE, update: FINANCE, delete: FINANCE },
     watchedFields: ['status', 'amount'],
   },
@@ -169,7 +198,7 @@ const collections = {
   },
   users: {
     table: 'users',
-    fields: ['id', 'email', 'name', 'job_title', 'phone', 'role', 'status', 'created', 'updated'],
+    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'created', 'updated'],
     relations: {},
     rules: {
       list: AUTHED,

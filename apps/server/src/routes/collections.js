@@ -226,6 +226,14 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       }
     }
 
+    // Contractors get a readable code (CTR-0001…) when none is given.
+    if (req.collectionName === 'contractors' && !columns.includes('code')) {
+      const [codeRows] = await pool.query("SELECT code FROM contractors WHERE code LIKE 'CTR-%'");
+      const max = codeRows.reduce((m, r) => Math.max(m, parseInt(String(r.code).slice(4), 10) || 0), 0);
+      columns.push('code');
+      values.push(`CTR-${String(max + 1).padStart(4, '0')}`);
+    }
+
     const placeholders = columns.map(() => '?').join(', ');
     await pool.query(`INSERT INTO \`${def.table}\` (${columns.map((c) => `\`${c}\``).join(', ')}) VALUES (${placeholders})`, values);
 

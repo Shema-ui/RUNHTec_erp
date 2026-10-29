@@ -34,6 +34,19 @@ async function ensureColumn(conn, table, column, definition) {
   }
 }
 
+// Widens an ENUM column only when the new value is missing, so existing
+// data is untouched and the statement doesn't run on every start.
+async function ensureEnumValue(conn, table, column, value, definition) {
+  const [rows] = await conn.query(
+    'SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+    [table, column]
+  );
+  if (rows[0] && !String(rows[0].t).includes(`'${value}'`)) {
+    await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN \`${column}\` ${definition}`);
+    console.log(`[migrate] widened ${table}.${column}`);
+  }
+}
+
 async function runMigrations() {
   await ensureDatabase();
   const dir = path.join(__dirname, 'migrations');
@@ -56,6 +69,53 @@ async function runMigrations() {
       console.log(`[migrate] applied ${file}`);
     }
     await ensureColumn(conn, 'users', 'tokens_valid_after', 'DATETIME NULL');
+    await ensureColumn(conn, 'users', 'department', "VARCHAR(40) DEFAULT ''");
+    await ensureEnumValue(conn, 'users', 'role', 'hr',
+      "ENUM('super_admin','sales','project_manager','accountant','technician','hr') NOT NULL DEFAULT 'sales'");
+
+    // Projects: full project record (manager, value, progress, priority…)
+    for (const [col, def] of [
+      ['description', 'TEXT'],
+      ['project_manager', 'VARCHAR(20) DEFAULT NULL'],
+      ['service_category', "VARCHAR(60) DEFAULT ''"],
+      ['value', 'DECIMAL(14,2) DEFAULT 0'],
+      ['currency', "VARCHAR(10) DEFAULT 'RWF'"],
+      ['progress', 'INT DEFAULT 0'],
+      ['priority', "VARCHAR(10) DEFAULT 'medium'"],
+      ['completed_date', "VARCHAR(20) DEFAULT ''"],
+      ['notes', 'TEXT'],
+    ]) await ensureColumn(conn, 'projects', col, def);
+    await ensureEnumValue(conn, 'projects', 'status', 'on_hold',
+      "ENUM('planning','scheduled','in_progress','on_hold','done','cancelled') NOT NULL DEFAULT 'scheduled'");
+
+    // Traceability: which quotation / project an invoice came from
+    await ensureColumn(conn, 'invoices', 'quotation', 'VARCHAR(20) DEFAULT NULL');
+    await ensureColumn(conn, 'invoices', 'project', 'VARCHAR(20) DEFAULT NULL');
+
+    // Payments recorded against invoices
+    for (const [col, def] of [
+      ['invoice', 'VARCHAR(20) DEFAULT NULL'],
+      ['method', "VARCHAR(30) DEFAULT ''"],
+      ['paid_date', "VARCHAR(20) DEFAULT ''"],
+      ['notes', "VARCHAR(1000) DEFAULT ''"],
+      ['recorded_by_name', "VARCHAR(200) DEFAULT ''"],
+    ]) await ensureColumn(conn, 'payments', col, def);
+
+    // Maintenance contracts: value, period, contractor, notes
+    for (const [col, def] of [
+      ['contract_value', 'DECIMAL(14,2) DEFAULT 0'],
+      ['currency', "VARCHAR(10) DEFAULT 'RWF'"],
+      ['start_date', "VARCHAR(20) DEFAULT ''"],
+      ['end_date', "VARCHAR(20) DEFAULT ''"],
+      ['contractor', 'VARCHAR(20) DEFAULT NULL'],
+      ['site', "VARCHAR(300) DEFAULT ''"],
+      ['notes', "VARCHAR(2000) DEFAULT ''"],
+    ]) await ensureColumn(conn, 'maintenance_contracts', col, def);
+
+    // Documents can belong to a project too
+    await ensureColumn(conn, 'documents', 'project', 'VARCHAR(20) DEFAULT NULL');
+    await ensureColumn(conn, 'documents', 'notes', "VARCHAR(1000) DEFAULT ''");
+    await ensureColumn(conn, 'documents', 'uploaded_by_name', "VARCHAR(200) DEFAULT ''");
   } finally {
     conn.release();
   }

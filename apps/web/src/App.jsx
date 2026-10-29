@@ -27,7 +27,15 @@ import QuotationViewPage from '@/pages/ops/QuotationViewPage';
 import ProjectsPage from '@/pages/ops/ProjectsPage';
 import MaintenancePage from '@/pages/ops/MaintenancePage';
 import ReportsPage from '@/pages/ops/ReportsPage';
-import EmployeesPage from '@/pages/ops/EmployeesPage';
+import ProjectFormPage from '@/pages/ops/ProjectFormPage';
+import ProjectDetailPage from '@/pages/ops/ProjectDetailPage';
+import HrOverviewPage from '@/pages/hr/HrOverviewPage';
+import ApplicationsPage from '@/pages/hr/ApplicationsPage';
+import ContractorsPage from '@/pages/hr/ContractorsPage';
+import ContractorFormPage from '@/pages/hr/ContractorFormPage';
+import ContractorProfilePage from '@/pages/hr/ContractorProfilePage';
+import EngagementsPage from '@/pages/hr/EngagementsPage';
+import EngagementLetterPage from '@/pages/hr/EngagementLetterPage';
 import DocumentsPage from '@/pages/ops/DocumentsPage';
 import NotificationsPage from '@/pages/ops/NotificationsPage';
 import PaymentsPage from '@/pages/ops/PaymentsPage';
@@ -90,8 +98,20 @@ function App() {
               (Technicians also reach these — record-level scoping happens in
               the PocketBase collection rules, not here.) */}
           <Route path="/projects" element={<Protected moduleKey="projects"><ProjectsPage /></Protected>} />
+          <Route path="/projects/new" element={<Protected moduleKey="projects"><ProjectFormPage /></Protected>} />
+          <Route path="/projects/:id" element={<Protected moduleKey="projects"><ProjectDetailPage /></Protected>} />
+          <Route path="/projects/:id/edit" element={<Protected moduleKey="projects"><ProjectFormPage /></Protected>} />
           <Route path="/maintenance" element={<Protected moduleKey="maintenance"><MaintenancePage /></Protected>} />
-          <Route path="/employees" element={<Protected moduleKey="employees"><EmployeesPage /></Protected>} />
+          {/* HR: contractors engaged per project */}
+          <Route path="/hr" element={<Protected moduleKey="hr"><HrOverviewPage /></Protected>} />
+          <Route path="/hr/applications" element={<Protected moduleKey="hr"><ApplicationsPage /></Protected>} />
+          <Route path="/hr/contractors" element={<Protected moduleKey="hr"><ContractorsPage /></Protected>} />
+          <Route path="/hr/contractors/new" element={<Protected moduleKey="hr"><ContractorFormPage /></Protected>} />
+          <Route path="/hr/contractors/:id" element={<Protected moduleKey="hr"><ContractorProfilePage /></Protected>} />
+          <Route path="/hr/contractors/:id/edit" element={<Protected moduleKey="hr"><ContractorFormPage /></Protected>} />
+          <Route path="/hr/engagements" element={<Protected moduleKey="hr"><EngagementsPage /></Protected>} />
+          <Route path="/hr/engagements/:id/letter" element={<Protected moduleKey="hr"><EngagementLetterPage /></Protected>} />
+          <Route path="/employees" element={<Navigate to="/hr" replace />} />
           <Route path="/documents" element={<Protected moduleKey="documents"><DocumentsPage /></Protected>} />
 
           {/* Accountant: Invoices, Payments, Financial reports */}

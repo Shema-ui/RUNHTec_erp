@@ -7,6 +7,7 @@ import {
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const IN30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -23,8 +24,8 @@ function calcItem(item) {
   return { ...item, amount: parseFloat((Number(item.quantity) * Number(item.unit_price)).toFixed(2)) };
 }
 
-function fmt(n, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+function fmt(n, currency = DEFAULT_CURRENCY) {
+  return formatMoney(n, currency);
 }
 
 function Field({ label, required, children, className = '' }) {
@@ -64,8 +65,8 @@ export default function QuotationFormPage() {
     bill_to_phone: '',
     number: '',
     valid_until: IN30,
-    currency: 'ZAR',
-    tax_rate: 0,
+    currency: DEFAULT_CURRENCY,
+    tax_rate: DEFAULT_TAX_RATE,
     discount_amount: 0,
     notes: '',
     terms_conditions: DEFAULT_TERMS,
@@ -248,12 +249,7 @@ export default function QuotationFormPage() {
             </Field>
             <Field label="Currency">
               <select className={inputCls} value={form.currency} onChange={e => setField('currency', e.target.value)}>
-                <option value="ZAR">ZAR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="RWF">RWF</option>
-                <option value="KES">KES</option>
+                {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.value}</option>)}
               </select>
             </Field>
             <Field label="Status">

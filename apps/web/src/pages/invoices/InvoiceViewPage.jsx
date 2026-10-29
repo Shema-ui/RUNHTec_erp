@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 // Fallback logo used only when no logo has been uploaded in Settings.
 const DEFAULT_LOGO_URL = 'https://horizons-cdn.hostinger.com/2757b26b-44c6-4111-a4b2-af6d71351715/f9d1fad541d7f3b6fd43d5a1326794e7.jpg';
@@ -17,8 +18,8 @@ const STATUS_COLORS = {
   cancelled: { bg: '#f9fafb', text: '#6b7280', border: '#e5e7eb' },
 };
 
-function fmt(n, currency = 'ZAR') {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency || 'ZAR', minimumFractionDigits: 2 }).format(n || 0);
+function fmt(n, currency = DEFAULT_CURRENCY) {
+  return formatMoney(n, currency);
 }
 
 const PRINT_STYLE = `
@@ -191,7 +192,7 @@ export default function InvoiceViewPage() {
   const cfg = settings || {};
   const items = Array.isArray(inv.items) ? inv.items : [];
   const statusColor = STATUS_COLORS[inv.status] || STATUS_COLORS.draft;
-  const currency = inv.currency || cfg.currency || 'ZAR';
+  const currency = inv.currency || cfg.currency || DEFAULT_CURRENCY;
   const statusLabel = inv.status ? inv.status.charAt(0).toUpperCase() + inv.status.slice(1) : 'Draft';
   const companyName = cfg.company_name || DEFAULT_COMPANY_NAME;
   const logoSrc = embeds.logo || logoUrl;
