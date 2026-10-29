@@ -70,6 +70,7 @@ export default function ProjectDetailPage() {
   const saveTasks = (next) => {
     const done = next.filter((t) => t.done).length;
     const progress = next.length ? Math.round((done / next.length) * 100) : Number(p.progress) || 0;
+    setP((old) => ({ ...old, tasks: next, progress })); // show the change immediately
     update({ tasks: next, progress });
   };
   const addTask = (e) => {
@@ -111,7 +112,7 @@ export default function ProjectDetailPage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="space-y-5 lg:col-span-2">
+        <div className="min-w-0 space-y-5 lg:col-span-2">
           <Card title="Tasks & milestones">
             {tasks.length === 0 && <p className="mb-3 text-sm text-muted-foreground">No tasks yet. Add the main steps — progress updates as you tick them off.</p>}
             <ul className="divide-y divide-border">
@@ -175,7 +176,7 @@ export default function ProjectDetailPage() {
           </Card>
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card title="Details">
             <div className="space-y-3">
               <InfoRow label="Client">{p.expand?.client ? <Link to={`/crm/clients/${p.client}`} className="inline-flex items-center gap-1 text-primary hover:underline"><Building2 className="h-3.5 w-3.5" />{p.expand.client.company_name}</Link> : 'Not linked'}</InfoRow>

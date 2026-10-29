@@ -74,7 +74,7 @@ export default function EngagementLetterPage() {
 
         <section>
           <h2 className="font-bold text-slate-900">3. Fee and payment</h2>
-          <p>Total agreed fee: <strong>{formatMoney(a.agreed_amount, a.currency)}</strong> ({basis}). Payment is made against work completed to the satisfaction of the RUNHTec project manager{c.payment_details ? `, to: ${c.payment_details}` : ''}. The Contractor is responsible for their own taxes and statutory contributions.</p>
+          <p>Total agreed fee for this project: <strong>{formatMoney(a.agreed_amount, a.currency)}</strong> (calculated on: {basis.toLowerCase()}). Payment is made against work completed to the satisfaction of the RUNHTec project manager{c.payment_details ? `, to: ${c.payment_details}` : ''}. The Contractor is responsible for their own taxes and statutory contributions.</p>
         </section>
 
         <section>

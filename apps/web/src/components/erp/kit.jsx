@@ -36,7 +36,7 @@ export function Pill({ info, className = '' }) {
 
 export function Card({ title, action, children, className = '' }) {
   return (
-    <section className={`rounded-2xl border border-border bg-card p-5 shadow-sm ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title && <h3 className="font-display text-sm font-bold text-foreground">{title}</h3>}
