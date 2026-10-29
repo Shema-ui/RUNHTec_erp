@@ -54,6 +54,7 @@ jobs:
             echo "----- server -----"
             cat server.log || true
           } > /tmp/result.txt
+          rm -rf /tmp/dist && cp -r dist/apps/web /tmp/dist 2>/dev/null || true
           git config user.name "build-check"
           git config user.email "build-check@users.noreply.github.com"
           git fetch origin ci-logs || true
@@ -62,6 +63,7 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp /tmp/result.txt "result-$SHA.txt"
           cp /tmp/result.txt latest.txt
+          if [ -d /tmp/dist ]; then cp -r /tmp/dist ./dist; fi
           git add -A
           git commit -qm "build check $SHA" || true
           git push -f origin ci-logs
