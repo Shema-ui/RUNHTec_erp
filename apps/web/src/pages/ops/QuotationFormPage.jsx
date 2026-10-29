@@ -9,8 +9,9 @@ import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
-const TODAY = new Date().toISOString().slice(0, 10);
-const IN30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+const localDay = (offset = 0) => { const d = new Date(); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const TODAY = localDay();
+const IN30 = localDay(30);
 
 const DEFAULT_TERMS = `1. This quotation is valid until the date stated above.
 2. Prices are exclusive of VAT unless otherwise indicated.

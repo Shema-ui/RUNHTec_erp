@@ -5,11 +5,11 @@ import { Plus, CalendarDays, MapPin, Users, FolderKanban } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
-import { Toolbar, SearchBox, FilterSelect, Loading, Empty, Pill, StatCard, btnPrimary, fmtDate } from '@/components/erp/kit';
+import { Toolbar, SearchBox, FilterSelect, Loading, Empty, Pill, StatCard, btnPrimary, fmtDate, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES, PRIORITIES, SERVICE_CATEGORIES, projectStatusInfo, priorityInfo, serviceLabel } from '@/lib/projects';
 import { formatMoney, formatMoneyShort, DEFAULT_CURRENCY } from '@/lib/money';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayISO();
 
 export default function ProjectsPage() {
   const { user } = useAuth();

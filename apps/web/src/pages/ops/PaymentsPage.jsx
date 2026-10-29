@@ -7,12 +7,12 @@ import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Toolbar, SearchBox, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, fmtDate,
+  Toolbar, SearchBox, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, fmtDate, todayISO,
 } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 
 const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Other'];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayISO();
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState(null);

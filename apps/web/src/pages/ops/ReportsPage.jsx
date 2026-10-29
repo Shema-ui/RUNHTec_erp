@@ -3,12 +3,12 @@ import { Helmet } from 'react-helmet';
 import { TrendingUp, ReceiptText, FileText, FolderKanban, Banknote, HardHat } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
-import { Card, StatCard, Loading } from '@/components/erp/kit';
+import { Card, StatCard, Loading, todayISO } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import { PROJECT_STATUSES, SERVICE_CATEGORIES } from '@/lib/projects';
 
 const C = DEFAULT_CURRENCY;
-const ymd = () => new Date().toISOString().slice(0, 10);
+const ymd = () => todayISO();
 const safe = (p) => p.catch(() => []);
 
 function Bars({ rows, money }) {
@@ -61,7 +61,7 @@ export default function ReportsPage() {
     const owedContractors = d.assignments.filter((a) => a.status !== 'cancelled').reduce((s, a) => s + Math.max(0, Number(a.agreed_amount || 0) - Number(a.amount_paid || 0)), 0);
     const months = Array.from({ length: 6 }, (_, k) => {
       const dt = new Date(); dt.setDate(1); dt.setMonth(dt.getMonth() - (5 - k));
-      const key = dt.toISOString().slice(0, 7);
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
       return { label: dt.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }), value: sumPaid(key) };
     });
     const byStatus = PROJECT_STATUSES.map((s) => ({ label: s.label, value: d.projects.filter((p) => p.status === s.value).length }));

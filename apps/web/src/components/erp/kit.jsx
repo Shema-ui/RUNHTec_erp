@@ -172,3 +172,11 @@ export const fmtDate = (v) => {
   const d = new Date(String(v).length <= 10 ? `${v}T00:00:00` : String(v).replace(' ', 'T'));
   return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
+
+// Today's date (YYYY-MM-DD) in the user's own time zone, not UTC, so dates
+// are right in Kigali/Kampala just after midnight too.
+export function todayISO(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

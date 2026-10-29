@@ -7,14 +7,14 @@ import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Toolbar, SearchBox, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, btnDanger, fmtDate,
+  Toolbar, SearchBox, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, btnDanger, fmtDate, todayISO,
 } from '@/components/erp/kit';
 import { SERVICE_CATEGORIES } from '@/lib/projects';
 import { tradeLabel } from '@/lib/hr';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY } from '@/lib/money';
 
 const FREQUENCIES = ['Weekly', 'Twice a week', 'Every 2 weeks', 'Monthly', 'Quarterly', 'Every 6 months', 'Yearly', 'On call'];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayISO();
 
 export default function MaintenancePage() {
   const { user } = useAuth();
@@ -36,7 +36,7 @@ export default function MaintenancePage() {
 
   const stats = useMemo(() => {
     const active = (contracts || []).filter((c) => c.active);
-    const soon = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    const soon = todayISO(7);
     return {
       active: active.length,
       dueWeek: active.filter((c) => c.next_due_date && c.next_due_date <= soon && c.next_due_date >= today()).length,

@@ -16,6 +16,7 @@ import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { ROLES, roleLabel } from '@/lib/permissions';
+import { DEPARTMENTS, deptShort } from '@/lib/hr';
 import { logActivity } from '@/lib/activity';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -133,6 +134,7 @@ export default function UsersPage() {
                 <th className="px-5 py-3 font-semibold">Role</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
                 <th className="px-5 py-3 font-semibold">Job title</th>
+                <th className="px-5 py-3 font-semibold">Department</th>
                 <th className="px-5 py-3 text-right font-semibold">Actions</th>
               </tr>
             </thead>
@@ -140,14 +142,14 @@ export default function UsersPage() {
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-5 py-4" colSpan={5}>
+                    <td className="px-5 py-4" colSpan={6}>
                       <div className="h-5 w-full animate-pulse rounded bg-secondary" />
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
                     No users match your search.
                   </td>
                 </tr>
@@ -173,6 +175,7 @@ export default function UsersPage() {
                       <td className="px-5 py-3.5"><RoleBadge role={u.role} /></td>
                       <td className="px-5 py-3.5"><StatusBadge status={u.status} /></td>
                       <td className="px-5 py-3.5 text-muted-foreground">{u.job_title || '—'}</td>
+                      <td className="px-5 py-3.5 text-muted-foreground">{u.department ? deptShort(u.department) : '—'}</td>
                       <td className="px-5 py-3.5 text-right">
                         {isSuper ? (
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -288,7 +291,7 @@ function ChangeRoleDialog({ target, onClose, onChanged }) {
 
 function CreateUserDialog({ open, onOpenChange, onCreated }) {
   const { toast } = useToast();
-  const empty = { name: '', email: '', job_title: '', role: 'sales', password: '' };
+  const empty = { name: '', email: '', job_title: '', department: 'administration', role: 'sales', password: '' };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -305,6 +308,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
         name: form.name,
         email: form.email.trim(),
         job_title: form.job_title,
+        department: form.department,
         role: form.role,
         status: 'active',
         verified: true,
@@ -338,7 +342,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
           )}
           <div className="space-y-2">
             <Label htmlFor="c-name">Full name</Label>
-            <Input id="c-name" required value={form.name} onChange={set('name')} placeholder="e.g. Thabo Mokoena" />
+            <Input id="c-name" required value={form.name} onChange={set('name')} placeholder="e.g. Aline Uwase" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="c-email">Email</Label>
@@ -360,6 +364,12 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="c-dept">Department</Label>
+            <select id="c-dept" value={form.department} onChange={set('department')} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+            </select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="c-pw">Temporary password</Label>

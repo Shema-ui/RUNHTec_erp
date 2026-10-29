@@ -5,7 +5,7 @@ import { Loader2, Save } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useToast } from '@/hooks/use-toast';
-import { Card, Field, BackLink, Loading, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
+import { Card, Field, BackLink, Loading, inputCls, textareaCls, btnPrimary, btnLine, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES, PRIORITIES, SERVICE_CATEGORIES } from '@/lib/projects';
 import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/money';
 
@@ -66,7 +66,7 @@ export default function ProjectFormPage() {
       project_manager: form.project_manager || null,
       value: Number(form.value) || 0,
       progress: Math.max(0, Math.min(100, Number(form.progress) || 0)),
-      completed_date: form.status === 'done' && !form.completed_date ? new Date().toISOString().slice(0, 10) : form.completed_date,
+      completed_date: form.status === 'done' && !form.completed_date ? todayISO() : form.completed_date,
     };
     try {
       const saved = isEdit ? await pb.collection('projects').update(id, data) : await pb.collection('projects').create(data);

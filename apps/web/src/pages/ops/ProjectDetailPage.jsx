@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { canAccessModule } from '@/lib/permissions';
 import EngagementDialog from '@/components/erp/EngagementDialog';
 import DocumentUploadDialog from '@/components/erp/DocumentUploadDialog';
-import { Card, BackLink, Loading, Pill, InfoRow, StatCard, Stars, inputCls, btnPrimary, btnLine, fmtDate } from '@/components/erp/kit';
+import { Card, BackLink, Loading, Pill, InfoRow, StatCard, Stars, inputCls, btnPrimary, btnLine, fmtDate, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES, projectStatusInfo, priorityInfo, serviceLabel } from '@/lib/projects';
 import { ASSIGNMENT_STATUSES, CONTRACTOR_PAYMENT_STATUSES, statusInfo } from '@/lib/hr';
 import { formatMoney } from '@/lib/money';
@@ -80,7 +80,7 @@ export default function ProjectDetailPage() {
     setNewTask('');
   };
 
-  const changeStatus = (status) => update({ status, ...(status === 'done' ? { completed_date: new Date().toISOString().slice(0, 10), progress: 100 } : {}) }, 'Status updated');
+  const changeStatus = (status) => update({ status, ...(status === 'done' ? { completed_date: todayISO(), progress: 100 } : {}) }, 'Status updated');
   const currency = p.currency || 'RWF';
   const quote = p.expand?.quotation;
   const value = Number(p.value) || Number(quote?.total) || 0;
