@@ -14,7 +14,7 @@ function signToken(user) {
 
 function sanitizeUser(row) {
   if (!row) return null;
-  const { password_hash, reset_token_hash, reset_token_expires, ...rest } = row;
+  const { password_hash, reset_token_hash, reset_token_expires, tokens_valid_after, ...rest } = row;
   return rest;
 }
 
@@ -29,7 +29,10 @@ async function attachUser(req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ? AND status = "active"', [payload.sub]);
-    if (rows[0]) req.user = sanitizeUser(rows[0]);
+    const row = rows[0];
+    // Tokens issued before the last password change are no longer accepted.
+    const validAfter = row && row.tokens_valid_after ? new Date(String(row.tokens_valid_after).replace(' ', 'T') + 'Z').getTime() : 0;
+    if (row && (!validAfter || payload.iat * 1000 >= validAfter - 1000)) req.user = sanitizeUser(row);
   } catch (_) {
     // invalid/expired token — leave req.user unset, requireAuth will reject if needed
   }
@@ -41,4 +44,6 @@ function requireAuth(req, res, next) {
   next();
 }
 
-module.exports = { signToken, sanitizeUser, attachUser, requireAuth, bcrypt };
+const MIN_PASSWORD_LENGTH = 8;
+
+module.exports = { signToken, sanitizeUser, attachUser, requireAuth, bcrypt, MIN_PASSWORD_LENGTH };

@@ -4,7 +4,7 @@ const pool = require('./../db');
 const { collections } = require('../collections');
 const { parseFilter } = require('../filterParser');
 const { genId } = require('../idGen');
-const { requireAuth, bcrypt } = require('../auth');
+const { requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
 const { writeAuditEntry, summarizeChanges } = require('../audit');
 const { storeFile } = require('../files');
 
@@ -38,7 +38,7 @@ function serializeValue(field, value) {
 // rule checks and audit diffing, where the full row is legitimately
 // needed) so this only strips things right before they go out over HTTP.
 const SENSITIVE_FIELDS = {
-  users: ['password_hash', 'reset_token_hash', 'reset_token_expires'],
+  users: ['password_hash', 'reset_token_hash', 'reset_token_expires', 'tokens_valid_after'],
 };
 
 function toPublic(collectionName, record) {
@@ -88,6 +88,20 @@ function extractBody(req, def) {
     if (body[key] === 'false') body[key] = false;
   }
   return body;
+}
+
+// Links typed into the ERP are shown as clickable links, so only plain web
+// addresses are accepted (a "javascript:" link could run code in a
+// colleague's browser when clicked).
+function validateBody(body) {
+  if (body.website !== undefined && body.website !== null && body.website !== '') {
+    const site = String(body.website).trim();
+    if (!/^https?:\/\/[^\s<>"']+$/i.test(site)) {
+      return 'Website must be a web address starting with http:// or https://';
+    }
+    body.website = site;
+  }
+  return null;
 }
 
 // GET /api/collections/:name/records
@@ -166,6 +180,8 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
 
   try {
     const body = extractBody(req, def);
+    const invalid = validateBody(body);
+    if (invalid) return res.status(400).json({ message: invalid });
     const id = genId();
     const columns = ['id'];
     const values = [id];
@@ -176,6 +192,9 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       const { password, passwordConfirm, ...rest } = body;
       if (!password || password !== passwordConfirm) {
         return res.status(400).json({ message: 'Password and confirmation must match.' });
+      }
+      if (String(password).length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
       }
       const passwordHash = await bcrypt.hash(password, 10);
       columns.push('password_hash');
@@ -231,13 +250,20 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (!def.rules.update(req.user, before)) return res.status(403).json({ message: 'Not allowed to update this record.' });
 
     const body = extractBody(req, def);
+    const invalid = validateBody(body);
+    if (invalid) return res.status(400).json({ message: invalid });
     const setClauses = [];
     const values = [];
 
     if (req.collectionName === 'users' && body.password) {
-      const passwordHash = await bcrypt.hash(body.password, 10);
+      if (String(body.password).length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
+      }
+      const passwordHash = await bcrypt.hash(String(body.password), 10);
       setClauses.push('password_hash = ?');
       values.push(passwordHash);
+      // A new password signs that user out of every existing session.
+      setClauses.push('tokens_valid_after = UTC_TIMESTAMP()');
     }
 
     for (const field of def.fields) {

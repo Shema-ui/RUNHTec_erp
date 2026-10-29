@@ -7,24 +7,48 @@
 const express = require('express');
 const pool = require('../db');
 const { genId } = require('../idGen');
+const { createLimiter } = require('../rateLimit');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
-  const payload = req.body || {};
-  const source = String(payload.source || 'website').toLowerCase();
-  const type = String(payload.type || 'contact').toLowerCase();
-  const name = String(payload.name || '').trim();
-  const email = String(payload.email || '').trim();
-  const phone = String(payload.phone || '').trim();
-  const company = String(payload.company || '').trim();
-  const message = String(payload.message || '').trim();
-  const serviceType = String(payload.serviceType || payload.service_type || '').trim();
-  const urgency = String(payload.urgency || '').trim();
+// This endpoint is public (the website posts to it), so it is limited to
+// stop anyone flooding the ERP with fake requests.
+const perIp = createLimiter({ windowMs: 10 * 60 * 1000, max: 5 });
+const perDay = createLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 300 });
 
-  if (!name && !email && !message) {
-    return res.status(400).json({ message: 'Missing submission data' });
+// Trim a value and cap its length so nothing oversized is stored.
+const clip = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+
+router.post('/', async (req, res) => {
+  const payload = req.body && typeof req.body === 'object' ? req.body : {};
+  if (perIp.isBlocked(req.ip) || perDay.isBlocked('all')) {
+    return res.status(429).json({ message: 'Too many requests. Please try again later or contact us on WhatsApp.' });
   }
+  // Hidden "honeypot" field: real visitors leave it empty, spam bots fill it.
+  if (payload._honey || payload.website_url) return res.status(200).json({ success: true, message: 'Submission received' });
+
+  const source = clip(payload.source || 'website', 20).toLowerCase();
+  const type = clip(payload.type || 'contact', 20).toLowerCase();
+  const name = clip(payload.name, 120);
+  const email = clip(payload.email, 160).toLowerCase();
+  const phone = clip(payload.phone, 40);
+  const company = clip(payload.company, 160);
+  const message = clip(payload.message, 4000);
+  const serviceType = clip(payload.serviceType || payload.service_type, 120);
+  const urgencyRaw = clip(payload.urgency, 10).toLowerCase();
+  const urgency = ['low', 'medium', 'high'].includes(urgencyRaw) ? urgencyRaw : '';
+  const city = clip(payload.city, 80);
+  const country = clip(payload.country, 80);
+  const address = clip(payload.address, 255);
+
+  if (!name || (!email && !phone) || !message) {
+    return res.status(400).json({ message: 'Please give your name, a phone number or email, and a message.' });
+  }
+  if (email && !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(email)) {
+    return res.status(400).json({ message: 'Please give a valid email address.' });
+  }
+  perIp.hit(req.ip);
+  perDay.hit('all');
 
   try {
     let clientId = null;
@@ -46,7 +70,8 @@ router.post('/', async (req, res) => {
       clientId = genId();
       await pool.query(
         'INSERT INTO clients (id, company_name, trading_name, status, industry, city, country, website, potential_value, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())',
-        [clientId, company || name, company || name, 'lead', 'website', payload.city || '', payload.country || '', payload.website || '']
+        // Website is left empty: a link typed by the public is never stored as a clickable link.
+        [clientId, company || name, company || name, 'lead', 'website', city, country, '']
       );
     }
 
@@ -82,11 +107,11 @@ router.post('/', async (req, res) => {
         company || name,
         email,
         phone,
-        serviceType || payload.service || defaultServiceType,
-        urgency || payload.urgency || (requestType === 'contact_enquiry' ? '' : 'medium'),
-        payload.budget || '',
-        payload.address || '',
-        message || payload.description || defaultDescription,
+        serviceType || defaultServiceType,
+        urgency || (requestType === 'contact_enquiry' ? '' : 'medium'),
+        clip(payload.budget, 60),
+        address,
+        message || defaultDescription,
         source === 'website' ? 'website' : 'manual',
         requestType,
         clientId,

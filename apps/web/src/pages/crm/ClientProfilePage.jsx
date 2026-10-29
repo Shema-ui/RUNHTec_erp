@@ -33,6 +33,13 @@ const TABS = [
 
 const FUTURE_TABS = ['quotations', 'projects', 'maintenance', 'invoices', 'payments'];
 
+// Only ordinary web links are clickable; anything else (e.g. "javascript:")
+// is shown as plain text so it can never run code when clicked.
+function safeHref(url) {
+  const u = String(url || '').trim();
+  return /^https?:\/\//i.test(u) ? u : undefined;
+}
+
 function InfoRow({ label, value, href }) {
   if (!value) return null;
   return (
@@ -73,7 +80,7 @@ function OverviewTab({ client }) {
         <InfoRow label="Industry" value={client.industry} />
         <InfoRow label="Registration No." value={client.registration_number} />
         <InfoRow label="VAT / Tax No." value={client.vat_number} />
-        <InfoRow label="Website" value={client.website} href={client.website} />
+        <InfoRow label="Website" value={client.website} href={safeHref(client.website)} />
         <InfoRow label="Potential Value" value={formatCurrency(client.potential_value)} />
         <InfoRow label="Account Manager" value={am?.name || am?.email} />
         <InfoRow label="Date Added" value={new Date(client.created).toLocaleDateString()} />
@@ -257,8 +264,8 @@ export default function ClientProfilePage() {
               {(client.city || client.country) && (
                 <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{[client.city, client.country].filter(Boolean).join(', ')}</span>
               )}
-              {client.website && (
-                <a href={client.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary">
+              {safeHref(client.website) && (
+                <a href={safeHref(client.website)} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-primary">
                   <Globe className="h-3.5 w-3.5" />{client.website.replace(/^https?:\/\//, '')}
                 </a>
               )}

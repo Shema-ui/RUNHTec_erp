@@ -22,6 +22,18 @@ async function ensureDatabase() {
   }
 }
 
+// Adds a column only if it is missing, so it is safe to run on every start.
+async function ensureColumn(conn, table, column, definition) {
+  const [rows] = await conn.query(
+    'SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+    [table, column]
+  );
+  if (rows[0].n === 0) {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+    console.log(`[migrate] added ${table}.${column}`);
+  }
+}
+
 async function runMigrations() {
   await ensureDatabase();
   const dir = path.join(__dirname, 'migrations');
@@ -43,6 +55,7 @@ async function runMigrations() {
       }
       console.log(`[migrate] applied ${file}`);
     }
+    await ensureColumn(conn, 'users', 'tokens_valid_after', 'DATETIME NULL');
   } finally {
     conn.release();
   }
