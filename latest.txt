@@ -1,0 +1,26 @@
+commit: ecfec52
+build: success
+server: success
+----- build (last 200 lines) -----
+
+> web@0.0.0 build
+> node tools/generate-llms.js || true && vite build --outDir ../../dist/apps/web
+
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/crm: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/hr: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/invoices: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/ops: EISDIR: illegal operation on a directory, read
+[36mvite v8.2.0 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 2948 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/apps/web/index.html                           7.77 kB │ gzip:   2.89 kB
+../../dist/apps/web/assets/index-fcMt2Rpc.css           89.34 kB │ gzip:  15.60 kB
+../../dist/apps/web/assets/purify.es-BBW4PmiO.js        26.87 kB │ gzip:  10.45 kB
+../../dist/apps/web/assets/index.es-B4j2XnQi.js        151.32 kB │ gzip:  48.88 kB
+../../dist/apps/web/assets/html2canvas-Db_7YKBB.js     199.49 kB │ gzip:  46.77 kB
+../../dist/apps/web/assets/jspdf.es.min-BuG_K0zz.js    399.17 kB │ gzip: 129.62 kB
+../../dist/apps/web/assets/index-CP-V6KVk.js         1,330.49 kB │ gzip: 363.35 kB
+
+[32m✓ built in 1.68s[39m
+----- server -----

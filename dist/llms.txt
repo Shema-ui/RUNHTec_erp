@@ -1,0 +1,5 @@
+## Pages
+- [Activity Logs | RUNHTec Business Portal](/activitylog): Security audit trail of user actions across the RUNHTec Business Portal. Super Administrator only.
+- [Dashboard | RUNHTec Business Portal](/dashboard): Executive operations dashboard for RUNHTec Contractors — clients, projects, quotations, invoices and workforce at a glance.
+- [Settings | RUNHTec Business Portal](/settings): Manage company information, payment details, and invoice branding for RUNHTec Business Portal.
+- [User Management | RUNHTec Business Portal](/users): Create, suspend, reset and manage RUNHTec portal user accounts and roles. Super Administrator only.
