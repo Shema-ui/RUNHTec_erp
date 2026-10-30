@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import SuperDelete from '@/components/erp/SuperDelete';
+import { deleteInvoicePayments } from '@/lib/cleanup';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 // Fallback logo used only when no logo has been uploaded in Settings.
@@ -239,6 +241,7 @@ export default function InvoiceViewPage() {
             >
               <Edit2 className="h-4 w-4" /> Edit
             </Link>
+            <SuperDelete collection="invoices" id={id} text="Delete" label={`invoice ${invoice?.invoice_number || ''} and any payments recorded on it`} before={deleteInvoicePayments} after={() => navigate('/invoices')} />
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"

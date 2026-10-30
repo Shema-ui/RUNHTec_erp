@@ -9,6 +9,8 @@ import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { canAccessModule } from '@/lib/permissions';
+import SuperDelete from '@/components/erp/SuperDelete';
+import { deleteProjectAssignments } from '@/lib/cleanup';
 import EngagementDialog from '@/components/erp/EngagementDialog';
 import DocumentUploadDialog from '@/components/erp/DocumentUploadDialog';
 import { Card, BackLink, Loading, Pill, InfoRow, StatCard, Stars, inputCls, btnPrimary, btnLine, fmtDate, todayISO } from '@/components/erp/kit';
@@ -101,6 +103,7 @@ export default function ProjectDetailPage() {
           )}
           {canInvoice && <Link className={btnPrimary} to={`/invoices/new?fromProject=${p.id}`}><ReceiptText className="h-4 w-4" /> Create invoice</Link>}
           {canEdit && <Link className={btnLine} to={`/projects/${p.id}/edit`}><Pencil className="h-4 w-4" /> Edit</Link>}
+          <SuperDelete collection="projects" id={p.id} text="Delete" label={`project “${p.title}” and its contractor engagements`} before={deleteProjectAssignments} after={() => navigate('/projects')} />
         </div>
       </div>
 

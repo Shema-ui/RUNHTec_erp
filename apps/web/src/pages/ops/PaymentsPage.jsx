@@ -10,6 +10,7 @@ import {
   Toolbar, SearchBox, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, fmtDate, todayISO,
 } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
+import SuperDelete from '@/components/erp/SuperDelete';
 
 const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Other'];
 const today = () => todayISO();
@@ -41,6 +42,16 @@ export default function PaymentsPage() {
     return { thisMonth, outstanding, openCount: open.length };
   }, [payments, invoices, paidByInvoice]);
 
+  // After a payment is deleted, re-open its invoice if it is no longer fully paid.
+  const afterDelete = (p) => async () => {
+    const inv = invoices.find((i) => i.id === p.invoice);
+    if (inv && inv.status === 'paid' && p.status === 'completed') {
+      const left = (paidByInvoice[inv.id] || 0) - Number(p.amount || 0);
+      if (left < Number(inv.total || 0) - 0.5) await pb.collection('invoices').update(inv.id, { status: 'sent' }).catch(() => {});
+    }
+    await load();
+  };
+
   const filtered = (payments || []).filter((p) => !q || [p.reference, p.transaction_reference, p.expand?.invoice?.invoice_number, p.expand?.client?.company_name, p.expand?.invoice?.bill_to_company].join(' ').toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -64,7 +75,7 @@ export default function PaymentsPage() {
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th></tr>
+              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th><th className="w-12 px-2 py-3" /></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((p) => (
@@ -75,6 +86,7 @@ export default function PaymentsPage() {
                   <td className="px-4 py-3">{p.method || '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{p.transaction_reference || p.reference || '—'}</td>
                   <td className="px-4 py-3 text-right font-semibold">{formatMoney(p.amount, p.currency)}</td>
+                  <td className="px-2 py-3 text-right"><SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}${p.expand?.invoice?.invoice_number ? ` on ${p.expand.invoice.invoice_number}` : ''}`} after={afterDelete(p)} /></td>
                 </tr>
               ))}
             </tbody>

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, CheckCircle2, Clock3 } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+import SuperDelete from '@/components/erp/SuperDelete';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 function fmt(n, currency = DEFAULT_CURRENCY) {
@@ -105,9 +106,12 @@ export default function QuotationsPage() {
                   </div>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground">
                 {quote.status === 'accepted' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Clock3 className="h-4 w-4 text-amber-600" />}
                 {quote.status === 'accepted' ? 'Accepted — project ready' : 'Pending client approval'}
+              </div>
+              <SuperDelete collection="quotations" id={quote.id} label={`quotation ${quote.number || ''}`.trim()} after={() => setQuotes((list) => list.filter((x) => x.id !== quote.id))} />
               </div>
             </div>
           </Link>

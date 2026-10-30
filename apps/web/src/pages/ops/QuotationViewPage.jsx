@@ -5,6 +5,7 @@ import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight, ReceiptText
 import { useAuth } from '@/context/AuthContext';
 import { canAccessModule } from '@/lib/permissions';
 import pb from '@/lib/pocketbaseClient';
+import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
@@ -260,6 +261,7 @@ export default function QuotationViewPage() {
             >
               <Edit2 className="h-4 w-4" /> Edit
             </Link>
+            <SuperDelete collection="quotations" id={id} text="Delete" label={`quotation ${q.number || ''}`.trim()} after={() => navigate('/quotations')} />
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"

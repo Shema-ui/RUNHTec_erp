@@ -6,6 +6,7 @@ import {
   CheckCircle2, Clock, XCircle, AlertCircle, Send,
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import { deleteInvoicePayments } from '@/lib/cleanup';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -67,6 +68,7 @@ export default function InvoicesPage() {
     if (!confirm(`Delete invoice ${inv.invoice_number}? This cannot be undone.`)) return;
     setDeleting(inv.id);
     try {
+      await deleteInvoicePayments(inv.id);
       await pb.collection('invoices').delete(inv.id);
       setInvoices(p => p.filter(i => i.id !== inv.id));
       toast({ title: 'Invoice deleted' });

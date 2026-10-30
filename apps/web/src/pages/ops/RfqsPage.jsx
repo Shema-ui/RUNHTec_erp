@@ -5,6 +5,7 @@ import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight } from 'lucide-
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import pb from '@/lib/pocketbaseClient';
+import SuperDelete from '@/components/erp/SuperDelete';
 
 const TABS = [
   { key: 'quote_request', label: 'Quote Requests', icon: FileQuestion },
@@ -220,6 +221,7 @@ export default function RfqsPage() {
                         Convert to quotation <ArrowRight className="h-4 w-4" />
                       </button>
                     )}
+                    <SuperDelete collection="rfqs" id={rfq.id} text="Delete" label={`request from ${rfq.company || rfq.name || 'website'}`} after={() => setRfqs((prev) => prev.filter((x) => x.id !== rfq.id))} />
                   </div>
                 </div>
               </div>

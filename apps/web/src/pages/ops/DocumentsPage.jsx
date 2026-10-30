@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Upload, FileText, Download } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+import SuperDelete from '@/components/erp/SuperDelete';
 import DocumentUploadDialog, { DOCUMENT_TYPES } from '@/components/erp/DocumentUploadDialog';
 import { Toolbar, SearchBox, Loading, Empty, btnPrimary, fmtDate } from '@/components/erp/kit';
 
@@ -42,7 +43,7 @@ export default function DocumentsPage() {
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-4 py-3">Document</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Project</th><th className="px-4 py-3">Added</th><th /></tr>
+              <tr><th className="px-4 py-3">Document</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Project</th><th className="px-4 py-3">Added</th><th /><th /></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((d) => (
@@ -53,6 +54,7 @@ export default function DocumentsPage() {
                   <td className="px-4 py-3">{d.project ? <Link to={`/projects/${d.project}`} className="hover:text-primary">{d.expand?.project?.title || '—'}</Link> : '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{fmtDate(d.created)}{d.uploaded_by_name ? ` · ${d.uploaded_by_name}` : ''}</td>
                   <td className="px-4 py-3">{d.file && <a href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Download className="h-4 w-4" /> Open</a>}</td>
+                  <td className="px-2 py-3 text-right"><SuperDelete collection="documents" id={d.id} label={`document “${d.title || 'untitled'}”`} after={load} /></td>
                 </tr>
               ))}
             </tbody>
