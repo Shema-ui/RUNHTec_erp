@@ -1,13 +1,13 @@
 import pb from '@/lib/pocketbaseClient';
 
 // Escape a value for use inside a filter string.
-const q = (v) => String(v).replace(/["\\]/g, '');
+const q = (v) => String(v).replace(/['"\\]/g, '');
 
 // Remove every record in `collection` whose `field` points at `id`.
 // Silently skips if the user can't list that collection.
 async function removeLinked(collection, field, id) {
   let list = [];
-  try { list = await pb.collection(collection).getFullList({ filter: `${field}="${q(id)}"` }); } catch { return; }
+  try { list = await pb.collection(collection).getFullList({ filter: `${field} = '${q(id)}'` }); } catch { return; }
   for (const r of list) {
     if (r[field] === id) await pb.collection(collection).delete(r.id);
   }
