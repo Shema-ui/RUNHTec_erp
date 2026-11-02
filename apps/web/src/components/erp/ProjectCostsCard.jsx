@@ -45,8 +45,19 @@ export default function ProjectCostsCard({ project, team }) {
   const actual = useMemo(() => summarizeActual(costs || []), [costs]);
   const otherActual = actual.total - (actual.by.materials || 0) - (actual.by.labour || 0);
   const profitNow = revenue - actual.total;
-  const marginNow = revenue > 0 ? (profitNow / revenue) * 100 : 0;
-  const expected = planned ? revenue - Math.max(planned, actual.total) : null;
+  const done = project.status === 'done';
+
+  const rows = [
+    { label: 'Materials & equipment', plan: plan?.materials, used: actual.by.materials || 0, note: 'Add materials you buy with “Add expense” → Materials' },
+    { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used` },
+    { label: 'Transport & other', plan: plan ? plan.expenses + plan.contingency : undefined, used: otherActual },
+  ];
+  // Expected final cost: for each part, what we planned — or what we've already spent if that's more.
+  const expectedCost = plan ? rows.reduce((t, r) => t + Math.max(n(r.plan), r.used), 0) : (planned ? Math.max(planned, actual.total) : null);
+  const expected = expectedCost === null ? null : revenue - expectedCost;
+  const showFinal = done || expected === null;
+  const headline = showFinal ? profitNow : expected;
+  const headlineMargin = revenue > 0 ? (headline / revenue) * 100 : 0;
 
   const togglePaid = async (c) => {
     setCosts((list) => list.map((x) => (x.id === c.id ? { ...x, paid: !c.paid } : x)));
@@ -57,11 +68,6 @@ export default function ProjectCostsCard({ project, team }) {
     try { await pb.collection('project_costs').delete(c.id); load(); } catch (e) { toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }); }
   };
 
-  const rows = [
-    { label: 'Materials & equipment', plan: plan?.materials, used: actual.by.materials || 0 },
-    { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used` },
-    { label: 'Transport & other', plan: plan ? plan.expenses + plan.contingency : undefined, used: otherActual },
-  ];
 
   return (
     <Card
@@ -77,12 +83,12 @@ export default function ProjectCostsCard({ project, team }) {
         <Mini label="Client pays (excl. VAT)" value={formatMoney(revenue, currency)} />
         <Mini label="Planned cost" value={planned ? formatMoney(planned, currency) : 'Not set'} note={plan ? 'From the quotation costing' : 'Set it on the quotation or project'} />
         <Mini label="Spent so far" value={formatMoney(actual.total, currency)} note={actual.unpaid ? `${formatMoney(actual.unpaid, currency)} not yet paid out` : 'All paid'} />
-        <Mini label="Profit so far" value={formatMoney(profitNow, currency)} note={`${marginNow.toFixed(1)}% of the price`} cls={marginTone(marginNow)} />
+        <Mini label={done ? 'Final profit' : showFinal ? 'Profit so far' : 'Expected profit'} value={formatMoney(headline, currency)} note={`${headlineMargin.toFixed(1)}% of the price`} cls={marginTone(headlineMargin)} />
       </div>
 
-      {expected !== null && (
-        <p className={`mt-3 flex items-center gap-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-sm ${marginTone(revenue ? (expected / revenue) * 100 : 0)}`}>
-          <TrendingUp className="h-4 w-4" /> Expected final profit if costs stay on plan: <strong>{formatMoney(expected, currency)}</strong>
+      {!showFinal && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+          <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Expected profit uses the plan for anything not spent yet. Log wages each day and add materials, fuel and other spending as you pay — when the project is marked Done this becomes the final profit.
         </p>
       )}
       {planned > 0 && actual.total > planned && (
