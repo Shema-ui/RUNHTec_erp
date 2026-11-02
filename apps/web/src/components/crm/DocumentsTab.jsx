@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Loader2, Check, Trash2, FileText, Download, Pencil } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
+import { canUploadDocs } from '@/lib/permissions';
 import { DOC_TYPES } from '@/lib/crm';
 
 const inputCls = 'h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
@@ -23,6 +24,7 @@ export default function DocumentsTab({ clientId }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const canUpload = canUploadDocs(user);
 
   const load = async () => {
     setLoading(true);
@@ -96,13 +98,13 @@ export default function DocumentsTab({ clientId }) {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{docs.length} document{docs.length !== 1 ? 's' : ''}</p>
-        <button onClick={toggleForm} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+        {canUpload && <button onClick={toggleForm} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
           {showForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
           {showForm ? 'Cancel' : 'Upload Document'}
-        </button>
+        </button>}
       </div>
 
-      {showForm && (
+      {showForm && canUpload && (
         <form onSubmit={handleAdd} className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edit Document' : 'Upload Document'}</p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -155,12 +157,12 @@ export default function DocumentsTab({ clientId }) {
                       <Download className="h-4 w-4" />
                     </a>
                   )}
-                  <button onClick={() => startEdit(doc)} aria-label="Edit document" className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary">
+                  {canUpload && <><button onClick={() => startEdit(doc)} aria-label="Edit document" className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary">
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button onClick={() => handleDelete(doc.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </button></>}
                 </div>
               </div>
             );

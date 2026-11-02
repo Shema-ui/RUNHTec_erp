@@ -31,7 +31,9 @@ async function ensureColumn(conn, table, column, definition) {
   if (rows[0].n === 0) {
     await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
     console.log(`[migrate] added ${table}.${column}`);
+    return true;
   }
+  return false;
 }
 
 // Widens an ENUM column only when the new value is missing, so existing
@@ -124,6 +126,24 @@ async function runMigrations() {
     // Daily wage rates per role and the default safety margin, editable in Settings
     await ensureColumn(conn, 'company_settings', 'labour_rates', 'JSON DEFAULT NULL');
     await ensureColumn(conn, 'company_settings', 'default_contingency', 'DECIMAL(5,2) DEFAULT 10');
+
+    // Invoices also appear as quotations (see invoiceQuote.js)
+    await ensureColumn(conn, 'quotations', 'source_invoice', 'VARCHAR(20) DEFAULT NULL');
+    const { ensureQuoteForInvoice } = require('./invoiceQuote');
+    const [orphans] = await conn.query("SELECT * FROM invoices WHERE quotation IS NULL OR quotation = ''");
+    for (const inv of orphans) await ensureQuoteForInvoice(inv, conn);
+    if (orphans.length) console.log(`[migrate] linked ${orphans.length} invoice(s) to quotations`);
+
+    // Staff profiles: new accounts must complete their profile before using
+    // the ERP. Accounts that already existed are not locked out.
+    if (await ensureColumn(conn, 'users', 'profile_completed', 'TINYINT(1) NOT NULL DEFAULT 0')) {
+      await conn.query('UPDATE users SET profile_completed = 1');
+    }
+    // Who may upload documents — assigned by the Super Admin. Office staff who
+    // could already upload keep that right; technicians start without it.
+    if (await ensureColumn(conn, 'users', 'can_upload_documents', 'TINYINT(1) NOT NULL DEFAULT 0')) {
+      await conn.query("UPDATE users SET can_upload_documents = 1 WHERE role IN ('project_manager','hr','sales','accountant')");
+    }
   } finally {
     conn.release();
   }

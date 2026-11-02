@@ -8,7 +8,7 @@ import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { canAccessModule } from '@/lib/permissions';
+import { canAccessModule, canUploadDocs } from '@/lib/permissions';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteProjectAssignments } from '@/lib/cleanup';
 import ProjectCostsCard from '@/components/erp/ProjectCostsCard';
@@ -41,6 +41,7 @@ export default function ProjectDetailPage() {
   const canTeam = ['super_admin', 'project_manager', 'hr'].includes(user?.role);
   const canInvoice = canAccessModule(user, 'invoices');
   const showCosts = canSeeCosts(user);
+  const canUpload = canUploadDocs(user);
 
   const loadProject = () => pb.collection('projects').getOne(id, { expand: 'client,quotation,project_manager' })
     .then(setP).catch(() => navigate('/projects'));
@@ -185,7 +186,7 @@ export default function ProjectDetailPage() {
             )}
           </Card>
 
-          <Card title="Documents" action={<button className={btnLine} onClick={() => setUploading(true)}><Upload className="h-4 w-4" /> Upload</button>}>
+          <Card title="Documents" action={canUpload && <button className={btnLine} onClick={() => setUploading(true)}><Upload className="h-4 w-4" /> Upload</button>}>
             {docs.length === 0 ? <p className="text-sm text-muted-foreground">Drawings, BOQs, site reports, test certificates and handover documents for this project.</p> : (
               <ul className="divide-y divide-border">
                 {docs.map((d) => (
@@ -193,8 +194,8 @@ export default function ProjectDetailPage() {
                     <span className="inline-flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{d.title}</span><span className="text-xs text-muted-foreground">· {d.type}</span></span>
                     <span className="flex shrink-0 items-center gap-3">
                       {d.file && <a className="inline-flex items-center gap-1 text-primary hover:underline" href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Open</a>}
-                      <button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
-                      {canEdit && <button onClick={async () => { if (!window.confirm(`Delete document “${d.title}”?`)) return; try { await pb.collection('documents').delete(d.id); loadDocs(); } catch (e) { toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }); } }} aria-label="Delete document" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
+                      {canUpload && <button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
+                      {canEdit && canUpload && <button onClick={async () => { if (!window.confirm(`Delete document “${d.title}”?`)) return; try { await pb.collection('documents').delete(d.id); loadDocs(); } catch (e) { toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }); } }} aria-label="Delete document" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                     </span>
                   </li>
                 ))}

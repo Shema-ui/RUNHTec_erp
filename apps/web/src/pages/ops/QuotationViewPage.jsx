@@ -232,7 +232,15 @@ export default function QuotationViewPage() {
             <option value="expired">Expired</option>
           </select>
           <div className="ml-auto flex gap-2">
-            {canInvoice && (
+            {canInvoice && q.source_invoice && (
+              <Link
+                to={`/invoices/${q.source_invoice}/view`}
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+              >
+                <ReceiptText className="h-4 w-4" /> Open invoice
+              </Link>
+            )}
+            {canInvoice && !q.source_invoice && (
               <Link
                 to={`/invoices/new?fromQuote=${id}`}
                 className="flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"

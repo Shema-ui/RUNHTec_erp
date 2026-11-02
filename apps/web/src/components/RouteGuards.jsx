@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { canAccessModule } from '@/lib/permissions';
+import { canAccessModule, needsProfile } from '@/lib/permissions';
 import { Loader2 } from 'lucide-react';
 
 function FullScreenLoader() {
@@ -13,10 +13,12 @@ function FullScreenLoader() {
 }
 
 export function RequireAuth({ children }) {
-  const { isAuthed, ready } = useAuth();
+  const { isAuthed, ready, user } = useAuth();
   const location = useLocation();
   if (!ready) return <FullScreenLoader />;
   if (!isAuthed) return <Navigate to="/login" replace state={{ from: location }} />;
+  // First thing a new staff member sees: their profile. Everything else opens once it's done.
+  if (needsProfile(user) && location.pathname !== '/my-profile') return <Navigate to="/my-profile" replace />;
   return children;
 }
 
@@ -42,8 +44,8 @@ export function RequireModule({ moduleKey, children }) {
 }
 
 export function RedirectIfAuthed({ children }) {
-  const { isAuthed, ready } = useAuth();
+  const { isAuthed, ready, user } = useAuth();
   if (!ready) return <FullScreenLoader />;
-  if (isAuthed) return <Navigate to="/dashboard" replace />;
+  if (isAuthed) return <Navigate to={needsProfile(user) ? '/my-profile' : '/dashboard'} replace />;
   return children;
 }

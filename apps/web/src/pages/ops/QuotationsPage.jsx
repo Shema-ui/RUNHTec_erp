@@ -5,6 +5,9 @@ import { FileText, Search, Filter, Plus, CheckCircle2, Clock3 } from 'lucide-rea
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import SuperDelete from '@/components/erp/SuperDelete';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessModule } from '@/lib/permissions';
+import { useNavigate } from 'react-router-dom';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
 function fmt(n, currency = DEFAULT_CURRENCY) {
@@ -16,6 +19,9 @@ export default function QuotationsPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canInvoices = canAccessModule(user, 'invoices');
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +104,11 @@ export default function QuotationsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-display text-lg font-semibold text-foreground">{quote.number}</h3>
                     <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold capitalize text-muted-foreground">{quote.status}</span>
+                    {quote.source_invoice && (
+                      canInvoices
+                        ? <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/invoices/${quote.source_invoice}/view`); }} className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:underline">From an invoice</button>
+                        : <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">From an invoice</span>
+                    )}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{quote.expand?.client?.company_name || quote.bill_to_company || 'No client linked'}</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">

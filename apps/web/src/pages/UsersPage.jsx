@@ -11,7 +11,11 @@ import {
   Lock,
   Loader2,
   Search,
+  UserRound,
+  Upload,
+  RotateCcw,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -86,6 +90,25 @@ export default function UsersPage() {
     load();
   }, []);
 
+  const toggleUpload = async (u) => {
+    const next = Number(u.can_upload_documents) === 1 ? 0 : 1;
+    try {
+      await pb.collection('users').update(u.id, { can_upload_documents: next });
+      logActivity(next ? 'Allowed document uploads' : 'Removed document uploads', u.email);
+      toast({ title: next ? 'Can now upload documents' : 'Can no longer upload documents', description: u.email });
+      load();
+    } catch (err) { toast({ title: 'Action failed', description: err.message, variant: 'destructive' }); }
+  };
+
+  const askProfileAgain = async (u) => {
+    if (!window.confirm(`Ask ${u.name || u.email} to review and resubmit their profile? They will only see their profile page until they do.`)) return;
+    try {
+      await pb.collection('users').update(u.id, { profile_completed: 0 });
+      toast({ title: 'Profile requested', description: `${u.email} will see their profile page at next sign-in.` });
+      load();
+    } catch (err) { toast({ title: 'Action failed', description: err.message, variant: 'destructive' }); }
+  };
+
   const toggleSuspend = async (u) => {
     const next = u.status === 'suspended' ? 'active' : 'suspended';
     try {
@@ -135,6 +158,8 @@ export default function UsersPage() {
                 <th className="px-5 py-3 font-semibold">Status</th>
                 <th className="px-5 py-3 font-semibold">Job title</th>
                 <th className="px-5 py-3 font-semibold">Department</th>
+                <th className="px-5 py-3 font-semibold">Profile</th>
+                <th className="px-5 py-3 font-semibold">Uploads</th>
                 <th className="px-5 py-3 text-right font-semibold">Actions</th>
               </tr>
             </thead>
@@ -142,14 +167,14 @@ export default function UsersPage() {
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i}>
-                    <td className="px-5 py-4" colSpan={6}>
+                    <td className="px-5 py-4" colSpan={8}>
                       <div className="h-5 w-full animate-pulse rounded bg-secondary" />
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">
                     No users match your search.
                   </td>
                 </tr>
@@ -176,6 +201,21 @@ export default function UsersPage() {
                       <td className="px-5 py-3.5"><StatusBadge status={u.status} /></td>
                       <td className="px-5 py-3.5 text-muted-foreground">{u.job_title || '—'}</td>
                       <td className="px-5 py-3.5 text-muted-foreground">{u.department ? deptShort(u.department) : '—'}</td>
+                      <td className="px-5 py-3.5">
+                        {isSuper ? <span className="text-xs text-muted-foreground">—</span> : (
+                          <Link to={`/users/${u.id}/profile`} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold hover:underline ${Number(u.profile_completed) === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+                            <UserRound className="h-3.5 w-3.5" /> {Number(u.profile_completed) === 1 ? 'Complete' : 'Pending'}
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {isSuper ? <span className="text-xs text-muted-foreground">Always</span> : (
+                          <button onClick={() => toggleUpload(u)} role="switch" aria-checked={Number(u.can_upload_documents) === 1} aria-label={`Document uploads for ${u.email}`}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${Number(u.can_upload_documents) === 1 ? 'bg-primary' : 'bg-slate-300'}`}>
+                            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${Number(u.can_upload_documents) === 1 ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                          </button>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5 text-right">
                         {isSuper ? (
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -189,6 +229,18 @@ export default function UsersPage() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/users/${u.id}/profile`}><UserRound className="mr-2 h-4 w-4" /> View profile &amp; documents</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleUpload(u)}>
+                                <Upload className="mr-2 h-4 w-4" /> {Number(u.can_upload_documents) === 1 ? 'Stop document uploads' : 'Allow document uploads'}
+                              </DropdownMenuItem>
+                              {Number(u.profile_completed) === 1 && (
+                                <DropdownMenuItem onClick={() => askProfileAgain(u)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" /> Ask to update profile
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => setRoleTarget(u)}>
                                 <ShieldCheck className="mr-2 h-4 w-4" /> Change role
                               </DropdownMenuItem>
@@ -291,7 +343,7 @@ function ChangeRoleDialog({ target, onClose, onChanged }) {
 
 function CreateUserDialog({ open, onOpenChange, onCreated }) {
   const { toast } = useToast();
-  const empty = { name: '', email: '', job_title: '', department: 'administration', role: 'sales', password: '' };
+  const empty = { name: '', email: '', job_title: '', department: 'administration', role: 'sales', password: '', can_upload_documents: false };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -310,6 +362,8 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
         job_title: form.job_title,
         department: form.department,
         role: form.role,
+        can_upload_documents: form.can_upload_documents ? 1 : 0,
+        profile_completed: 0,
         status: 'active',
         verified: true,
         password: form.password,
@@ -334,7 +388,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add a new user</DialogTitle>
-          <DialogDescription>Provision an account. The user can sign in immediately.</DialogDescription>
+          <DialogDescription>When they first sign in, they will be asked to complete their profile (photo, ID, transcripts, certificates). Their pages open once it is done.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           {error && (
@@ -371,6 +425,10 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
               {DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
           </div>
+          <label className="flex items-start gap-2 rounded-md border border-border p-3 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={form.can_upload_documents} onChange={(e) => setForm((f) => ({ ...f, can_upload_documents: e.target.checked }))} />
+            <span><span className="font-medium">Can upload documents</span><span className="block text-xs text-muted-foreground">Project and client documents. You can change this later. Everyone can still upload their own profile ID and certificates.</span></span>
+          </label>
           <div className="space-y-2">
             <Label htmlFor="c-pw">Temporary password</Label>
             <Input id="c-pw" type="text" required value={form.password} onChange={set('password')} placeholder="At least 8 characters" />

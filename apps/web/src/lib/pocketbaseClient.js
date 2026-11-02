@@ -168,6 +168,12 @@ function collection(name) {
 const pb = {
   authStore,
   collection,
+  // Unlocks a new staff account once their profile is complete.
+  async completeProfile() {
+    const res = await request('/api/me/complete-profile', { method: 'POST', body: {} });
+    if (res?.record) authStore.save(authStore.token, res.record);
+    return res;
+  },
   files: {
     // Matches the PocketBase SDK's pb.files.getURL(record, filename) shape.
     // `filename` here is actually a files.id from the new backend — the

@@ -71,3 +71,14 @@ export function canAccessModule(user, moduleKey) {
 export function roleLabel(role) {
   return ROLES[role]?.label || role || 'Unknown';
 }
+
+// Document uploads are granted per person by the Super Admin (User Management).
+export function canUploadDocs(user) {
+  return Boolean(user) && (user.role === 'super_admin' || Number(user.can_upload_documents) === 1);
+}
+
+// New staff must complete their profile (photo, ID, documents) before the
+// rest of the portal opens for them.
+export function needsProfile(user) {
+  return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
+}

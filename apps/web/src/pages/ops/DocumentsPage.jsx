@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Upload, FileText, Download, Pencil } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
+import { useAuth } from '@/context/AuthContext';
+import { canUploadDocs } from '@/lib/permissions';
 import SuperDelete from '@/components/erp/SuperDelete';
 import DocumentUploadDialog, { DOCUMENT_TYPES } from '@/components/erp/DocumentUploadDialog';
 import { Toolbar, SearchBox, Loading, Empty, btnPrimary, fmtDate } from '@/components/erp/kit';
@@ -13,6 +15,8 @@ export default function DocumentsPage() {
   const [q, setQ] = useState('');
   const [type, setType] = useState('all');
   const [uploading, setUploading] = useState(false);
+  const { user } = useAuth();
+  const canUpload = canUploadDocs(user);
   const [editingDoc, setEditingDoc] = useState(null);
 
   const load = () => pb.collection('documents').getFullList({ sort: '-created', expand: 'client,project' })
@@ -35,7 +39,9 @@ export default function DocumentsPage() {
           <option value="all">All types</option>
           {DOCUMENT_TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
-        <button className={`${btnPrimary} ml-auto`} onClick={() => setUploading(true)}><Upload className="h-4 w-4" /> Upload document</button>
+        {canUpload
+          ? <button className={`${btnPrimary} ml-auto`} onClick={() => setUploading(true)}><Upload className="h-4 w-4" /> Upload document</button>
+          : <p className="ml-auto text-xs text-muted-foreground">Uploading is limited to people the Super Admin has allowed.</p>}
       </Toolbar>
 
       {!docs ? <Loading /> : filtered.length === 0 ? (
@@ -55,7 +61,7 @@ export default function DocumentsPage() {
                   <td className="px-4 py-3">{d.project ? <Link to={`/projects/${d.project}`} className="hover:text-primary">{d.expand?.project?.title || '—'}</Link> : '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{fmtDate(d.created)}{d.uploaded_by_name ? ` · ${d.uploaded_by_name}` : ''}</td>
                   <td className="px-4 py-3">{d.file && <a href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Download className="h-4 w-4" /> Open</a>}</td>
-                  <td className="whitespace-nowrap px-2 py-3 text-right"><button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button><SuperDelete collection="documents" id={d.id} label={`document “${d.title || 'untitled'}”`} after={load} /></td>
+                  <td className="whitespace-nowrap px-2 py-3 text-right">{canUpload && <button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button>}<SuperDelete collection="documents" id={d.id} label={`document “${d.title || 'untitled'}”`} after={load} /></td>
                 </tr>
               ))}
             </tbody>

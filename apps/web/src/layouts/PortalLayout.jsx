@@ -14,7 +14,8 @@ import {
 import BrandMark from '@/components/BrandMark';
 import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
-import { roleLabel, canAccessModule } from '@/lib/permissions';
+import { roleLabel, canAccessModule, needsProfile } from '@/lib/permissions';
+import { UserRound } from 'lucide-react';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -76,8 +77,10 @@ function NavItem({ item, collapsed }) {
 }
 
 function SidebarContent({ collapsed, user }) {
-  const moduleItems = MODULE_NAV.filter((i) => canAccessModule(user, i.key));
-  const adminItems = ADMIN_NAV.filter((i) => !i.roles || i.roles.includes(user?.role));
+  // Until their profile is done, new staff only see "My profile".
+  const gated = needsProfile(user);
+  const moduleItems = gated ? [{ key: 'my-profile', label: 'My profile', icon: UserRound, to: '/my-profile' }] : MODULE_NAV.filter((i) => canAccessModule(user, i.key));
+  const adminItems = gated ? [] : ADMIN_NAV.filter((i) => !i.roles || i.roles.includes(user?.role));
   return (
     <nav className="portal-scroll flex-1 space-y-1 overflow-y-auto px-3 py-4">
       {!collapsed && (
@@ -217,6 +220,10 @@ export default function PortalLayout({ children, title, subtitle }) {
                   <p className="truncate text-xs font-normal text-muted-foreground">{user?.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/my-profile')}>
+                  <UserRound className="mr-2 h-4 w-4" />
+                  My profile
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out

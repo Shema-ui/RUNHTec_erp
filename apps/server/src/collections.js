@@ -22,6 +22,11 @@ const PEOPLE_READ = (user) => any(user, ['hr', 'project_manager', 'accountant'])
 // Who may see buying prices, job costs and profit. Technicians and HR never do.
 const COST_VIEW = (user) => any(user, ['sales', 'accountant', 'project_manager']);
 const COST_WRITE = (user) => any(user, ['accountant', 'project_manager']);
+// Document uploads are a right the Super Admin grants per user (User Management).
+const CAN_UPLOAD = (user) => Boolean(user) && (user.role === 'super_admin' || Number(user.can_upload_documents) === 1);
+// Staff profiles: everyone sees and edits their own; Super Admin and HR see all.
+const PEOPLE_ADMIN = (user) => any(user, ['hr']);
+const OWN_OR_ADMIN = (user, record) => PEOPLE_ADMIN(user) || (Boolean(user) && record?.user === user.id);
 
 const collections = {
   clients: {
@@ -62,7 +67,7 @@ const collections = {
     fields: ['id', 'client', 'title', 'doc_type', 'file', 'uploaded_by', 'uploaded_by_name', 'created', 'updated'],
     relations: { client: 'clients', uploaded_by: 'users' },
     fileFields: ['file'],
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && SALES_WRITE(u) },
   },
   sales_opportunities: {
     table: 'sales_opportunities',
@@ -80,7 +85,7 @@ const collections = {
   },
   quotations: {
     table: 'quotations',
-    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'created', 'updated'],
+    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],
@@ -154,7 +159,25 @@ const collections = {
     fields: ['id', 'title', 'client', 'project', 'type', 'file', 'notes', 'uploaded_by_name', 'created'],
     relations: { client: 'clients', project: 'projects' },
     fileFields: ['file'],
-    rules: { list: AUTHED, view: AUTHED, create: PM_TECH_WRITE, update: PM_WRITE, delete: PM_WRITE },
+    rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
+  },
+  staff_profiles: {
+    table: 'staff_profiles',
+    fields: ['id', 'user', 'full_name', 'phone', 'whatsapp', 'momo_number', 'date_of_birth', 'gender', 'national_id_number', 'district', 'address', 'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone', 'education_level', 'institution', 'field_of_study', 'skills', 'photo', 'id_document', 'created', 'updated'],
+    relations: { user: 'users' },
+    fileFields: ['photo', 'id_document'],
+    ownerField: 'user',
+    ownerAdmin: PEOPLE_ADMIN,
+    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: AUTHED, update: OWN_OR_ADMIN, delete: PEOPLE_ADMIN },
+  },
+  staff_documents: {
+    table: 'staff_documents',
+    fields: ['id', 'user', 'kind', 'title', 'file', 'created', 'updated'],
+    relations: { user: 'users' },
+    fileFields: ['file'],
+    ownerField: 'user',
+    ownerAdmin: PEOPLE_ADMIN,
+    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: AUTHED, update: OWN_OR_ADMIN, delete: OWN_OR_ADMIN },
   },
   invoices: {
     table: 'invoices',
@@ -208,7 +231,7 @@ const collections = {
   },
   users: {
     table: 'users',
-    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'created', 'updated'],
+    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'created', 'updated'],
     relations: {},
     rules: {
       list: AUTHED,

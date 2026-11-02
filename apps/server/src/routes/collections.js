@@ -7,6 +7,7 @@ const { genId } = require('../idGen');
 const { requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
 const { writeAuditEntry, summarizeChanges } = require('../audit');
 const { storeFile } = require('../files');
+const { ensureQuoteForInvoice, syncQuoteFromInvoice, removeQuoteForInvoice } = require('../invoiceQuote');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -89,9 +90,19 @@ function dropCostInput(collectionName, body, user, before) {
   }
 }
 
+// Until a new staff member has completed their profile, they can only reach
+// their own profile (and the few things the app shell needs).
+const OPEN_BEFORE_PROFILE = new Set(['staff_profiles', 'staff_documents', 'company_settings', 'notifications', 'activity_logs']);
+function needsProfile(user) {
+  return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
+}
+
 function collectionMiddleware(req, res, next) {
   const def = collections[req.params.name];
   if (!def) return res.status(404).json({ message: 'Unknown collection.' });
+  if (needsProfile(req.user) && !OPEN_BEFORE_PROFILE.has(req.params.name)) {
+    return res.status(403).json({ message: 'Please complete your profile first.', code: 'PROFILE_REQUIRED' });
+  }
   req.collectionName = req.params.name;
   req.collectionDef = def;
   next();
@@ -220,6 +231,8 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
   try {
     const body = extractBody(req, def);
     dropCostInput(req.collectionName, body, req.user, null);
+    // Records owned by a person (staff profiles): staff can only create their own.
+    if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const id = genId();
@@ -277,7 +290,12 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     const placeholders = columns.map(() => '?').join(', ');
     await pool.query(`INSERT INTO \`${def.table}\` (${columns.map((c) => `\`${c}\``).join(', ')}) VALUES (${placeholders})`, values);
 
-    const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
+    let [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
+    // A new invoice without a quotation also gets one, so it shows on the Quotations page.
+    if (req.collectionName === 'invoices' && !rows[0].quotation) {
+      await ensureQuoteForInvoice(rows[0]);
+      [rows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [id]);
+    }
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
     res.status(200).json(toPublic(req.collectionName, record, req.user));
@@ -299,6 +317,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
 
     const body = extractBody(req, def);
     dropCostInput(req.collectionName, body, req.user, before);
+    if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const setClauses = [];
@@ -347,6 +366,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     await pool.query(`UPDATE \`${def.table}\` SET ${setClauses.join(', ')} WHERE id = ?`, values);
 
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
+    if (req.collectionName === 'invoices') await syncQuoteFromInvoice(rows[0]);
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: req.collectionName, record: after, changes });
@@ -366,6 +386,8 @@ router.delete('/:name/records/:id', collectionMiddleware, requireAuth, async (re
     if (!def.rules.delete(req.user, record)) return res.status(403).json({ message: 'Not allowed to delete this record.' });
 
     await pool.query(`DELETE FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
+    // Its automatic quotation goes too (quotations the client actually received stay).
+    if (req.collectionName === 'invoices') await removeQuoteForInvoice(req.params.id);
     await writeAuditEntry({ actor: req.user, action: 'Deleted', collectionName: req.collectionName, record });
     res.status(204).send();
   } catch (err) {

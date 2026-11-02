@@ -10,6 +10,8 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DashboardPage from '@/pages/DashboardPage';
 import UsersPage from '@/pages/UsersPage';
+import MyProfilePage from '@/pages/MyProfilePage';
+import StaffProfilePage from '@/pages/StaffProfilePage';
 import ActivityLogPage from '@/pages/ActivityLogPage';
 import CrmDashboardPage from '@/pages/crm/CrmDashboardPage';
 import ClientsPage from '@/pages/crm/ClientsPage';
@@ -62,6 +64,8 @@ function App() {
 
           {/* Dashboard — every role lands here after login */}
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="/my-profile" element={<RequireAuth><MyProfilePage /></RequireAuth>} />
+          <Route path="/users/:id/profile" element={<RequireAuth><RequireRole roles={['super_admin', 'hr']}><StaffProfilePage /></RequireRole></RequireAuth>} />
 
           {/* Super Administrator only */}
           <Route
