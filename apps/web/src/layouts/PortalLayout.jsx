@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { loadCostSettings } from '@/lib/costing';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -106,6 +107,7 @@ function SidebarContent({ collapsed, user }) {
 }
 
 export default function PortalLayout({ children, title, subtitle }) {
+  useEffect(() => { loadCostSettings(); }, []);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);

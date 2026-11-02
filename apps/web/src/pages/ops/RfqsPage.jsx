@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight } from 'lucide-react';
+import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight, Pencil, Loader2, Save } from 'lucide-react';
+import { Modal, Field, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import pb from '@/lib/pocketbaseClient';
@@ -43,6 +44,7 @@ export default function RfqsPage() {
   const [tab, setTab] = useState('quote_request');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [editing, setEditing] = useState(null);
 
   const loadRfqs = async () => {
     try {
@@ -221,6 +223,7 @@ export default function RfqsPage() {
                         Convert to quotation <ArrowRight className="h-4 w-4" />
                       </button>
                     )}
+                    <button onClick={() => setEditing(rfq)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"><Pencil className="h-4 w-4" /> Edit details</button>
                     <SuperDelete collection="rfqs" id={rfq.id} text="Delete" label={`request from ${rfq.company || rfq.name || 'website'}`} after={() => setRfqs((prev) => prev.filter((x) => x.id !== rfq.id))} />
                   </div>
                 </div>
@@ -229,6 +232,45 @@ export default function RfqsPage() {
           })}
         </div>
       )}
+      <RfqEditDialog rfq={editing} onClose={() => setEditing(null)} onSaved={(saved) => setRfqs((prev) => prev.map((x) => (x.id === saved.id ? { ...x, ...saved, expand: x.expand } : x)))} />
     </PortalLayout>
+  );
+}
+
+const RFQ_FIELDS = [
+  ['name', 'Contact name'], ['company', 'Company'], ['email', 'Email'], ['phone', 'Phone'],
+  ['service_type', 'Service'], ['urgency', 'Urgency'], ['budget', 'Budget'], ['address', 'Location / address'],
+];
+
+function RfqEditDialog({ rfq, onClose, onSaved }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { if (rfq) setForm(Object.fromEntries([...RFQ_FIELDS.map(([k]) => [k, rfq[k] || '']), ['description', rfq.description || '']])); }, [rfq]);
+  if (!rfq) return null;
+  const save = async () => {
+    setSaving(true);
+    try {
+      const saved = await pb.collection('rfqs').update(rfq.id, form);
+      toast({ title: 'Request updated' });
+      onSaved(saved); onClose();
+    } catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Modal open onClose={onClose} wide title="Edit request" description="Correct the client's details or the description of what they need.">
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {RFQ_FIELDS.map(([k, label]) => (
+            <Field key={k} label={label}><input className={inputCls} value={form[k] || ''} onChange={(e) => setForm((p) => ({ ...p, [k]: e.target.value }))} /></Field>
+          ))}
+        </div>
+        <Field label="What they need"><textarea className={textareaCls} rows={4} value={form.description || ''} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></Field>
+        <div className="flex justify-end gap-2">
+          <button className={btnLine} onClick={onClose}>Cancel</button>
+          <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save changes</button>
+        </div>
+      </div>
+    </Modal>
   );
 }

@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 const router = express.Router();
 
-const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing']);
+const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing', 'labour_rates']);
 
 function deserializeRow(row) {
   if (!row) return row;

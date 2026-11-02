@@ -41,9 +41,9 @@ const collections = {
     table: 'client_activities',
     fields: ['id', 'client', 'type', 'description', 'actor', 'actor_name', 'created'],
     relations: { client: 'clients', actor: 'users' },
-    // updateRule is null on this collection in PocketBase — activity log
-    // entries are append-only, matching an audit-trail's intent.
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: () => false, delete: SALES_WRITE },
+    // Calls, meetings and site visits logged by staff — editable so typos
+    // can be fixed. The system-wide Activity Log (activity_logs) stays locked.
+    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_followups: {
     table: 'client_followups',
@@ -194,7 +194,7 @@ const collections = {
   },
   company_settings: {
     table: 'company_settings',
-    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'created', 'updated'],
+    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'created', 'updated'],
     relations: {},
     fileFields: ['logo', 'signature', 'stamp'],
     rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },

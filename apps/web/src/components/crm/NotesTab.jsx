@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Loader2, Check, Trash2, StickyNote } from 'lucide-react';
+import { Plus, X, Loader2, Check, Trash2, StickyNote, Pencil } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 
@@ -26,6 +26,8 @@ export default function NotesTab({ clientId }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: '', body: '', category: 'general', priority: 'low' });
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const BLANK_NOTE = { title: '', body: '', category: 'general', priority: 'low' };
 
   const load = async () => {
     setLoading(true);
@@ -47,17 +49,30 @@ export default function NotesTab({ clientId }) {
     if (!form.body.trim()) { setError('Note content is required'); return; }
     setSaving(true); setError('');
     try {
-      await pb.collection('client_notes').create({
-        ...form,
-        client: clientId,
-        author: user?.id,
-        author_name: user?.name || user?.email || '',
-      });
-      setForm({ title: '', body: '', category: 'general', priority: 'low' });
+      if (editingId) {
+        await pb.collection('client_notes').update(editingId, { title: form.title, body: form.body, category: form.category, priority: form.priority });
+      } else {
+        await pb.collection('client_notes').create({
+          ...form,
+          client: clientId,
+          author: user?.id,
+          author_name: user?.name || user?.email || '',
+        });
+      }
+      setForm(BLANK_NOTE);
+      setEditingId(null);
       setShowForm(false);
       await load();
     } catch (err) { setError(err.message || 'Failed to save'); }
     finally { setSaving(false); }
+  };
+
+  const startEdit = (n) => {
+    setForm({ title: n.title || '', body: n.body || '', category: n.category || 'general', priority: n.priority || 'low' });
+    setEditingId(n.id); setShowForm(true); setError('');
+  };
+  const toggleForm = () => {
+    if (showForm) { setShowForm(false); setEditingId(null); setForm(BLANK_NOTE); } else setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -72,7 +87,7 @@ export default function NotesTab({ clientId }) {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{notes.length} note{notes.length !== 1 ? 's' : ''}</p>
-        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+        <button onClick={toggleForm} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
           {showForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
           {showForm ? 'Cancel' : 'Add Note'}
         </button>
@@ -80,7 +95,7 @@ export default function NotesTab({ clientId }) {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="mb-3 text-sm font-semibold text-foreground">New Note</p>
+          <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edit Note' : 'New Note'}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-foreground">Title</label>
@@ -137,9 +152,14 @@ export default function NotesTab({ clientId }) {
                     {pri && <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${pri.cls}`}>{pri.label}</span>}
                     {cat && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{cat.label}</span>}
                   </div>
-                  <button onClick={() => handleDelete(n.id)} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={() => startEdit(n)} aria-label="Edit note" className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-primary">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(n.id)} aria-label="Delete note" className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-foreground">{n.body}</p>
                 <p className="mt-2 text-[11px] text-muted-foreground">

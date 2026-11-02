@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, X, Loader2, Check, ChevronLeft, DollarSign, Building2 } from 'lucide-react';
+import { Plus, X, Loader2, Check, ChevronLeft, DollarSign, Building2, Pencil, Trash2 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -9,7 +9,7 @@ import { PIPELINE_STAGES, formatCurrency } from '@/lib/crm';
 
 const inputCls = 'h-9 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
 
-function OpportunityCard({ opp, onDragStart }) {
+function OpportunityCard({ opp, onDragStart, onEdit, onDelete }) {
   const navigate = useNavigate();
   const stageInfo = PIPELINE_STAGES.find(s => s.value === opp.stage);
   return (
@@ -19,7 +19,13 @@ function OpportunityCard({ opp, onDragStart }) {
       onClick={() => navigate(`/crm/clients/${opp.client}`)}
       className="cursor-pointer rounded-xl border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
     >
-      <p className="text-[13px] font-semibold text-foreground leading-tight">{opp.title}</p>
+      <div className="flex items-start justify-between gap-1">
+        <p className="text-[13px] font-semibold text-foreground leading-tight">{opp.title}</p>
+        <span className="flex shrink-0 gap-0.5">
+          <button onClick={(e) => { e.stopPropagation(); onEdit(opp); }} aria-label="Edit opportunity" className="rounded p-0.5 text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(opp); }} aria-label="Delete opportunity" className="rounded p-0.5 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+        </span>
+      </div>
       {opp.expand?.client?.company_name && (
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <Building2 className="h-3 w-3 shrink-0" />
@@ -51,6 +57,8 @@ export default function PipelinePage() {
   const [form, setForm] = useState({ title: '', client: '', stage: 'new_lead', value: '', description: '', expected_close: '' });
   const [error, setError] = useState('');
   const [dragOpp, setDragOpp] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const BLANK_OPP = { title: '', client: '', stage: 'new_lead', value: '', description: '', expected_close: '' };
   const [dragOverStage, setDragOverStage] = useState(null);
 
   const load = async () => {
@@ -82,15 +90,32 @@ export default function PipelinePage() {
     setSaving(true); setError('');
     try {
       const payload = { ...form, value: form.value ? Number(form.value) : null };
-      if (!payload.expected_close) delete payload.expected_close;
-      if (!payload.value) delete payload.value;
-      await pb.collection('sales_opportunities').create(payload);
-      setForm({ title: '', client: '', stage: 'new_lead', value: '', description: '', expected_close: '' });
+      if (editingId) {
+        await pb.collection('sales_opportunities').update(editingId, { ...payload, value: payload.value || 0 });
+      } else {
+        if (!payload.expected_close) delete payload.expected_close;
+        if (!payload.value) delete payload.value;
+        await pb.collection('sales_opportunities').create(payload);
+      }
+      setForm(BLANK_OPP);
+      setEditingId(null);
       setShowForm(false);
       await load();
     } catch (err) { setError(err.message || 'Failed to save'); }
     finally { setSaving(false); }
   };
+
+  const startEdit = (o) => {
+    setForm({ title: o.title || '', client: o.client || '', stage: o.stage || 'new_lead', value: o.value || '', description: o.description || '', expected_close: (o.expected_close || '').slice(0, 10) });
+    setEditingId(o.id); setShowForm(true); setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const handleDelete = async (o) => {
+    if (!confirm(`Delete opportunity "${o.title}"?`)) return;
+    try { await pb.collection('sales_opportunities').delete(o.id); setOpportunities((prev) => prev.filter((x) => x.id !== o.id)); }
+    catch (err) { alert(err.message || 'Could not delete'); }
+  };
+  const toggleForm = () => { if (showForm) { setShowForm(false); setEditingId(null); setForm(BLANK_OPP); } else setShowForm(true); };
 
   const handleDrop = async (targetStage) => {
     if (!dragOpp || dragOpp.stage === targetStage) { setDragOpp(null); setDragOverStage(null); return; }
@@ -132,7 +157,7 @@ export default function PipelinePage() {
             <p className="font-display text-base font-extrabold text-foreground">{formatCurrency(totalValue)}</p>
           </div>
           <button
-            onClick={() => setShowForm(v => !v)}
+            onClick={toggleForm}
             className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -143,7 +168,7 @@ export default function PipelinePage() {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-5">
-          <p className="mb-4 text-sm font-semibold text-foreground">New Opportunity</p>
+          <p className="mb-4 text-sm font-semibold text-foreground">{editingId ? 'Edit Opportunity' : 'New Opportunity'}</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Title *</label>
@@ -179,7 +204,7 @@ export default function PipelinePage() {
           <div className="mt-3">
             <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Create Opportunity
+              {editingId ? 'Save Changes' : 'Create Opportunity'}
             </button>
           </div>
         </form>
@@ -226,6 +251,8 @@ export default function PipelinePage() {
                         key={opp.id}
                         opp={opp}
                         onDragStart={setDragOpp}
+                        onEdit={startEdit}
+                        onDelete={handleDelete}
                       />
                     ))}
                     {stageOpps.length === 0 && (

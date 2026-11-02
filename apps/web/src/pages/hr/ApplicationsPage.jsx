@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Phone, Mail, MapPin, FileText, UserCheck, Loader2, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, FileText, UserCheck, Loader2, MessageCircle, Pencil } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import HrTabs from './HrTabs';
 import {
   Toolbar, SearchBox, FilterSelect, Loading, Empty, Pill, Modal, InfoRow, Stars, Field,
-  textareaCls, btnPrimary, btnLine, fmtDate,
+  inputCls, textareaCls, btnPrimary, btnLine, fmtDate,
 } from '@/components/erp/kit';
 import {
   APPLICATION_STATUSES, DEPARTMENTS, TRADES, statusInfo, tradeLabel, deptLabel, rateUnitLabel,
@@ -101,8 +101,20 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
   const [score, setScore] = useState(0);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState('');
+  const [editDetails, setEditDetails] = useState(false);
+  const [details, setDetails] = useState({});
+  const DETAIL_FIELDS = [
+    ['full_name', 'Full name'], ['phone', 'Phone'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['city', 'City'],
+    ['experience_years', 'Years of experience'], ['expected_rate', 'Expected rate'], ['availability', 'Availability'],
+    ['other_skills', 'Other skills'], ['qualifications', 'Qualifications'], ['certifications', 'Certifications / licences'], ['previous_projects', 'Previous projects'],
+  ];
 
-  useEffect(() => { if (a) { setScore(Number(a.score) || 0); setNotes(a.review_notes || ''); } }, [a?.id]);
+  useEffect(() => {
+    if (a) {
+      setScore(Number(a.score) || 0); setNotes(a.review_notes || ''); setEditDetails(false);
+      setDetails(Object.fromEntries(DETAIL_FIELDS.map(([k]) => [k, a[k] ?? ''])));
+    }
+  }, [a?.id]);
   if (!a) return null;
 
   const save = async (patch, label) => {
@@ -157,6 +169,22 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
           {a.certificate_file && <a href={pb.files.getURL(a, a.certificate_file)} target="_blank" rel="noreferrer" className={btnLine}><FileText className="h-4 w-4" /> Certificate</a>}
         </div>
 
+        {editDetails ? (
+          <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {DETAIL_FIELDS.map(([k, label]) => (
+                <Field key={k} label={label}><input className={inputCls} value={details[k] ?? ''} onChange={(e) => setDetails((p) => ({ ...p, [k]: e.target.value }))} /></Field>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className={btnLine} onClick={() => setEditDetails(false)}>Cancel</button>
+              <button className={btnPrimary} disabled={!!busy} onClick={async () => { await save({ ...details, experience_years: Number(details.experience_years) || 0 }, 'Details saved'); setEditDetails(false); }}>Save details</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-end"><button className={btnLine} onClick={() => setEditDetails(true)}><Pencil className="h-4 w-4" /> Edit applicant details</button></div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <InfoRow label="Department">{deptLabel(a.department)}</InfoRow>
           <InfoRow label="Main skill">{tradeLabel(a.trade)}</InfoRow>
@@ -185,6 +213,13 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
           {!decided && <button className={btnLine} disabled={!!busy} onClick={() => save({ status: 'interview' }, 'Interview / test')}>Interview / test</button>}
           {!decided && <button className={btnLine} disabled={!!busy} onClick={() => save({ status: 'on_hold' }, 'On hold')}>On hold</button>}
           {!decided && <button className={btnLine} disabled={!!busy} onClick={() => save({ status: 'rejected' }, 'Not selected')}>Not selected</button>}
+          {decided && (
+            <select className="h-10 rounded-lg border border-border bg-card px-3 text-sm" value="" aria-label="Change decision"
+              onChange={(e) => e.target.value && save({ status: e.target.value }, 'Status changed')}>
+              <option value="">Change decision…</option>
+              {APPLICATION_STATUSES.filter((x) => x.value !== a.status && x.value !== 'approved').map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+            </select>
+          )}
           {a.status === 'approved' && a.contractor && <button className={btnPrimary} onClick={() => navigate(`/hr/contractors/${a.contractor}`)}>Open contractor profile</button>}
           {a.status !== 'approved' && (
             <button className={btnPrimary} disabled={!!busy} onClick={approve}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, Receipt, Trash2, Loader2, Save, Plus, AlertTriangle, TrendingUp } from 'lucide-react';
+import { CalendarCheck, Receipt, Trash2, Loader2, Save, Plus, AlertTriangle, TrendingUp, Pencil } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,7 @@ export default function ProjectCostsCard({ project, team }) {
   const canRecord = canRecordCosts(user);
   const [costs, setCosts] = useState(null);
   const [dialog, setDialog] = useState(null); // 'day' | 'expense'
+  const [editCost, setEditCost] = useState(null);
   const currency = project.currency || 'RWF';
 
   const load = () => pb.collection('project_costs').getFullList({ filter: `project = '${project.id}'`, sort: '-cost_date' })
@@ -131,7 +132,10 @@ export default function ProjectCostsCard({ project, team }) {
                     </td>
                     <td className="py-2 pr-2 text-right font-semibold">{formatMoney(c.amount, currency)}</td>
                     <td className="py-2 pr-2 text-center"><input type="checkbox" checked={!!c.paid} disabled={!canRecord} onChange={() => togglePaid(c)} aria-label="Paid" className="h-4 w-4" /></td>
-                    <td className="py-2 text-right">{canRecord && <button onClick={() => remove(c)} aria-label="Remove cost" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}</td>
+                    <td className="whitespace-nowrap py-2 text-right">{canRecord && (<>
+                      <button onClick={() => setEditCost(c)} aria-label="Edit cost" className="mr-2 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                      <button onClick={() => remove(c)} aria-label="Remove cost" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
+                    </>)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -142,6 +146,7 @@ export default function ProjectCostsCard({ project, team }) {
 
       <LogDayDialog open={dialog === 'day'} onClose={() => setDialog(null)} project={project} team={team} costs={costs || []} onSaved={load} />
       <ExpenseDialog open={dialog === 'expense'} onClose={() => setDialog(null)} project={project} onSaved={load} />
+      <EditCostDialog cost={editCost} onClose={() => setEditCost(null)} currency={currency} onSaved={load} />
     </Card>
   );
 }
@@ -297,6 +302,81 @@ function ExpenseDialog({ open, onClose, project, onSaved }) {
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
           <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Add expense</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// Change any recorded cost: a wrong date, wrong person, half day instead of full, wrong amount…
+function EditCostDialog({ cost, onClose, currency, onSaved }) {
+  const { toast } = useToast();
+  const [f, setF] = useState(null);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!cost) return;
+    setF({
+      cost_date: cost.cost_date || '', category: cost.category || 'other', description: cost.description || '',
+      worker_name: cost.worker_name || '', worker_role: cost.worker_role || 'technician',
+      quantity: n(cost.quantity) || 1, unit_cost: n(cost.unit_cost) || n(cost.amount), paid: !!cost.paid, notes: cost.notes || '',
+    });
+  }, [cost]);
+  if (!cost || !f) return null;
+  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const isLabour = f.category === 'labour';
+  const amount = n(f.quantity) * n(f.unit_cost);
+
+  const save = async () => {
+    if (amount <= 0) { toast({ title: 'Amount must be more than zero', variant: 'destructive' }); return; }
+    setSaving(true);
+    try {
+      const data = { cost_date: f.cost_date, category: f.category, quantity: n(f.quantity), unit_cost: n(f.unit_cost), amount, paid: f.paid, notes: f.notes };
+      if (isLabour) Object.assign(data, { worker_name: f.worker_name, worker_role: f.worker_role, description: `${f.worker_name} — ${labourRole(f.worker_role).label}` });
+      else data.description = f.description || costCategoryLabel(f.category);
+      await pb.collection('project_costs').update(cost.id, data);
+      toast({ title: 'Cost updated' });
+      onSaved(); onClose();
+    } catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Edit cost" description="Fix anything that was entered wrongly.">
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Date"><input type="date" className={inputCls} value={f.cost_date} onChange={(e) => set('cost_date', e.target.value)} /></Field>
+          <Field label="Type">
+            <select className={inputCls} value={f.category} onChange={(e) => set('category', e.target.value)}>
+              {COST_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </Field>
+          {isLabour ? (
+            <>
+              <Field label="Worker name"><input className={inputCls} value={f.worker_name} onChange={(e) => set('worker_name', e.target.value)} /></Field>
+              <Field label="Role">
+                <select className={inputCls} value={f.worker_role} onChange={(e) => { set('worker_role', e.target.value); set('unit_cost', labourRole(e.target.value).rate); }}>
+                  {LABOUR_ROLES.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Days worked" hint="0.5 = half day"><input type="number" min="0" step="0.5" className={inputCls} value={f.quantity} onChange={(e) => set('quantity', e.target.value)} /></Field>
+              <Field label="Rate per day"><input type="number" min="0" className={inputCls} value={f.unit_cost} onChange={(e) => set('unit_cost', e.target.value)} /></Field>
+            </>
+          ) : (
+            <>
+              <Field label="What was it for" className="sm:col-span-2"><input className={inputCls} value={f.description} onChange={(e) => set('description', e.target.value)} /></Field>
+              <Field label="Quantity"><input type="number" min="0" step="0.01" className={inputCls} value={f.quantity} onChange={(e) => set('quantity', e.target.value)} /></Field>
+              <Field label="Cost each"><input type="number" min="0" className={inputCls} value={f.unit_cost} onChange={(e) => set('unit_cost', e.target.value)} /></Field>
+            </>
+          )}
+          <Field label="Notes" className="sm:col-span-2"><input className={inputCls} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Paid</label>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <p className="text-sm">Total: <strong>{formatMoney(amount, currency)}</strong></p>
+          <div className="flex gap-2">
+            <button className={btnLine} onClick={onClose}>Cancel</button>
+            <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save changes</button>
+          </div>
         </div>
       </div>
     </Modal>

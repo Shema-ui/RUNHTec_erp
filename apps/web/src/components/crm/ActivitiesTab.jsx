@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Loader2, Check, Phone, Mail, Users, MapPin, FileQuestion, FileText, ClipboardList, FolderKanban, Wrench, ReceiptText, CreditCard, StickyNote, Paperclip, Circle } from 'lucide-react';
+import { Plus, X, Loader2, Check, Phone, Mail, Users, MapPin, FileQuestion, FileText, ClipboardList, FolderKanban, Wrench, ReceiptText, CreditCard, StickyNote, Paperclip, Circle, Pencil, Trash2 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { ACTIVITY_TYPES } from '@/lib/crm';
@@ -31,6 +31,7 @@ export default function ActivitiesTab({ clientId }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ type: 'call', description: '' });
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PER_PAGE = 15;
@@ -57,6 +58,12 @@ export default function ActivitiesTab({ clientId }) {
     if (!form.description.trim()) { setError('Description is required'); return; }
     setSaving(true); setError('');
     try {
+      if (editingId) {
+        await pb.collection('client_activities').update(editingId, { type: form.type, description: form.description });
+        setForm({ type: 'call', description: '' }); setEditingId(null); setShowForm(false);
+        await load(1);
+        return;
+      }
       await pb.collection('client_activities').create({
         client: clientId,
         type: form.type,
@@ -71,6 +78,14 @@ export default function ActivitiesTab({ clientId }) {
     finally { setSaving(false); }
   };
 
+  const startEdit = (a) => { setForm({ type: a.type || 'other', description: a.description || '' }); setEditingId(a.id); setShowForm(true); setError(''); };
+  const toggleForm = () => { if (showForm) { setShowForm(false); setEditingId(null); setForm({ type: 'call', description: '' }); } else setShowForm(true); };
+  const handleDelete = async (a) => {
+    if (!confirm('Delete this activity?')) return;
+    try { await pb.collection('client_activities').delete(a.id); setActivities((prev) => prev.filter((x) => x.id !== a.id)); }
+    catch (err) { alert(err.message || 'Could not delete'); }
+  };
+
   const formatDate = (created) => {
     const d = new Date(created);
     return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -83,7 +98,7 @@ export default function ActivitiesTab({ clientId }) {
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{activities.length} activit{activities.length !== 1 ? 'ies' : 'y'}</p>
         <button
-          onClick={() => setShowForm(v => !v)}
+          onClick={toggleForm}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
           {showForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -93,7 +108,7 @@ export default function ActivitiesTab({ clientId }) {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="mb-3 text-sm font-semibold text-foreground">Log New Activity</p>
+          <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edit Activity' : 'Log New Activity'}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Activity Type</label>
@@ -116,7 +131,7 @@ export default function ActivitiesTab({ clientId }) {
           <div className="mt-3">
             <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Log Activity
+              {editingId ? 'Save Changes' : 'Log Activity'}
             </button>
           </div>
         </form>
@@ -143,7 +158,10 @@ export default function ActivitiesTab({ clientId }) {
                   <div className="min-w-0 flex-1 rounded-xl border border-border bg-card p-4 shadow-sm">
                     <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{typeLabel}</span>
-                      <span className="text-[11px] text-muted-foreground">{formatDate(a.created)}</span>
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">{formatDate(a.created)}
+                        <button onClick={() => startEdit(a)} aria-label="Edit activity" className="ml-1 rounded p-1 hover:bg-secondary hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => handleDelete(a)} aria-label="Delete activity" className="rounded p-1 hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </span>
                     </div>
                     <p className="text-sm text-foreground">{a.description}</p>
                     {a.actor_name && (

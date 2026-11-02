@@ -121,6 +121,9 @@ async function runMigrations() {
     await ensureColumn(conn, 'quotations', 'costing', 'JSON DEFAULT NULL');
     await ensureColumn(conn, 'invoices', 'costing', 'JSON DEFAULT NULL');
     await ensureColumn(conn, 'projects', 'cost_budget', 'DECIMAL(14,2) DEFAULT 0');
+    // Daily wage rates per role and the default safety margin, editable in Settings
+    await ensureColumn(conn, 'company_settings', 'labour_rates', 'JSON DEFAULT NULL');
+    await ensureColumn(conn, 'company_settings', 'default_contingency', 'DECIMAL(5,2) DEFAULT 10');
   } finally {
     conn.release();
   }

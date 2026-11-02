@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2, Save, CreditCard } from 'lucide-react';
+import { Plus, Loader2, Save, CreditCard, Pencil } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,7 @@ export default function PaymentsPage() {
   const [invoices, setInvoices] = useState([]);
   const [q, setQ] = useState('');
   const [recording, setRecording] = useState(false);
+  const [editing, setEditing] = useState(null);
 
   const load = () => Promise.all([
     pb.collection('payments').getFullList({ sort: '-created', expand: 'invoice,client' }),
@@ -75,7 +76,7 @@ export default function PaymentsPage() {
         <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th><th className="w-12 px-2 py-3" /></tr>
+              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th><th className="w-24 px-2 py-3" /></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((p) => (
@@ -86,7 +87,7 @@ export default function PaymentsPage() {
                   <td className="px-4 py-3">{p.method || '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{p.transaction_reference || p.reference || '—'}</td>
                   <td className="px-4 py-3 text-right font-semibold">{formatMoney(p.amount, p.currency)}</td>
-                  <td className="px-2 py-3 text-right"><SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}${p.expand?.invoice?.invoice_number ? ` on ${p.expand.invoice.invoice_number}` : ''}`} after={afterDelete(p)} /></td>
+                  <td className="whitespace-nowrap px-2 py-3 text-right"><button onClick={() => setEditing(p)} aria-label="Edit payment" title="Edit" className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button><SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}${p.expand?.invoice?.invoice_number ? ` on ${p.expand.invoice.invoice_number}` : ''}`} after={afterDelete(p)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -94,21 +95,31 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <RecordPaymentDialog open={recording} onClose={() => setRecording(false)} invoices={invoices} paidByInvoice={paidByInvoice} onSaved={load} />
+      <RecordPaymentDialog open={recording || Boolean(editing)} payment={editing} onClose={() => { setRecording(false); setEditing(null); }} invoices={invoices} paidByInvoice={paidByInvoice} onSaved={load} />
     </PortalLayout>
   );
 }
 
-function RecordPaymentDialog({ open, onClose, invoices, paidByInvoice, onSaved }) {
+function RecordPaymentDialog({ open, payment, onClose, invoices, paidByInvoice: paidAll, onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({ invoice: '', amount: 0, method: METHODS[0], paid_date: today(), transaction_reference: '', notes: '' });
   const [saving, setSaving] = useState(false);
-  const open_ = invoices.filter((i) => ['sent', 'overdue', 'draft'].includes(i.status));
+  const isEdit = Boolean(payment?.id);
+  // When editing, this payment's own amount shouldn't count as already paid.
+  const paidByInvoice = useMemo(() => {
+    if (!isEdit || payment.status !== 'completed' || !payment.invoice) return paidAll;
+    return { ...paidAll, [payment.invoice]: (paidAll[payment.invoice] || 0) - Number(payment.amount || 0) };
+  }, [paidAll, payment, isEdit]);
+  const open_ = invoices.filter((i) => ['sent', 'overdue', 'draft'].includes(i.status) || (isEdit && i.id === payment.invoice));
   const inv = invoices.find((i) => i.id === form.invoice);
   const balance = inv ? Math.max(0, Number(inv.total || 0) - (paidByInvoice[inv.id] || 0)) : 0;
 
-  useEffect(() => { if (open) setForm({ invoice: '', amount: 0, method: METHODS[0], paid_date: today(), transaction_reference: '', notes: '' }); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    if (payment?.id) setForm({ invoice: payment.invoice || '', amount: Number(payment.amount) || 0, method: payment.method || METHODS[0], paid_date: payment.paid_date || today(), transaction_reference: payment.transaction_reference || '', notes: payment.notes || '' });
+    else setForm({ invoice: '', amount: 0, method: METHODS[0], paid_date: today(), transaction_reference: '', notes: '' });
+  }, [open, payment]);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
@@ -116,15 +127,22 @@ function RecordPaymentDialog({ open, onClose, invoices, paidByInvoice, onSaved }
     if (!inv || amount <= 0) { toast({ title: 'Choose an invoice and enter the amount received', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      await pb.collection('payments').create({
+      const data = {
         invoice: inv.id, client: inv.client || '', amount, currency: inv.currency || DEFAULT_CURRENCY,
         status: 'completed', method: form.method, paid_date: form.paid_date,
         reference: inv.invoice_number, transaction_reference: form.transaction_reference, notes: form.notes,
-        recorded_by_name: user?.name || user?.email || '',
-      });
+      };
+      if (isEdit) await pb.collection('payments').update(payment.id, data);
+      else await pb.collection('payments').create({ ...data, recorded_by_name: user?.name || user?.email || '' });
+      // If the payment moved to another invoice, re-check the old one too.
+      if (isEdit && payment.invoice && payment.invoice !== inv.id) {
+        const old = invoices.find((i) => i.id === payment.invoice);
+        if (old && old.status === 'paid' && (paidByInvoice[old.id] || 0) < Number(old.total || 0) - 0.5) await pb.collection('invoices').update(old.id, { status: 'sent' });
+      }
       const fullyPaid = (paidByInvoice[inv.id] || 0) + amount >= Number(inv.total || 0) - 0.5;
       if (fullyPaid && inv.status !== 'paid') await pb.collection('invoices').update(inv.id, { status: 'paid' });
-      toast({ title: 'Payment recorded', description: fullyPaid ? `${inv.invoice_number} is now marked paid.` : `${formatMoney(balance - amount, inv.currency)} still outstanding on ${inv.invoice_number}.` });
+      if (!fullyPaid && inv.status === 'paid') await pb.collection('invoices').update(inv.id, { status: 'sent' });
+      toast({ title: isEdit ? 'Payment updated' : 'Payment recorded', description: fullyPaid ? `${inv.invoice_number} is now marked paid.` : `${formatMoney(balance - amount, inv.currency)} still outstanding on ${inv.invoice_number}.` });
       onSaved();
       onClose();
     } catch (e) {
@@ -133,7 +151,7 @@ function RecordPaymentDialog({ open, onClose, invoices, paidByInvoice, onSaved }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Record a payment" description="Money received from a client against an invoice.">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit payment' : 'Record a payment'} description="Money received from a client against an invoice.">
       <div className="space-y-4">
         <Field label="Invoice" required>
           <select className={inputCls} value={form.invoice} onChange={(e) => {
@@ -158,7 +176,7 @@ function RecordPaymentDialog({ open, onClose, invoices, paidByInvoice, onSaved }
         <Field label="Notes"><textarea className={textareaCls} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
-          <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Record payment</button>
+          <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {isEdit ? 'Save changes' : 'Record payment'}</button>
         </div>
       </div>
     </Modal>

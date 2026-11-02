@@ -34,6 +34,8 @@ export default function ProjectDetailPage() {
   const [newTask, setNewTask] = useState('');
   const [engaging, setEngaging] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [editTask, setEditTask] = useState(null); // { id, title }
 
   const canEdit = ['super_admin', 'project_manager'].includes(user?.role);
   const canTeam = ['super_admin', 'project_manager', 'hr'].includes(user?.role);
@@ -130,7 +132,16 @@ export default function ProjectDetailPage() {
                 <li key={t.id} className="flex items-center gap-3 py-2">
                   <input type="checkbox" checked={!!t.done} disabled={!canEdit && user?.role !== 'technician'} aria-label={`Mark ${t.title} done`}
                     onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))} className="h-4 w-4" />
-                  <span className={`flex-1 text-sm ${t.done ? 'text-muted-foreground line-through' : ''}`}>{t.title}</span>
+                  {editTask?.id === t.id ? (
+                    <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (editTask.title.trim()) saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, title: editTask.title.trim() } : x))); setEditTask(null); }}>
+                      <input autoFocus className={inputCls} value={editTask.title} onChange={(e) => setEditTask({ ...editTask, title: e.target.value })} aria-label="Task name" />
+                      <button type="submit" className={btnLine}>Save</button>
+                      <button type="button" className={btnLine} onClick={() => setEditTask(null)}>Cancel</button>
+                    </form>
+                  ) : (
+                    <span className={`flex-1 text-sm ${t.done ? 'text-muted-foreground line-through' : ''}`}>{t.title}</span>
+                  )}
+                  {canEdit && editTask?.id !== t.id && <button aria-label={`Rename ${t.title}`} onClick={() => setEditTask({ id: t.id, title: t.title })} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
                   {canEdit && <button aria-label="Delete task" onClick={() => saveTasks(tasks.filter((x) => x.id !== t.id))} className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                 </li>
               ))}
@@ -180,7 +191,11 @@ export default function ProjectDetailPage() {
                 {docs.map((d) => (
                   <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                     <span className="inline-flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{d.title}</span><span className="text-xs text-muted-foreground">· {d.type}</span></span>
-                    {d.file && <a className="inline-flex items-center gap-1 text-primary hover:underline" href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Open</a>}
+                    <span className="flex shrink-0 items-center gap-3">
+                      {d.file && <a className="inline-flex items-center gap-1 text-primary hover:underline" href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Open</a>}
+                      <button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
+                      {canEdit && <button onClick={async () => { if (!window.confirm(`Delete document “${d.title}”?`)) return; try { await pb.collection('documents').delete(d.id); loadDocs(); } catch (e) { toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }); } }} aria-label="Delete document" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -228,7 +243,7 @@ export default function ProjectDetailPage() {
       </div>
 
       <EngagementDialog open={engaging !== null} project={p} engagement={engaging?.id ? engaging : null} onClose={() => setEngaging(null)} onSaved={loadTeam} />
-      <DocumentUploadDialog open={uploading} project={p} onClose={() => setUploading(false)} onSaved={loadDocs} />
+      <DocumentUploadDialog open={uploading || Boolean(editingDoc)} document={editingDoc} project={p} onClose={() => { setUploading(false); setEditingDoc(null); }} onSaved={loadDocs} />
     </PortalLayout>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Loader2, Check, Trash2, FileText, Download } from 'lucide-react';
+import { Plus, X, Loader2, Check, Trash2, FileText, Download, Pencil } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { DOC_TYPES } from '@/lib/crm';
@@ -22,6 +22,7 @@ export default function DocumentsTab({ clientId }) {
   const [form, setForm] = useState({ title: '', doc_type: 'other' });
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -41,8 +42,21 @@ export default function DocumentsTab({ clientId }) {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) { setError('Document title is required'); return; }
-    if (!file) { setError('Please select a file to upload'); return; }
+    if (!file && !editingId) { setError('Please select a file to upload'); return; }
     setSaving(true); setError('');
+    if (editingId) {
+      try {
+        const fd = new FormData();
+        fd.append('title', form.title);
+        fd.append('doc_type', form.doc_type);
+        if (file) fd.append('file', file);
+        await pb.collection('client_documents').update(editingId, fd);
+        setForm({ title: '', doc_type: 'other' }); setFile(null); setEditingId(null); setShowForm(false);
+        await load();
+      } catch (err) { setError(err.message || 'Failed to save'); }
+      finally { setSaving(false); }
+      return;
+    }
     try {
       const fd = new FormData();
       fd.append('title', form.title);
@@ -60,6 +74,14 @@ export default function DocumentsTab({ clientId }) {
     finally { setSaving(false); }
   };
 
+  const startEdit = (doc) => {
+    setForm({ title: doc.title || '', doc_type: doc.doc_type || 'other' }); setFile(null);
+    setEditingId(doc.id); setShowForm(true); setError('');
+  };
+  const toggleForm = () => {
+    if (showForm) { setShowForm(false); setEditingId(null); setForm({ title: '', doc_type: 'other' }); setFile(null); } else setShowForm(true);
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Delete this document?')) return;
     await pb.collection('client_documents').delete(id);
@@ -74,7 +96,7 @@ export default function DocumentsTab({ clientId }) {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{docs.length} document{docs.length !== 1 ? 's' : ''}</p>
-        <button onClick={() => setShowForm(v => !v)} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+        <button onClick={toggleForm} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
           {showForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
           {showForm ? 'Cancel' : 'Upload Document'}
         </button>
@@ -82,7 +104,7 @@ export default function DocumentsTab({ clientId }) {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="mb-3 text-sm font-semibold text-foreground">Upload Document</p>
+          <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edit Document' : 'Upload Document'}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-foreground">Document Title *</label>
@@ -95,7 +117,7 @@ export default function DocumentsTab({ clientId }) {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-foreground">File *</label>
+              <label className="mb-1 block text-xs font-medium text-foreground">{editingId ? 'Replace file (optional)' : 'File *'}</label>
               <input type="file" onChange={e => setFile(e.target.files[0])} className="w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground" />
             </div>
           </div>
@@ -103,7 +125,7 @@ export default function DocumentsTab({ clientId }) {
           <div className="mt-3">
             <button type="submit" disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-60">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Upload
+              {editingId ? 'Save Changes' : 'Upload'}
             </button>
           </div>
         </form>
@@ -133,6 +155,9 @@ export default function DocumentsTab({ clientId }) {
                       <Download className="h-4 w-4" />
                     </a>
                   )}
+                  <button onClick={() => startEdit(doc)} aria-label="Edit document" className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary">
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   <button onClick={() => handleDelete(doc.id)} className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>

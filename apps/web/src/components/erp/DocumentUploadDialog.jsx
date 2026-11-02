@@ -10,7 +10,8 @@ export const DOCUMENT_TYPES = [
   'Site report', 'Inspection / test certificate', 'Handover / completion certificate', 'Photo', 'Warranty', 'Permit / licence', 'Other',
 ];
 
-export default function DocumentUploadDialog({ open, onClose, onSaved, project, client }) {
+export default function DocumentUploadDialog({ open, onClose, onSaved, project, client, document: doc }) {
+  const isEdit = Boolean(doc?.id);
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({ title: '', type: DOCUMENT_TYPES[0], client: '', project: '', notes: '' });
@@ -21,7 +22,9 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
 
   useEffect(() => {
     if (!open) return;
-    setForm({ title: '', type: DOCUMENT_TYPES[0], client: client || project?.client || '', project: project?.id || '', notes: '' });
+    setForm(isEdit
+      ? { title: doc.title || '', type: doc.type || DOCUMENT_TYPES[0], client: doc.client || '', project: doc.project || '', notes: doc.notes || '' }
+      : { title: '', type: DOCUMENT_TYPES[0], client: client || project?.client || '', project: project?.id || '', notes: '' });
     setFile(null);
     if (!project) {
       pb.collection('clients').getFullList({ sort: 'company_name' }).then(setClients).catch(() => {});
@@ -32,10 +35,18 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
-    if (!file) { toast({ title: 'Choose a file to upload', variant: 'destructive' }); return; }
-    if (file.size > 5 * 1024 * 1024) { toast({ title: 'File too large', description: 'Maximum 5 MB per file.', variant: 'destructive' }); return; }
+    if (!file && !isEdit) { toast({ title: 'Choose a file to upload', variant: 'destructive' }); return; }
+    if (file && file.size > 5 * 1024 * 1024) { toast({ title: 'File too large', description: 'Maximum 5 MB per file.', variant: 'destructive' }); return; }
     setSaving(true);
     try {
+      if (isEdit) {
+        await pb.collection('documents').update(doc.id, toBody({
+          title: form.title || doc.title, type: form.type, client: form.client || '', project: form.project || '', notes: form.notes,
+        }, file ? { file } : {}));
+        toast({ title: 'Document updated' });
+        onSaved?.(); onClose();
+        return;
+      }
       await pb.collection('documents').create(toBody({
         title: form.title || file.name,
         type: form.type,
@@ -53,9 +64,9 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Upload a document" description="PDF, Word, Excel or photo, up to 5 MB.">
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit document' : 'Upload a document'} description="PDF, Word, Excel or photo, up to 5 MB.">
       <div className="space-y-4">
-        <Field label="File" required><input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="block w-full text-sm" /></Field>
+        <Field label={isEdit ? 'Replace file (optional)' : 'File'} required={!isEdit}><input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="block w-full text-sm" /></Field>
         <Field label="Title"><input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Defaults to the file name" /></Field>
         <Field label="Type">
           <select className={inputCls} value={form.type} onChange={(e) => set('type', e.target.value)}>
@@ -81,7 +92,7 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
         <Field label="Notes"><textarea className={textareaCls} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
-          <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload</button>
+          <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {isEdit ? 'Save changes' : 'Upload'}</button>
         </div>
       </div>
     </Modal>

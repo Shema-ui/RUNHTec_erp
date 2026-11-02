@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText } from 'lucide-react';
+import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2 } from 'lucide-react';
+import { DEFAULT_LABOUR_ROLES, applyCostSettings, rid } from '@/lib/costing';
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -126,7 +127,9 @@ export default function SettingsPage() {
     invoice_footer_text: 'Thank you for your business.',
     default_terms_conditions: DEFAULT_TERMS,
     default_payment_instructions: DEFAULT_PAYMENT_INSTRUCTIONS,
+    default_contingency: 10,
   });
+  const [rates, setRates] = useState(DEFAULT_LABOUR_ROLES.map((r) => ({ ...r })));
 
   useEffect(() => {
     pb.collection('company_settings').getList(1, 1, { requestKey: 'settings-load' })
@@ -156,7 +159,9 @@ export default function SettingsPage() {
             invoice_footer_text: rec.invoice_footer_text || 'Thank you for your business.',
             default_terms_conditions: rec.default_terms_conditions || DEFAULT_TERMS,
             default_payment_instructions: rec.default_payment_instructions || DEFAULT_PAYMENT_INSTRUCTIONS,
+            default_contingency: rec.default_contingency ?? 10,
           }));
+          if (Array.isArray(rec.labour_rates) && rec.labour_rates.length) setRates(rec.labour_rates.map((r) => ({ ...r })));
           if (rec.logo) setLogo(p => ({ ...p, url: pb.files.getURL(rec, rec.logo) }));
           if (rec.signature) setSignature(p => ({ ...p, url: pb.files.getURL(rec, rec.signature) }));
           if (rec.stamp) setStamp(p => ({ ...p, url: pb.files.getURL(rec, rec.stamp) }));
@@ -173,6 +178,8 @@ export default function SettingsPage() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, typeof v === 'boolean' ? String(v) : v));
+      const cleanRates = rates.filter((r) => String(r.label || '').trim()).map((r) => ({ value: r.value || rid(), label: String(r.label).trim(), rate: Number(r.rate) || 0 }));
+      fd.append('labour_rates', JSON.stringify(cleanRates));
 
       const assets = [['logo', logo], ['signature', signature], ['stamp', stamp]];
       assets.forEach(([key, asset]) => {
@@ -187,6 +194,7 @@ export default function SettingsPage() {
         rec = await pb.collection('company_settings').create(fd);
         setRecordId(rec.id);
       }
+      applyCostSettings(rec);
 
       setLogo({ url: rec.logo ? pb.files.getURL(rec, rec.logo) : null, file: null, remove: false });
       setSignature({ url: rec.signature ? pb.files.getURL(rec, rec.signature) : null, file: null, remove: false });
@@ -438,6 +446,32 @@ export default function SettingsPage() {
                 onRemove={() => setStamp({ url: null, file: null, remove: true })}
               />
             </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={HardHat} title="Technician wages & job costing" description="Daily rates used when estimating quotes and logging work days. Internal only — never shown to clients. Changing a rate affects new estimates and new work days, not ones already saved.">
+          <div className="space-y-2">
+            {rates.map((r, i) => (
+              <div key={r.value || i} className="grid grid-cols-[minmax(0,1fr)_140px_36px] items-center gap-2">
+                <input className={inputCls} value={r.label} readOnly={!isSuperAdmin} aria-label="Role name"
+                  onChange={(e) => setRates((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="e.g. Welder" />
+                <input type="number" min="0" className={`${inputCls} text-right`} value={r.rate} readOnly={!isSuperAdmin} aria-label="Rate per day"
+                  onChange={(e) => setRates((list) => list.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)))} />
+                {isSuperAdmin && rates.length > 1 ? (
+                  <button type="button" onClick={() => setRates((list) => list.filter((_, j) => j !== i))} aria-label="Remove role" className="rounded p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                ) : <span />}
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">Role name · rate per day ({form.currency})</p>
+            {isSuperAdmin && (
+              <button type="button" onClick={() => setRates((list) => [...list, { value: rid(), label: '', rate: 0 }])} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"><Plus className="h-4 w-4" /> Add role</button>
+            )}
+          </div>
+          <div className="mt-5 max-w-xs">
+            <Field label="Default safety margin (%)" hint="Extra added on wages + transport in new quote estimates, for days or trips you can't predict.">
+              <input type="number" min="0" max="100" className={inputCls} value={form.default_contingency} readOnly={!isSuperAdmin}
+                onChange={(e) => isSuperAdmin && setField('default_contingency', e.target.value)} />
+            </Field>
           </div>
         </SectionCard>
 

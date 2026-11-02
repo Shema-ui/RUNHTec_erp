@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { Upload, FileText, Download } from 'lucide-react';
+import { Upload, FileText, Download, Pencil } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import SuperDelete from '@/components/erp/SuperDelete';
@@ -13,6 +13,7 @@ export default function DocumentsPage() {
   const [q, setQ] = useState('');
   const [type, setType] = useState('all');
   const [uploading, setUploading] = useState(false);
+  const [editingDoc, setEditingDoc] = useState(null);
 
   const load = () => pb.collection('documents').getFullList({ sort: '-created', expand: 'client,project' })
     .then(setDocs).catch(() => setDocs([]));
@@ -54,7 +55,7 @@ export default function DocumentsPage() {
                   <td className="px-4 py-3">{d.project ? <Link to={`/projects/${d.project}`} className="hover:text-primary">{d.expand?.project?.title || '—'}</Link> : '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{fmtDate(d.created)}{d.uploaded_by_name ? ` · ${d.uploaded_by_name}` : ''}</td>
                   <td className="px-4 py-3">{d.file && <a href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Download className="h-4 w-4" /> Open</a>}</td>
-                  <td className="px-2 py-3 text-right"><SuperDelete collection="documents" id={d.id} label={`document “${d.title || 'untitled'}”`} after={load} /></td>
+                  <td className="whitespace-nowrap px-2 py-3 text-right"><button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button><SuperDelete collection="documents" id={d.id} label={`document “${d.title || 'untitled'}”`} after={load} /></td>
                 </tr>
               ))}
             </tbody>
@@ -62,7 +63,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      <DocumentUploadDialog open={uploading} onClose={() => setUploading(false)} onSaved={load} />
+      <DocumentUploadDialog open={uploading || Boolean(editingDoc)} document={editingDoc} onClose={() => { setUploading(false); setEditingDoc(null); }} onSaved={load} />
     </PortalLayout>
   );
 }

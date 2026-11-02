@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Loader2, Check, ChevronDown, ChevronUp, Wrench, AlertTriangle } from 'lucide-react';
+import { Plus, X, Loader2, Check, ChevronDown, ChevronUp, Wrench, AlertTriangle, Pencil } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { EQUIPMENT_CATEGORIES, EQUIPMENT_CONDITIONS, EQUIPMENT_STATUSES } from '@/lib/crm';
@@ -7,7 +7,7 @@ import { EQUIPMENT_CATEGORIES, EQUIPMENT_CONDITIONS, EQUIPMENT_STATUSES } from '
 const inputCls = 'h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring';
 const selectCls = `h-9 ${inputCls}`;
 
-function EquipmentCard({ eq, onDelete }) {
+function EquipmentCard({ eq, onDelete, onEdit }) {
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const statusInfo = EQUIPMENT_STATUSES.find(s => s.value === eq.status) || EQUIPMENT_STATUSES[0];
@@ -37,6 +37,9 @@ function EquipmentCard({ eq, onDelete }) {
         <div className="flex gap-1">
           <button onClick={() => setExpanded(v => !v)} className="rounded p-1 text-muted-foreground hover:bg-secondary">
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          <button onClick={() => onEdit(eq)} aria-label="Edit equipment" className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-primary">
+            <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={async () => { if (!confirm('Delete this equipment?')) return; setDeleting(true); await onDelete(eq.id); setDeleting(false); }}
@@ -87,6 +90,7 @@ export default function EquipmentTab({ clientId }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(BLANK);
   const [error, setError] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -109,6 +113,16 @@ export default function EquipmentTab({ clientId }) {
     e.preventDefault();
     if (!form.name.trim()) { setError('Equipment name is required'); return; }
     setSaving(true); setError('');
+    if (editingId) {
+      try {
+        const payload = Object.fromEntries(Object.keys(BLANK).map((k) => [k, form[k] ?? '']));
+        await pb.collection('equipment').update(editingId, payload);
+        setForm(BLANK); setEditingId(null); setShowForm(false);
+        await load();
+      } catch (err) { setError(err.message || 'Failed to save'); }
+      finally { setSaving(false); }
+      return;
+    }
     try {
       // Generate equipment ID
       const year = new Date().getFullYear();
@@ -125,6 +139,15 @@ export default function EquipmentTab({ clientId }) {
     finally { setSaving(false); }
   };
 
+  const startEdit = (eq) => {
+    setForm(Object.fromEntries(Object.keys(BLANK).map((k) => [k, eq[k] ?? ''])));
+    setEditingId(eq.id); setShowForm(true); setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const toggleForm = () => {
+    if (showForm) { setShowForm(false); setEditingId(null); setForm(BLANK); } else setShowForm(true);
+  };
+
   const handleDelete = async (id) => {
     await pb.collection('equipment').delete(id);
     setItems(prev => prev.filter(e => e.id !== id));
@@ -137,7 +160,7 @@ export default function EquipmentTab({ clientId }) {
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{items.length} equipment record{items.length !== 1 ? 's' : ''}</p>
         <button
-          onClick={() => setShowForm(v => !v)}
+          onClick={toggleForm}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
           {showForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -147,7 +170,7 @@ export default function EquipmentTab({ clientId }) {
 
       {showForm && (
         <form onSubmit={handleAdd} className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="mb-3 text-sm font-semibold text-foreground">New Equipment Record</p>
+          <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edit Equipment Record' : 'New Equipment Record'}</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
               ['Equipment ID', 'equipment_id', 'text', 'Auto-generated if empty'],
@@ -222,7 +245,7 @@ export default function EquipmentTab({ clientId }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map(eq => <EquipmentCard key={eq.id} eq={eq} onDelete={handleDelete} />)}
+          {items.map(eq => <EquipmentCard key={eq.id} eq={eq} onDelete={handleDelete} onEdit={startEdit} />)}
         </div>
       )}
     </div>

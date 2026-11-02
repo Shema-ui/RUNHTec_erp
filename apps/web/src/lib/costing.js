@@ -1,3 +1,5 @@
+import pb from '@/lib/pocketbaseClient';
+
 // Internal job costing: buying prices, labour, transport and other costs,
 // and the profit they leave. Never printed or shown to clients — the server
 // also strips these fields for roles that may not see them.
@@ -6,13 +8,35 @@ export const COST_ROLES = ['super_admin', 'sales', 'accountant', 'project_manage
 export const canSeeCosts = (user) => COST_ROLES.includes(user?.role);
 export const canRecordCosts = (user) => ['super_admin', 'accountant', 'project_manager'].includes(user?.role);
 
-// Current daily wages. Change the numbers here if wages change.
-export const LABOUR_ROLES = [
+
+// Daily wages per role. These are only the starting values — the Super Admin
+// changes them in Settings → Technician wages, and the saved list replaces this one.
+export const DEFAULT_LABOUR_ROLES = [
   { value: 'lead', label: 'Lead technician', rate: 20000 },
   { value: 'technician', label: 'Technician', rate: 15000 },
   { value: 'helper', label: 'Assistant technician', rate: 12000 },
 ];
-export const labourRole = (v) => LABOUR_ROLES.find((r) => r.value === v) || LABOUR_ROLES[1];
+export const LABOUR_ROLES = DEFAULT_LABOUR_ROLES.map((r) => ({ ...r }));
+export const COST_SETTINGS = { contingency: 10 };
+
+export const labourRole = (v) => LABOUR_ROLES.find((r) => r.value === v)
+  || (v ? { value: v, label: 'Worker', rate: 0 } : LABOUR_ROLES[0] || DEFAULT_LABOUR_ROLES[0]);
+
+export function applyCostSettings(rec) {
+  const list = Array.isArray(rec?.labour_rates) ? rec.labour_rates.filter((r) => r && r.value && r.label) : null;
+  if (list && list.length) LABOUR_ROLES.splice(0, LABOUR_ROLES.length, ...list.map((r) => ({ value: r.value, label: r.label, rate: Number(r.rate) || 0 })));
+  if (rec && rec.default_contingency !== undefined && rec.default_contingency !== null && rec.default_contingency !== '') COST_SETTINGS.contingency = Number(rec.default_contingency) || 0;
+}
+
+let loading = null;
+export function loadCostSettings(force = false) {
+  if (!loading || force) {
+    loading = pb.collection('company_settings').getList(1, 1)
+      .then((r) => applyCostSettings(r.items[0]))
+      .catch(() => {});
+  }
+  return loading;
+}
 
 export const COST_CATEGORIES = [
   { value: 'materials', label: 'Materials & equipment' },
@@ -26,15 +50,11 @@ export const COST_CATEGORIES = [
 ];
 export const costCategoryLabel = (v) => COST_CATEGORIES.find((c) => c.value === v)?.label || 'Other';
 
-export const DEFAULT_CONTINGENCY = 10;
 
 export const emptyCosting = () => ({
-  labour: [
-    { id: rid(), role: 'lead', people: 1, rate: 20000, days: 1 },
-    { id: rid(), role: 'technician', people: 1, rate: 15000, days: 1 },
-  ],
+  labour: LABOUR_ROLES.slice(0, 2).map((r) => ({ id: rid(), role: r.value, people: 1, rate: r.rate, days: 1 })),
   expenses: [{ id: rid(), category: 'transport', label: 'Transport to site', amount: 0 }],
-  contingency_pct: DEFAULT_CONTINGENCY,
+  contingency_pct: COST_SETTINGS.contingency,
 });
 
 export function rid() {
@@ -49,7 +69,7 @@ export function normalizeCosting(c) {
   return {
     labour: Array.isArray(c.labour) ? c.labour.map((l) => ({ id: l.id || rid(), ...l })) : [],
     expenses: Array.isArray(c.expenses) ? c.expenses.map((e) => ({ id: e.id || rid(), ...e })) : [],
-    contingency_pct: c.contingency_pct ?? DEFAULT_CONTINGENCY,
+    contingency_pct: c.contingency_pct ?? COST_SETTINGS.contingency,
   };
 }
 

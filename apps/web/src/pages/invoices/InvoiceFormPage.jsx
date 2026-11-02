@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import CostingPanel from '@/components/erp/CostingPanel';
-import { canSeeCosts, emptyCosting, normalizeCosting } from '@/lib/costing';
+import { canSeeCosts, emptyCosting, normalizeCosting, loadCostSettings } from '@/lib/costing';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -90,6 +90,8 @@ export default function InvoiceFormPage() {
   const [items, setItems] = useState([emptyItem()]);
   const [costing, setCosting] = useState(emptyCosting());
   const showCosts = canSeeCosts(user);
+  // New documents start with the wage rates and safety margin from Settings.
+  useEffect(() => { if (!isEdit && !fromQuote && !fromProject) loadCostSettings().then(() => setCosting(emptyCosting())); }, []);
 
   const subtotal = items.reduce((s, i) => s + (i.amount || 0), 0);
   const taxAmount = parseFloat(((subtotal * (Number(form.tax_rate) || 0)) / 100).toFixed(2));
