@@ -13,7 +13,7 @@ import { canSeeCosts } from '@/lib/costing';
 
 const EMPTY = {
   title: '', client: '', quotation: '', service_category: '', status: 'scheduled', priority: 'medium',
-  project_manager: '', site_address: '', start_date: '', due_date: '', completed_date: '',
+  project_manager: '', lead_technician: '', site_address: '', start_date: '', due_date: '', completed_date: '',
   value: 0, currency: DEFAULT_CURRENCY, progress: 0, description: '', notes: '', cost_budget: 0,
 };
 
@@ -28,6 +28,7 @@ export default function ProjectFormPage() {
   const [clients, setClients] = useState([]);
   const [quotes, setQuotes] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
 
@@ -35,7 +36,10 @@ export default function ProjectFormPage() {
     pb.collection('clients').getFullList({ sort: 'company_name' }).then(setClients).catch(() => {});
     pb.collection('quotations').getFullList({ sort: '-created' }).then(setQuotes).catch(() => {});
     pb.collection('users').getFullList({ sort: 'name' })
-      .then((u) => setManagers(u.filter((x) => ['project_manager', 'super_admin'].includes(x.role) && x.status === 'active'))).catch(() => {});
+      .then((u) => {
+        setManagers(u.filter((x) => ['project_manager', 'super_admin'].includes(x.role) && x.status === 'active'));
+        setLeads(u.filter((x) => x.role === 'lead_technician' && x.status === 'active'));
+      }).catch(() => {});
     if (isEdit) {
       pb.collection('projects').getOne(id).then((p) => {
         setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, p[k] ?? EMPTY[k]])) });
@@ -68,6 +72,7 @@ export default function ProjectFormPage() {
       client: form.client || null,
       quotation: form.quotation || null,
       project_manager: form.project_manager || null,
+      lead_technician: form.lead_technician || null,
       value: Number(form.value) || 0,
       cost_budget: Number(form.cost_budget) || 0,
       progress: Math.max(0, Math.min(100, Number(form.progress) || 0)),
@@ -115,6 +120,12 @@ export default function ProjectFormPage() {
                 <select className={inputCls} value={form.project_manager || ''} onChange={(e) => set('project_manager', e.target.value)}>
                   <option value="">Not assigned</option>
                   {managers.map((m) => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
+                </select>
+              </Field>
+              <Field label="Lead technician" hint="Logs the crew's work days on site">
+                <select className={inputCls} value={form.lead_technician || ''} onChange={(e) => set('lead_technician', e.target.value)}>
+                  <option value="">Not assigned</option>
+                  {leads.map((m) => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
                 </select>
               </Field>
               <Field label="Site address" className="sm:col-span-2 lg:col-span-3"><input className={inputCls} value={form.site_address} onChange={(e) => set('site_address', e.target.value)} placeholder="District, sector, street / landmark" /></Field>

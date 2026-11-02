@@ -74,6 +74,8 @@ async function runMigrations() {
     await ensureColumn(conn, 'users', 'department', "VARCHAR(40) DEFAULT ''");
     await ensureEnumValue(conn, 'users', 'role', 'hr',
       "ENUM('super_admin','sales','project_manager','accountant','technician','hr') NOT NULL DEFAULT 'sales'");
+    await ensureEnumValue(conn, 'users', 'role', 'lead_technician',
+      "ENUM('super_admin','sales','project_manager','accountant','technician','lead_technician','hr') NOT NULL DEFAULT 'sales'");
 
     // Projects: full project record (manager, value, progress, priority…)
     for (const [col, def] of [
@@ -126,6 +128,10 @@ async function runMigrations() {
     // Daily wage rates per role and the default safety margin, editable in Settings
     await ensureColumn(conn, 'company_settings', 'labour_rates', 'JSON DEFAULT NULL');
     await ensureColumn(conn, 'company_settings', 'default_contingency', 'DECIMAL(5,2) DEFAULT 10');
+
+    // Lead technician of a project (a user account), who logs the crew's days on site
+    await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');
+    await ensureColumn(conn, 'project_costs', 'recorded_by', 'VARCHAR(20) DEFAULT NULL');
 
     // Invoices also appear as quotations (see invoiceQuote.js)
     await ensureColumn(conn, 'quotations', 'source_invoice', 'VARCHAR(20) DEFAULT NULL');

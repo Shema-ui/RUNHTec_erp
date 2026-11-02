@@ -12,6 +12,7 @@ import { canAccessModule, canUploadDocs } from '@/lib/permissions';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteProjectAssignments } from '@/lib/cleanup';
 import ProjectCostsCard from '@/components/erp/ProjectCostsCard';
+import SiteLogCard from '@/components/erp/SiteLogCard';
 import { canSeeCosts } from '@/lib/costing';
 import EngagementDialog from '@/components/erp/EngagementDialog';
 import DocumentUploadDialog from '@/components/erp/DocumentUploadDialog';
@@ -43,7 +44,7 @@ export default function ProjectDetailPage() {
   const showCosts = canSeeCosts(user);
   const canUpload = canUploadDocs(user);
 
-  const loadProject = () => pb.collection('projects').getOne(id, { expand: 'client,quotation,project_manager' })
+  const loadProject = () => pb.collection('projects').getOne(id, { expand: 'client,quotation,project_manager,lead_technician' })
     .then(setP).catch(() => navigate('/projects'));
   const loadTeam = () => pb.collection('project_assignments').getFullList({ filter: `project = '${id}'`, sort: 'created', expand: 'contractor' })
     .then(setTeam).catch(() => setTeam([]));
@@ -88,6 +89,10 @@ export default function ProjectDetailPage() {
     setNewTask('');
   };
 
+  // The project's Lead Technician moves the work forward on site (tasks, status, crew days).
+  const isLeadHere = user?.role === 'lead_technician' && p.lead_technician === user.id;
+  const canWork = canEdit || isLeadHere;
+
   const changeStatus = (status) => update({ status, ...(status === 'done' ? { completed_date: todayISO(), progress: 100 } : {}) }, 'Status updated');
   const currency = p.currency || 'RWF';
   const quote = p.expand?.quotation;
@@ -102,7 +107,7 @@ export default function ProjectDetailPage() {
         <Pill info={projectStatusInfo(p.status)} />
         <span className={`text-xs font-semibold ${priorityInfo(p.priority).cls}`}>{priorityInfo(p.priority).label} priority</span>
         <div className="ml-auto flex flex-wrap gap-2">
-          {canEdit && (
+          {canWork && (
             <select value={p.status} onChange={(e) => changeStatus(e.target.value)} className="h-10 rounded-lg border border-border bg-card px-3 text-sm" aria-label="Change status">
               {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
@@ -131,7 +136,7 @@ export default function ProjectDetailPage() {
             <ul className="divide-y divide-border">
               {tasks.map((t) => (
                 <li key={t.id} className="flex items-center gap-3 py-2">
-                  <input type="checkbox" checked={!!t.done} disabled={!canEdit && user?.role !== 'technician'} aria-label={`Mark ${t.title} done`}
+                  <input type="checkbox" checked={!!t.done} disabled={!canWork && user?.role !== 'technician'} aria-label={`Mark ${t.title} done`}
                     onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))} className="h-4 w-4" />
                   {editTask?.id === t.id ? (
                     <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (editTask.title.trim()) saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, title: editTask.title.trim() } : x))); setEditTask(null); }}>
@@ -142,12 +147,12 @@ export default function ProjectDetailPage() {
                   ) : (
                     <span className={`flex-1 text-sm ${t.done ? 'text-muted-foreground line-through' : ''}`}>{t.title}</span>
                   )}
-                  {canEdit && editTask?.id !== t.id && <button aria-label={`Rename ${t.title}`} onClick={() => setEditTask({ id: t.id, title: t.title })} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
-                  {canEdit && <button aria-label="Delete task" onClick={() => saveTasks(tasks.filter((x) => x.id !== t.id))} className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
+                  {canWork && editTask?.id !== t.id && <button aria-label={`Rename ${t.title}`} onClick={() => setEditTask({ id: t.id, title: t.title })} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
+                  {canWork && <button aria-label="Delete task" onClick={() => saveTasks(tasks.filter((x) => x.id !== t.id))} className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                 </li>
               ))}
             </ul>
-            {canEdit && (
+            {canWork && (
               <form onSubmit={addTask} className="mt-3 flex gap-2">
                 <input className={inputCls} value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="e.g. Site survey, Material delivery, Installation, Testing & commissioning, Handover" />
                 <button type="submit" className={btnLine}><Plus className="h-4 w-4" /> Add</button>
@@ -156,6 +161,7 @@ export default function ProjectDetailPage() {
           </Card>
 
           {showCosts && <ProjectCostsCard project={p} team={team} />}
+          {isLeadHere && <SiteLogCard project={p} team={team} />}
 
           <Card title="Team (per-project contractors)" action={canTeam && <button className={btnLine} onClick={() => setEngaging({})}><Plus className="h-4 w-4" /> Engage contractor</button>}>
             {team.length === 0 ? <p className="text-sm text-muted-foreground">Nobody engaged yet. Pick contractors from the register; each gets their own engagement letter for this project.</p> : (
@@ -209,6 +215,7 @@ export default function ProjectDetailPage() {
             <div className="space-y-3">
               <InfoRow label="Client">{p.expand?.client ? <Link to={`/crm/clients/${p.client}`} className="inline-flex items-center gap-1 text-primary hover:underline"><Building2 className="h-3.5 w-3.5" />{p.expand.client.company_name}</Link> : 'Not linked'}</InfoRow>
               <InfoRow label="Service">{serviceLabel(p.service_category)}</InfoRow>
+              <InfoRow label="Lead technician">{p.expand?.lead_technician ? <span className="inline-flex items-center gap-1"><User className="h-3.5 w-3.5" />{p.expand.lead_technician.name || p.expand.lead_technician.email}{isLeadHere ? ' (you)' : ''}</span> : 'Not assigned'}</InfoRow>
               <InfoRow label="Project manager">{p.expand?.project_manager ? <span className="inline-flex items-center gap-1"><User className="h-3.5 w-3.5" />{p.expand.project_manager.name || p.expand.project_manager.email}</span> : 'Not assigned'}</InfoRow>
               <InfoRow label="Site">{p.site_address ? <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{p.site_address}</span> : ''}</InfoRow>
               <InfoRow label="Dates"><span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{[fmtDate(p.start_date) || 'Start not set', fmtDate(p.due_date) || 'due not set'].join(' → ')}</span></InfoRow>

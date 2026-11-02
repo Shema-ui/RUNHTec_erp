@@ -93,6 +93,9 @@ function dropCostInput(collectionName, body, user, before) {
 // Until a new staff member has completed their profile, they can only reach
 // their own profile (and the few things the app shell needs).
 const OPEN_BEFORE_PROFILE = new Set(['staff_profiles', 'staff_documents', 'company_settings', 'notifications', 'activity_logs']);
+const LEAD_PROJECT_FIELDS = ['tasks', 'progress', 'status', 'completed_date', 'notes'];
+const PM_ROLES = ['super_admin', 'project_manager'];
+
 function needsProfile(user) {
   return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
 }
@@ -233,6 +236,14 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     dropCostInput(req.collectionName, body, req.user, null);
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
+    if (req.collectionName === 'project_costs') {
+      body.recorded_by = req.user.id;
+      if (req.user.role === 'lead_technician') {
+        const [pr] = await pool.query('SELECT lead_technician FROM projects WHERE id = ?', [body.project || '']);
+        if (!pr[0] || pr[0].lead_technician !== req.user.id) return res.status(403).json({ message: 'You can only log work on projects you lead.' });
+        delete body.paid; // paying people is for the office
+      }
+    }
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const id = genId();
@@ -318,6 +329,13 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     const body = extractBody(req, def);
     dropCostInput(req.collectionName, body, req.user, before);
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
+    if (req.user.role === 'lead_technician') {
+      // A lead technician may only move a project forward on site, not change its money or client.
+      if (req.collectionName === 'projects' && !PM_ROLES.includes(req.user.role)) {
+        for (const k of Object.keys(body)) if (!LEAD_PROJECT_FIELDS.includes(k)) delete body[k];
+      }
+      if (req.collectionName === 'project_costs') { delete body.project; delete body.recorded_by; delete body.paid; }
+    }
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const setClauses = [];

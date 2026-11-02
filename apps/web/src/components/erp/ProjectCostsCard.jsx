@@ -163,7 +163,7 @@ function Mini({ label, value, note, cls = '' }) {
 
 const guessRole = (text = '') => (/lead|head|chief|supervisor|foreman/i.test(text) ? 'lead' : /helper|assist|apprentice|intern/i.test(text) ? 'helper' : 'technician');
 
-function LogDayDialog({ open, onClose, project, team, costs, onSaved }) {
+export function LogDayDialog({ open, onClose, project, team, costs, onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [date, setDate] = useState(todayISO());
@@ -260,7 +260,7 @@ function LogDayDialog({ open, onClose, project, team, costs, onSaved }) {
   );
 }
 
-function ExpenseDialog({ open, onClose, project, onSaved }) {
+export function ExpenseDialog({ open, onClose, project, onSaved, allowPaid = true }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const blank = () => ({ cost_date: todayISO(), category: 'transport', description: '', amount: '', paid: true, notes: '' });
@@ -297,7 +297,7 @@ function ExpenseDialog({ open, onClose, project, onSaved }) {
           </Field>
           <Field label="What was it for" className="sm:col-span-2"><input className={inputCls} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="e.g. Fuel Kigali–Musanze return, 6mm² cable 100 m" /></Field>
           <Field label="Amount" required><input type="number" min="0" className={inputCls} value={f.amount} onChange={(e) => set('amount', e.target.value)} /></Field>
-          <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Already paid</label>
+          {allowPaid && <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Already paid</label>}
         </div>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
@@ -309,7 +309,7 @@ function ExpenseDialog({ open, onClose, project, onSaved }) {
 }
 
 // Change any recorded cost: a wrong date, wrong person, half day instead of full, wrong amount…
-function EditCostDialog({ cost, onClose, currency, onSaved }) {
+export function EditCostDialog({ cost, onClose, currency, onSaved, allowPaid = true }) {
   const { toast } = useToast();
   const [f, setF] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -369,7 +369,7 @@ function EditCostDialog({ cost, onClose, currency, onSaved }) {
             </>
           )}
           <Field label="Notes" className="sm:col-span-2"><input className={inputCls} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Paid</label>
+          {allowPaid && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Paid</label>}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
           <p className="text-sm">Total: <strong>{formatMoney(amount, currency)}</strong></p>

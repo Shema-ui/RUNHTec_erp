@@ -39,25 +39,30 @@ export const ROLES = {
     label: 'Technician',
     description: 'Handles assigned tasks, maintenance jobs and work updates.',
   },
+  lead_technician: {
+    key: 'lead_technician',
+    label: 'Lead Technician',
+    description: 'Leads the crew on site: logs work days and site expenses, updates tasks and progress on projects they lead. Cannot see prices or profit.',
+  },
 };
 
 // Module key -> roles allowed to see/open it. super_admin is implied for
 // every module (checked separately in canAccessModule) so it doesn't need
 // to be repeated in every array below.
 export const MODULE_ACCESS = {
-  dashboard: ['sales', 'project_manager', 'accountant', 'technician', 'hr'],
+  dashboard: ['sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],
   crm: ['sales'],
   clients: ['sales'],
   rfq: ['sales'],
   quotations: ['sales'],
-  projects: ['project_manager', 'technician', 'sales', 'accountant', 'hr'],
-  maintenance: ['project_manager', 'technician'],
+  projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
+  maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],
   payments: ['accountant'],
   reports: ['accountant'],
   hr: ['hr', 'project_manager'],
-  documents: ['project_manager', 'technician', 'hr'],
-  notifications: ['sales', 'project_manager', 'accountant', 'technician', 'hr'],
+  documents: ['project_manager', 'technician', 'lead_technician', 'hr'],
+  notifications: ['sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],
   settings: [],
 };
 

@@ -14,7 +14,9 @@ const any = (user, roles) => Boolean(user) && (user.role === 'super_admin' || ro
 const AUTHED = () => true;
 const SALES_WRITE = (user) => any(user, ['sales']);
 const PM_WRITE = (user) => any(user, ['project_manager']);
-const PM_TECH_WRITE = (user) => any(user, ['project_manager', 'technician']);
+const PM_TECH_WRITE = (user) => any(user, ['project_manager', 'technician', 'lead_technician']);
+const isLead = (user) => user?.role === 'lead_technician';
+const isTech = (user) => ['technician', 'lead_technician'].includes(user?.role);
 const FINANCE = (user) => any(user, ['accountant']);
 const HR = (user) => any(user, ['hr']);
 const HR_PM = (user) => any(user, ['hr', 'project_manager']);
@@ -92,8 +94,8 @@ const collections = {
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'created', 'updated'],
-    relations: { quotation: 'quotations', client: 'clients', project_manager: 'users' },
+    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'created', 'updated'],
+    relations: { quotation: 'quotations', client: 'clients', project_manager: 'users', lead_technician: 'users' },
     rules: {
       list: AUTHED,
       view: AUTHED,
@@ -101,7 +103,10 @@ const collections = {
       create: (user) => any(user, ['project_manager', 'sales']),
       // Technicians may update only a project they're assigned to —
       // mirrors the assigned_technicians.id ?= @request.auth.id rule.
-      update: (user, record) => PM_WRITE(user) || (user?.role === 'technician' && Array.isArray(record?.assigned_technicians) && record.assigned_technicians.includes(user.id)),
+      // The project's lead technician can update tasks, progress and status (see LEAD_PROJECT_FIELDS).
+      update: (user, record) => PM_WRITE(user)
+        || (isTech(user) && Array.isArray(record?.assigned_technicians) && record.assigned_technicians.includes(user.id))
+        || (isLead(user) && record?.lead_technician === user.id),
       delete: PM_WRITE,
     },
   },
@@ -113,7 +118,7 @@ const collections = {
       list: AUTHED,
       view: AUTHED,
       create: PM_WRITE,
-      update: (user, record) => PM_WRITE(user) || (user?.role === 'technician' && record?.assigned_technician === user.id),
+      update: (user, record) => PM_WRITE(user) || (isTech(user) && record?.assigned_technician === user.id),
       delete: PM_WRITE,
     },
   },
@@ -145,7 +150,8 @@ const collections = {
     table: 'project_assignments',
     fields: ['id', 'project', 'contractor', 'role_on_project', 'scope_of_work', 'payment_basis', 'agreed_amount', 'currency', 'start_date', 'end_date', 'status', 'contract_signed', 'payment_status', 'amount_paid', 'performance_rating', 'notes', 'created', 'updated'],
     relations: { project: 'projects', contractor: 'contractors' },
-    rules: { list: PEOPLE_READ, view: PEOPLE_READ, create: HR_PM, update: PEOPLE_READ, delete: HR_PM },
+    // Lead technicians see the crew engaged on projects so they can log their days.
+    rules: { list: (u) => PEOPLE_READ(u) || isLead(u), view: (u) => PEOPLE_READ(u) || isLead(u), create: HR_PM, update: PEOPLE_READ, delete: HR_PM },
     watchedFields: ['status', 'agreed_amount', 'payment_status', 'amount_paid'],
   },
   employees: {
@@ -198,9 +204,17 @@ const collections = {
   // Internal job costs (labour days, materials, transport…). Staff only.
   project_costs: {
     table: 'project_costs',
-    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by_name', 'created', 'updated'],
+    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'created', 'updated'],
     relations: { project: 'projects', contractor: 'contractors' },
-    rules: { list: COST_VIEW, view: COST_VIEW, create: COST_WRITE, update: COST_WRITE, delete: COST_WRITE },
+    // A lead technician logs days/expenses on projects they lead (checked when saving)
+    // and sees and corrects only the entries they made themselves.
+    rules: {
+      list: (u, r) => COST_VIEW(u) || (isLead(u) && r?.recorded_by === u.id),
+      view: (u, r) => COST_VIEW(u) || (isLead(u) && r?.recorded_by === u.id),
+      create: (u) => COST_WRITE(u) || isLead(u),
+      update: (u, r) => COST_WRITE(u) || (isLead(u) && r?.recorded_by === u.id && !Number(r?.paid)),
+      delete: (u, r) => COST_WRITE(u) || (isLead(u) && r?.recorded_by === u.id && !Number(r?.paid)),
+    },
   },
   notifications: {
     table: 'notifications',
