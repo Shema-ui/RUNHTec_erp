@@ -91,6 +91,8 @@ export default function ProjectDetailPage() {
 
   // The project's Lead Technician moves the work forward on site (tasks, status, crew days).
   const isLeadHere = user?.role === 'lead_technician' && p.lead_technician === user.id;
+  // Technicians and lead technicians don't see the job's price or contractor fees.
+  const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
   const canWork = canEdit || isLeadHere;
 
   const changeStatus = (status) => update({ status, ...(status === 'done' ? { completed_date: todayISO(), progress: 100 } : {}) }, 'Status updated');
@@ -120,8 +122,8 @@ export default function ProjectDetailPage() {
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Progress" value={`${Number(p.progress) || 0}%`} note={tasks.length ? `${tasks.filter((t) => t.done).length} of ${tasks.length} tasks done` : 'Add tasks to track progress'} />
-        <StatCard label="Contract value" value={value ? formatMoney(value, currency) : '—'} tone="green" />
-        <StatCard label="Contractor fees" value={formatMoney(costs.fees, currency)} note={`${formatMoney(costs.paid, currency)} paid`} tone="amber" />
+        {!isTechRole && <StatCard label="Contract value" value={value ? formatMoney(value, currency) : '—'} tone="green" />}
+        {!isTechRole && <StatCard label="Contractor fees" value={formatMoney(costs.fees, currency)} note={`${formatMoney(costs.paid, currency)} paid`} tone="amber" />}
         {canInvoice ? (
           <StatCard label="Invoiced to client" value={formatMoney(invoiced, currency)} tone={value && invoiced < value ? 'red' : 'green'} note={value ? `${formatMoney(Math.max(0, value - invoiced), currency)} not yet invoiced` : ''} />
         ) : (
@@ -168,13 +170,13 @@ export default function ProjectDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr><th className="py-2 pr-3">Contractor</th><th className="py-2 pr-3">Fee</th><th className="py-2 pr-3">Status</th><th className="py-2 pr-3">Payment</th><th className="py-2 pr-3">Rating</th><th /></tr>
+                    <tr><th className="py-2 pr-3">Contractor</th>{!isTechRole && <th className="py-2 pr-3">Fee</th>}<th className="py-2 pr-3">Status</th><th className="py-2 pr-3">Payment</th><th className="py-2 pr-3">Rating</th><th /></tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {team.map((a) => (
                       <tr key={a.id}>
                         <td className="py-2 pr-3"><Link to={`/hr/contractors/${a.contractor}`} className="font-semibold hover:text-primary">{a.expand?.contractor?.full_name || '—'}</Link><p className="text-xs text-muted-foreground">{a.role_on_project}{a.expand?.contractor?.phone ? ` · ${a.expand.contractor.phone}` : ''}</p></td>
-                        <td className="py-2 pr-3">{formatMoney(a.agreed_amount, a.currency)}</td>
+                        {!isTechRole && <td className="py-2 pr-3">{formatMoney(a.agreed_amount, a.currency)}</td>}
                         <td className="py-2 pr-3"><Pill info={statusInfo(ASSIGNMENT_STATUSES, a.status)} /></td>
                         <td className="py-2 pr-3"><Pill info={statusInfo(CONTRACTOR_PAYMENT_STATUSES, a.payment_status)} /></td>
                         <td className="py-2 pr-3"><Stars value={Number(a.performance_rating) || 0} /></td>
@@ -225,7 +227,7 @@ export default function ProjectDetailPage() {
             </div>
           </Card>
 
-          <Card title="Billing">
+          {!isTechRole && <Card title="Billing">
             <div className="space-y-3 text-sm">
               {quote ? (
                 <p>Quotation <Link to={`/quotations/${quote.id}/view`} className="font-semibold text-primary hover:underline">{quote.number}</Link> · {formatMoney(quote.total, quote.currency)} · {quote.status}</p>
@@ -246,7 +248,7 @@ export default function ProjectDetailPage() {
                 </>
               ) : <p className="text-xs text-muted-foreground">Invoices are handled by Finance.</p>}
             </div>
-          </Card>
+          </Card>}
         </div>
       </div>
 

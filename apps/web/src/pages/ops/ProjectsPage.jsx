@@ -20,6 +20,7 @@ export default function ProjectsPage() {
   const [service, setService] = useState('all');
   const [priority, setPriority] = useState('all');
   const canCreate = ['super_admin', 'project_manager'].includes(user?.role);
+  const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
 
   useEffect(() => {
     pb.collection('projects').getFullList({ sort: '-created', expand: 'client,project_manager' })
@@ -57,7 +58,7 @@ export default function ProjectsPage() {
         <StatCard icon={FolderKanban} label="Open projects" value={stats.live} />
         <StatCard label="In progress" value={stats.inProgress} tone="amber" />
         <StatCard label="Past due date" value={stats.overdue} tone={stats.overdue ? 'red' : 'green'} />
-        <StatCard label="Value of open projects" value={formatMoneyShort(stats.value, DEFAULT_CURRENCY)} tone="green" />
+        {!isTechRole && <StatCard label="Value of open projects" value={formatMoneyShort(stats.value, DEFAULT_CURRENCY)} tone="green" />}
       </div>
 
       <Toolbar>
@@ -98,7 +99,7 @@ export default function ProjectsPage() {
                   {p.site_address && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{p.site_address}</span>}
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{teamCount[p.id] || 0} contractor{teamCount[p.id] === 1 ? '' : 's'}</span>
                   <span className={`font-semibold ${priorityInfo(p.priority).cls}`}>{priorityInfo(p.priority).label} priority</span>
-                  {Number(p.value) > 0 && <span className="font-semibold text-foreground">{formatMoney(p.value, p.currency)}</span>}
+                  {!isTechRole && Number(p.value) > 0 && <span className="font-semibold text-foreground">{formatMoney(p.value, p.currency)}</span>}
                 </div>
               </Link>
             );
