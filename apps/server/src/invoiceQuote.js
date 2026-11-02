@@ -19,7 +19,12 @@ async function nextQuoteNumber(db) {
 
 // invoice: a raw DB row (JSON columns may be strings). Returns the quotation id.
 async function ensureQuoteForInvoice(invoice, db = pool) {
-  if (!invoice || invoice.quotation) return invoice?.quotation || null;
+  if (!invoice) return null;
+  if (invoice.quotation) {
+    // Still linked to a quotation that exists? Then it already shows on the Quotations page.
+    const [q] = await db.query('SELECT id FROM quotations WHERE id = ?', [invoice.quotation]);
+    if (q[0]) return invoice.quotation;
+  }
   const [existing] = await db.query('SELECT id FROM quotations WHERE source_invoice = ?', [invoice.id]);
   let qid = existing[0]?.id;
   if (!qid) {

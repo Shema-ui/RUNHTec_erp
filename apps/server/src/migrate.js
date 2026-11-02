@@ -130,7 +130,7 @@ async function runMigrations() {
     // Invoices also appear as quotations (see invoiceQuote.js)
     await ensureColumn(conn, 'quotations', 'source_invoice', 'VARCHAR(20) DEFAULT NULL');
     const { ensureQuoteForInvoice } = require('./invoiceQuote');
-    const [orphans] = await conn.query("SELECT * FROM invoices WHERE quotation IS NULL OR quotation = ''");
+    const [orphans] = await conn.query("SELECT * FROM invoices WHERE quotation IS NULL OR quotation = '' OR quotation NOT IN (SELECT id FROM quotations)");
     for (const inv of orphans) await ensureQuoteForInvoice(inv, conn);
     if (orphans.length) console.log(`[migrate] linked ${orphans.length} invoice(s) to quotations`);
 
