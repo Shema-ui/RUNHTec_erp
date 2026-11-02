@@ -22,7 +22,7 @@ export default function MaintenancePage() {
   const [q, setQ] = useState('');
   const [activeOnly, setActiveOnly] = useState(true);
   const [editing, setEditing] = useState(null);
-  const canEdit = ['super_admin', 'project_manager'].includes(user?.role);
+  const canEdit = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
 
   const load = () => pb.collection('maintenance_contracts').getFullList({ sort: 'next_due_date', expand: 'client,contractor' })
     .then(setContracts).catch(() => setContracts([]));

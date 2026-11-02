@@ -14,6 +14,11 @@ export const ROLES = {
     label: 'Super Administrator',
     description: 'Full control over the portal, users, settings and all modules.',
   },
+  admin: {
+    key: 'admin',
+    label: 'Administrator',
+    description: 'Full access to all modules (clients, quotes, projects, finance, HR, costs). Cannot manage users, see the activity log or change company settings.',
+  },
   sales: {
     key: 'sales',
     label: 'Sales',
@@ -68,7 +73,7 @@ export const MODULE_ACCESS = {
 
 export function canAccessModule(user, moduleKey) {
   if (!user || !user.role) return false;
-  if (user.role === 'super_admin') return true;
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
   const allowed = MODULE_ACCESS[moduleKey];
   return Array.isArray(allowed) && allowed.includes(user.role);
 }
@@ -79,7 +84,7 @@ export function roleLabel(role) {
 
 // Document uploads are granted per person by the Super Admin (User Management).
 export function canUploadDocs(user) {
-  return Boolean(user) && (user.role === 'super_admin' || Number(user.can_upload_documents) === 1);
+  return Boolean(user) && (['super_admin', 'admin'].includes(user.role) || Number(user.can_upload_documents) === 1);
 }
 
 // New staff must complete their profile (photo, ID, documents) before the

@@ -124,7 +124,7 @@ router.post('/', async (req, res) => {
       [genId(), clientId, 'other', `Website ${type} submitted by ${name || email || company}`, 'Website']
     );
 
-    await notifyRoles(['sales', 'super_admin'], 'rfq', `New website ${requestType === 'quote_request' ? 'quote request' : requestType === 'service_request' ? 'site-visit / service request' : 'enquiry'} from ${name}${company ? ` (${company})` : ''}`);
+    await notifyRoles(['sales', 'super_admin', 'admin'], 'rfq', `New website ${requestType === 'quote_request' ? 'quote request' : requestType === 'service_request' ? 'site-visit / service request' : 'enquiry'} from ${name}${company ? ` (${company})` : ''}`);
     res.status(200).json({ success: true, message: 'Submission received', type });
   } catch (err) {
     console.error('website-intake error:', err);

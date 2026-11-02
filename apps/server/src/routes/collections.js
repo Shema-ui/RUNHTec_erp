@@ -94,7 +94,7 @@ function dropCostInput(collectionName, body, user, before) {
 // their own profile (and the few things the app shell needs).
 const OPEN_BEFORE_PROFILE = new Set(['staff_profiles', 'staff_documents', 'company_settings', 'notifications', 'activity_logs']);
 const LEAD_PROJECT_FIELDS = ['tasks', 'progress', 'status', 'completed_date', 'notes'];
-const PM_ROLES = ['super_admin', 'project_manager'];
+const PM_ROLES = ['super_admin', 'admin', 'project_manager'];
 
 function needsProfile(user) {
   return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
@@ -250,6 +250,9 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     const columns = ['id'];
     const values = [id];
 
+    if (req.collectionName === 'users' && body.role === 'super_admin') {
+      return res.status(400).json({ message: 'There is only one Super Administrator. Give this person the Administrator role instead.' });
+    }
     if (req.collectionName === 'users') {
       // Users go through a dedicated path: password hashing, no raw
       // password_hash from the client.
@@ -328,6 +331,9 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
 
     const body = extractBody(req, def);
     dropCostInput(req.collectionName, body, req.user, before);
+    if (req.collectionName === 'users' && body.role === 'super_admin' && before.role !== 'super_admin') {
+      return res.status(400).json({ message: 'There is only one Super Administrator. Give this person the Administrator role instead.' });
+    }
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
     if (req.user.role === 'lead_technician') {
       // A lead technician may only move a project forward on site, not change its money or client.

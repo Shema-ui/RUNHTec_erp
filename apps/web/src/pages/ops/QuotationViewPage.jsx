@@ -80,7 +80,7 @@ export default function QuotationViewPage() {
   const { user } = useAuth();
   const showCosts = canSeeCosts(user);
   const canInvoice = canAccessModule(user, 'invoices');
-  const canProject = ['super_admin', 'project_manager', 'sales'].includes(user?.role);
+  const canProject = ['super_admin', 'admin', 'project_manager', 'sales'].includes(user?.role);
 
   useEffect(() => {
     pb.collection('projects').getList(1, 1, { filter: `quotation = '${id}'` })

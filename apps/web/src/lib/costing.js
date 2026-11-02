@@ -4,9 +4,9 @@ import pb from '@/lib/pocketbaseClient';
 // and the profit they leave. Never printed or shown to clients — the server
 // also strips these fields for roles that may not see them.
 
-export const COST_ROLES = ['super_admin', 'sales', 'accountant', 'project_manager'];
+export const COST_ROLES = ['super_admin', 'admin', 'sales', 'accountant', 'project_manager'];
 export const canSeeCosts = (user) => COST_ROLES.includes(user?.role);
-export const canRecordCosts = (user) => ['super_admin', 'accountant', 'project_manager'].includes(user?.role);
+export const canRecordCosts = (user) => ['super_admin', 'admin', 'accountant', 'project_manager'].includes(user?.role);
 
 
 // Daily wages per role. These are only the starting values — the Super Admin

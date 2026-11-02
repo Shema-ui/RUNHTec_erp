@@ -9,7 +9,9 @@
 // not a 403). rules.view/create/update/delete returning false raises a
 // 404/403 in the route handler.
 
-const any = (user, roles) => Boolean(user) && (user.role === 'super_admin' || roles.includes(user.role));
+// super_admin = the one owner account. admin = full access to all work, but no
+// user management, activity log or company settings changes.
+const any = (user, roles) => Boolean(user) && (user.role === 'super_admin' || user.role === 'admin' || roles.includes(user.role));
 
 const AUTHED = () => true;
 const SALES_WRITE = (user) => any(user, ['sales']);
@@ -25,7 +27,7 @@ const PEOPLE_READ = (user) => any(user, ['hr', 'project_manager', 'accountant'])
 const COST_VIEW = (user) => any(user, ['sales', 'accountant', 'project_manager']);
 const COST_WRITE = (user) => any(user, ['accountant', 'project_manager']);
 // Document uploads are a right the Super Admin grants per user (User Management).
-const CAN_UPLOAD = (user) => Boolean(user) && (user.role === 'super_admin' || Number(user.can_upload_documents) === 1);
+const CAN_UPLOAD = (user) => Boolean(user) && (['super_admin', 'admin'].includes(user.role) || Number(user.can_upload_documents) === 1);
 // Staff profiles: everyone sees and edits their own; Super Admin and HR see all.
 const PEOPLE_ADMIN = (user) => any(user, ['hr']);
 const OWN_OR_ADMIN = (user, record) => PEOPLE_ADMIN(user) || (Boolean(user) && record?.user === user.id);

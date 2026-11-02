@@ -65,7 +65,7 @@ export default function ContractorProfilePage() {
           {wa && <a className={btnLine} href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" /> WhatsApp</a>}
           {c.email && <a className={btnLine} href={`mailto:${c.email}`}><Mail className="h-4 w-4" /> Email</a>}
           <Link className={btnLine} to={`/hr/contractors/${c.id}/edit`}><Pencil className="h-4 w-4" /> Edit</Link>
-          {['hr', 'super_admin'].includes(user?.role) && <button className={btnDanger} onClick={remove}><Trash2 className="h-4 w-4" /> Remove</button>}
+          {['hr', 'super_admin', 'admin'].includes(user?.role) && <button className={btnDanger} onClick={remove}><Trash2 className="h-4 w-4" /> Remove</button>}
         </div>
       </div>
 

@@ -19,7 +19,7 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState(user?.role === 'lead_technician' ? 'mine' : 'active');
   const [service, setService] = useState('all');
   const [priority, setPriority] = useState('all');
-  const canCreate = ['super_admin', 'project_manager'].includes(user?.role);
+  const canCreate = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
   const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
 
   useEffect(() => {

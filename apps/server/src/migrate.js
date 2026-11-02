@@ -76,6 +76,8 @@ async function runMigrations() {
       "ENUM('super_admin','sales','project_manager','accountant','technician','hr') NOT NULL DEFAULT 'sales'");
     await ensureEnumValue(conn, 'users', 'role', 'lead_technician',
       "ENUM('super_admin','sales','project_manager','accountant','technician','lead_technician','hr') NOT NULL DEFAULT 'sales'");
+    await ensureEnumValue(conn, 'users', 'role', 'admin',
+      "ENUM('super_admin','admin','sales','project_manager','accountant','technician','lead_technician','hr') NOT NULL DEFAULT 'sales'");
 
     // Projects: full project record (manager, value, progress, priority…)
     for (const [col, def] of [

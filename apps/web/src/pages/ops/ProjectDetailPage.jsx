@@ -38,8 +38,8 @@ export default function ProjectDetailPage() {
   const [editingDoc, setEditingDoc] = useState(null);
   const [editTask, setEditTask] = useState(null); // { id, title }
 
-  const canEdit = ['super_admin', 'project_manager'].includes(user?.role);
-  const canTeam = ['super_admin', 'project_manager', 'hr'].includes(user?.role);
+  const canEdit = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
+  const canTeam = ['super_admin', 'admin', 'project_manager', 'hr'].includes(user?.role);
   const canInvoice = canAccessModule(user, 'invoices');
   const showCosts = canSeeCosts(user);
   const canUpload = canUploadDocs(user);

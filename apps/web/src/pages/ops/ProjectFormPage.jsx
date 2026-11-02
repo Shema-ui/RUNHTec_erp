@@ -37,7 +37,7 @@ export default function ProjectFormPage() {
     pb.collection('quotations').getFullList({ sort: '-created' }).then(setQuotes).catch(() => {});
     pb.collection('users').getFullList({ sort: 'name' })
       .then((u) => {
-        setManagers(u.filter((x) => ['project_manager', 'super_admin'].includes(x.role) && x.status === 'active'));
+        setManagers(u.filter((x) => ['project_manager', 'super_admin', 'admin'].includes(x.role) && x.status === 'active'));
         setLeads(u.filter((x) => x.role === 'lead_technician' && x.status === 'active'));
       }).catch(() => {});
     if (isEdit) {

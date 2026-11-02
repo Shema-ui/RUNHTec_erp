@@ -209,7 +209,7 @@ export default function UsersPage() {
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        {isSuper ? <span className="text-xs text-muted-foreground">Always</span> : (
+                        {isSuper || u.role === 'admin' ? <span className="text-xs text-muted-foreground">Always</span> : (
                           <button onClick={() => toggleUpload(u)} role="switch" aria-checked={Number(u.can_upload_documents) === 1} aria-label={`Document uploads for ${u.email}`}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${Number(u.can_upload_documents) === 1 ? 'bg-primary' : 'bg-slate-300'}`}>
                             <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${Number(u.can_upload_documents) === 1 ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -412,7 +412,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.values(ROLES).map((r) => (
+                  {Object.values(ROLES).filter((r) => r.key !== 'super_admin').map((r) => (
                     <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>

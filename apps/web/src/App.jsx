@@ -65,7 +65,7 @@ function App() {
           {/* Dashboard — every role lands here after login */}
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfilePage /></RequireAuth>} />
-          <Route path="/users/:id/profile" element={<RequireAuth><RequireRole roles={['super_admin', 'hr']}><StaffProfilePage /></RequireRole></RequireAuth>} />
+          <Route path="/users/:id/profile" element={<RequireAuth><RequireRole roles={['super_admin', 'admin', 'hr']}><StaffProfilePage /></RequireRole></RequireAuth>} />
 
           {/* Super Administrator only */}
           <Route
@@ -134,7 +134,7 @@ function App() {
             path="/settings"
             element={
               <RequireAuth>
-                <RequireRole roles={['super_admin']}><SettingsPage /></RequireRole>
+                <RequireRole roles={['super_admin', 'admin']}><SettingsPage /></RequireRole>
               </RequireAuth>
             }
           />

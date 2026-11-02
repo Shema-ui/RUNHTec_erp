@@ -122,7 +122,7 @@ router.post('/apply', (req, res, next) => {
       );
     }
 
-    await notifyRoles(['hr', 'super_admin'], 'application',
+    await notifyRoles(['hr', 'super_admin', 'admin'], 'application',
       `${existing ? 'Updated' : 'New'} contractor application ${ref}: ${data.full_name} (${data.trade})`);
 
     res.status(200).json({ success: true, ref, updated: Boolean(existing) });
