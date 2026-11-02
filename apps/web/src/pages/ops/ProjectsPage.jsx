@@ -16,7 +16,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState(null);
   const [teamCount, setTeamCount] = useState({});
   const [q, setQ] = useState('');
-  const [status, setStatus] = useState(user?.role === 'lead_technician' ? 'mine' : 'active');
+  const [status, setStatus] = useState(['technician', 'lead_technician'].includes(user?.role) ? 'mine' : 'active');
   const [service, setService] = useState('all');
   const [priority, setPriority] = useState('all');
   const canCreate = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
@@ -33,7 +33,7 @@ export default function ProjectsPage() {
   }, []);
 
   const filtered = useMemo(() => (projects || []).filter((p) => {
-    if (status === 'mine') { if (p.lead_technician !== user?.id) return false; }
+    if (status === 'mine') { if (p.lead_technician !== user?.id && !(Array.isArray(p.assigned_technicians) && p.assigned_technicians.includes(user?.id))) return false; }
     else if (status === 'active' && ['done', 'cancelled'].includes(p.status)) return false;
     else if (status !== 'active' && status !== 'all' && p.status !== status) return false;
     if (service !== 'all' && p.service_category !== service) return false;
@@ -64,7 +64,7 @@ export default function ProjectsPage() {
       <Toolbar>
         <SearchBox value={q} onChange={setQ} placeholder="Search project, client or site" />
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-10 rounded-lg border border-border bg-background px-3 text-sm">
-          {user?.role === 'lead_technician' && <option value="mine">Projects I lead</option>}
+          {['technician', 'lead_technician'].includes(user?.role) && <option value="mine">My projects</option>}
           <option value="active">Open projects</option>
           <option value="all">All projects</option>
           {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}

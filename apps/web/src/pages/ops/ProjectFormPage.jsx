@@ -13,7 +13,7 @@ import { canSeeCosts } from '@/lib/costing';
 
 const EMPTY = {
   title: '', client: '', quotation: '', service_category: '', status: 'scheduled', priority: 'medium',
-  project_manager: '', lead_technician: '', site_address: '', start_date: '', due_date: '', completed_date: '',
+  project_manager: '', lead_technician: '', assigned_technicians: [], site_address: '', start_date: '', due_date: '', completed_date: '',
   value: 0, currency: DEFAULT_CURRENCY, progress: 0, description: '', notes: '', cost_budget: 0,
 };
 
@@ -29,6 +29,7 @@ export default function ProjectFormPage() {
   const [quotes, setQuotes] = useState([]);
   const [managers, setManagers] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [techs, setTechs] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
 
@@ -39,10 +40,11 @@ export default function ProjectFormPage() {
       .then((u) => {
         setManagers(u.filter((x) => ['project_manager', 'super_admin', 'admin'].includes(x.role) && x.status === 'active'));
         setLeads(u.filter((x) => x.role === 'lead_technician' && x.status === 'active'));
+        setTechs(u.filter((x) => ['technician', 'lead_technician'].includes(x.role) && x.status === 'active'));
       }).catch(() => {});
     if (isEdit) {
       pb.collection('projects').getOne(id).then((p) => {
-        setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, p[k] ?? EMPTY[k]])) });
+        setForm({ ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, p[k] ?? EMPTY[k]])), assigned_technicians: Array.isArray(p.assigned_technicians) ? p.assigned_technicians : [] });
         setLoading(false);
       }).catch(() => navigate('/projects'));
     }
@@ -127,6 +129,21 @@ export default function ProjectFormPage() {
                   <option value="">Not assigned</option>
                   {leads.map((m) => <option key={m.id} value={m.id}>{m.name || m.email}</option>)}
                 </select>
+              </Field>
+              <Field label="Technicians on site" hint="They can add daily photos to this project" className="sm:col-span-2 lg:col-span-3">
+                {techs.length === 0 ? <p className="text-sm text-muted-foreground">No technician accounts yet. Add them in User Management.</p> : (
+                  <div className="flex flex-wrap gap-2">
+                    {techs.map((t) => {
+                      const on = form.assigned_technicians.includes(t.id);
+                      return (
+                        <label key={t.id} className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border'}`}>
+                          <input type="checkbox" className="h-4 w-4" checked={on} onChange={() => set('assigned_technicians', on ? form.assigned_technicians.filter((x) => x !== t.id) : [...form.assigned_technicians, t.id])} />
+                          {t.name || t.email}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </Field>
               <Field label="Site address" className="sm:col-span-2 lg:col-span-3"><input className={inputCls} value={form.site_address} onChange={(e) => set('site_address', e.target.value)} placeholder="District, sector, street / landmark" /></Field>
             </div>

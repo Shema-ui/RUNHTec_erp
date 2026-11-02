@@ -13,6 +13,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteProjectAssignments } from '@/lib/cleanup';
 import ProjectCostsCard from '@/components/erp/ProjectCostsCard';
 import SiteLogCard from '@/components/erp/SiteLogCard';
+import SitePhotosCard from '@/components/erp/SitePhotosCard';
 import { canSeeCosts } from '@/lib/costing';
 import EngagementDialog from '@/components/erp/EngagementDialog';
 import DocumentUploadDialog from '@/components/erp/DocumentUploadDialog';
@@ -94,6 +95,8 @@ export default function ProjectDetailPage() {
   // Technicians and lead technicians don't see the job's price or contractor fees.
   const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
   const canWork = canEdit || isLeadHere;
+  const onSite = Array.isArray(p.assigned_technicians) && p.assigned_technicians.includes(user?.id);
+  const canPhoto = canWork || onSite;
 
   const changeStatus = (status) => update({ status, ...(status === 'done' ? { completed_date: todayISO(), progress: 100 } : {}) }, 'Status updated');
   const currency = p.currency || 'RWF';
@@ -162,6 +165,7 @@ export default function ProjectDetailPage() {
             )}
           </Card>
 
+          <SitePhotosCard project={p} canAdd={canPhoto} />
           {showCosts && <ProjectCostsCard project={p} team={team} />}
           {isLeadHere && <SiteLogCard project={p} team={team} />}
 

@@ -236,6 +236,19 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     dropCostInput(req.collectionName, body, req.user, null);
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
+    if (req.collectionName === 'project_photos') {
+      body.uploaded_by = req.user.id;
+      body.uploaded_by_name = req.user.name || req.user.email || '';
+      if (['technician', 'lead_technician'].includes(req.user.role)) {
+        const [pr] = await pool.query('SELECT assigned_technicians, lead_technician FROM projects WHERE id = ?', [body.project || '']);
+        let team = [];
+        const raw = pr[0]?.assigned_technicians;
+        try { team = Array.isArray(raw) ? raw : (JSON.parse(raw || '[]') || []); } catch (_) { team = []; }
+        if (!pr[0] || !(team.includes(req.user.id) || pr[0].lead_technician === req.user.id)) {
+          return res.status(403).json({ message: 'You can only add photos to projects you are assigned to.' });
+        }
+      }
+    }
     if (req.collectionName === 'project_costs') {
       body.recorded_by = req.user.id;
       if (req.user.role === 'lead_technician') {
@@ -335,6 +348,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       return res.status(400).json({ message: 'There is only one Super Administrator. Give this person the Administrator role instead.' });
     }
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
+    if (req.collectionName === 'project_photos') { delete body.project; delete body.uploaded_by; delete body.uploaded_by_name; }
     if (req.user.role === 'lead_technician') {
       // A lead technician may only move a project forward on site, not change its money or client.
       if (req.collectionName === 'projects' && !PM_ROLES.includes(req.user.role)) {

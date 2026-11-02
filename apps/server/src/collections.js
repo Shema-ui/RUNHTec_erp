@@ -169,6 +169,21 @@ const collections = {
     fileFields: ['file'],
     rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
   },
+  // Daily site photos. Technicians add them on projects they're assigned to
+  // or lead (checked when saving); anyone who can open the project sees them.
+  project_photos: {
+    table: 'project_photos',
+    fields: ['id', 'project', 'photo', 'taken_on', 'caption', 'uploaded_by', 'uploaded_by_name', 'created', 'updated'],
+    relations: { project: 'projects', uploaded_by: 'users' },
+    fileFields: ['photo'],
+    rules: {
+      list: AUTHED,
+      view: AUTHED,
+      create: (u) => PM_TECH_WRITE(u),
+      update: (u, r) => PM_WRITE(u) || r?.uploaded_by === u?.id,
+      delete: (u, r) => PM_WRITE(u) || r?.uploaded_by === u?.id,
+    },
+  },
   staff_profiles: {
     table: 'staff_profiles',
     fields: ['id', 'user', 'full_name', 'phone', 'whatsapp', 'momo_number', 'date_of_birth', 'gender', 'national_id_number', 'district', 'address', 'emergency_contact_name', 'emergency_contact_relation', 'emergency_contact_phone', 'education_level', 'institution', 'field_of_study', 'skills', 'photo', 'id_document', 'created', 'updated'],
