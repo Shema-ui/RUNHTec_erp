@@ -217,9 +217,9 @@ export default function UsersPage() {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {isSuper ? (
+                        {isSelf ? (
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                            <Lock className="h-3.5 w-3.5" /> Protected
+                            <Lock className="h-3.5 w-3.5" /> You
                           </span>
                         ) : (
                           <DropdownMenu>
@@ -275,7 +275,7 @@ export default function UsersPage() {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        The Super Administrator account is protected and cannot be modified or deleted by any user.
+        You can change or delete any account except your own, so the portal always keeps at least one Super Administrator.
       </p>
 
       <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />

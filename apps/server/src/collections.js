@@ -252,7 +252,8 @@ const collections = {
       view: AUTHED,
       create: (u) => u?.role === 'super_admin',
       update: (u) => u?.role === 'super_admin',
-      delete: (u, record) => u?.role === 'super_admin' && record?.role !== 'super_admin',
+      // A Super Admin can remove any account except their own (so there is always one left).
+      delete: (u, record) => u?.role === 'super_admin' && record?.id !== u.id,
     },
     watchedFields: ['role', 'status', 'email'],
   },
