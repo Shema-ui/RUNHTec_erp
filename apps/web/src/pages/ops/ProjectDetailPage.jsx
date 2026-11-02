@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { canAccessModule } from '@/lib/permissions';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteProjectAssignments } from '@/lib/cleanup';
+import ProjectCostsCard from '@/components/erp/ProjectCostsCard';
+import { canSeeCosts } from '@/lib/costing';
 import EngagementDialog from '@/components/erp/EngagementDialog';
 import DocumentUploadDialog from '@/components/erp/DocumentUploadDialog';
 import { Card, BackLink, Loading, Pill, InfoRow, StatCard, Stars, inputCls, btnPrimary, btnLine, fmtDate, todayISO } from '@/components/erp/kit';
@@ -36,6 +38,7 @@ export default function ProjectDetailPage() {
   const canEdit = ['super_admin', 'project_manager'].includes(user?.role);
   const canTeam = ['super_admin', 'project_manager', 'hr'].includes(user?.role);
   const canInvoice = canAccessModule(user, 'invoices');
+  const showCosts = canSeeCosts(user);
 
   const loadProject = () => pb.collection('projects').getOne(id, { expand: 'client,quotation,project_manager' })
     .then(setP).catch(() => navigate('/projects'));
@@ -111,7 +114,11 @@ export default function ProjectDetailPage() {
         <StatCard label="Progress" value={`${Number(p.progress) || 0}%`} note={tasks.length ? `${tasks.filter((t) => t.done).length} of ${tasks.length} tasks done` : 'Add tasks to track progress'} />
         <StatCard label="Contract value" value={value ? formatMoney(value, currency) : '—'} tone="green" />
         <StatCard label="Contractor fees" value={formatMoney(costs.fees, currency)} note={`${formatMoney(costs.paid, currency)} paid`} tone="amber" />
-        <StatCard label={canInvoice ? 'Invoiced to client' : 'Estimated margin'} value={canInvoice ? formatMoney(invoiced, currency) : (value ? formatMoney(value - costs.fees, currency) : '—')} tone={canInvoice && value && invoiced < value ? 'red' : 'green'} note={canInvoice && value ? `${formatMoney(Math.max(0, value - invoiced), currency)} not yet invoiced` : 'Contract value minus contractor fees'} />
+        {canInvoice ? (
+          <StatCard label="Invoiced to client" value={formatMoney(invoiced, currency)} tone={value && invoiced < value ? 'red' : 'green'} note={value ? `${formatMoney(Math.max(0, value - invoiced), currency)} not yet invoiced` : ''} />
+        ) : (
+          <StatCard label="Due date" value={fmtDate(p.due_date) || 'Not set'} tone="amber" note={p.start_date ? `Started ${fmtDate(p.start_date)}` : ''} />
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -135,6 +142,8 @@ export default function ProjectDetailPage() {
               </form>
             )}
           </Card>
+
+          {showCosts && <ProjectCostsCard project={p} team={team} />}
 
           <Card title="Team (per-project contractors)" action={canTeam && <button className={btnLine} onClick={() => setEngaging({})}><Plus className="h-4 w-4" /> Engage contractor</button>}>
             {team.length === 0 ? <p className="text-sm text-muted-foreground">Nobody engaged yet. Pick contractors from the register; each gets their own engagement letter for this project.</p> : (

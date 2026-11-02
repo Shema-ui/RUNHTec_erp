@@ -19,6 +19,9 @@ const FINANCE = (user) => any(user, ['accountant']);
 const HR = (user) => any(user, ['hr']);
 const HR_PM = (user) => any(user, ['hr', 'project_manager']);
 const PEOPLE_READ = (user) => any(user, ['hr', 'project_manager', 'accountant']);
+// Who may see buying prices, job costs and profit. Technicians and HR never do.
+const COST_VIEW = (user) => any(user, ['sales', 'accountant', 'project_manager']);
+const COST_WRITE = (user) => any(user, ['accountant', 'project_manager']);
 
 const collections = {
   clients: {
@@ -77,14 +80,14 @@ const collections = {
   },
   quotations: {
     table: 'quotations',
-    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'created', 'updated'],
+    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'created', 'updated'],
+    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'created', 'updated'],
     relations: { quotation: 'quotations', client: 'clients', project_manager: 'users' },
     rules: {
       list: AUTHED,
@@ -155,7 +158,7 @@ const collections = {
   },
   invoices: {
     table: 'invoices',
-    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'created', 'updated'],
+    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'costing', 'created', 'updated'],
     relations: { client: 'clients', created_by: 'users', quotation: 'quotations', project: 'projects' },
     // Financial data — protected per the RBAC requirements: read AND write
     // restricted to accountant + super_admin, not just write.
@@ -168,6 +171,13 @@ const collections = {
     relations: { client: 'clients', invoice: 'invoices' },
     rules: { list: FINANCE, view: FINANCE, create: FINANCE, update: FINANCE, delete: FINANCE },
     watchedFields: ['status', 'amount'],
+  },
+  // Internal job costs (labour days, materials, transport…). Staff only.
+  project_costs: {
+    table: 'project_costs',
+    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by_name', 'created', 'updated'],
+    relations: { project: 'projects', contractor: 'contractors' },
+    rules: { list: COST_VIEW, view: COST_VIEW, create: COST_WRITE, update: COST_WRITE, delete: COST_WRITE },
   },
   notifications: {
     table: 'notifications',
@@ -211,4 +221,5 @@ const collections = {
   },
 };
 
-module.exports = { collections };
+module.exports = {
+  COST_VIEW, collections };

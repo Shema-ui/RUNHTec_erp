@@ -5,6 +5,9 @@ import {
   ChevronLeft, Plus, Trash2, Save, Eye, Loader2, Search,
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import CostingPanel from '@/components/erp/CostingPanel';
+import { canSeeCosts, emptyCosting, normalizeCosting } from '@/lib/costing';
+import { useAuth } from '@/context/AuthContext';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -75,6 +78,9 @@ export default function QuotationFormPage() {
   });
 
   const [items, setItems] = useState([emptyItem()]);
+  const [costing, setCosting] = useState(emptyCosting());
+  const { user } = useAuth();
+  const showCosts = canSeeCosts(user);
 
   const subtotal = items.reduce((s, i) => s + (i.amount || 0), 0);
   const taxAmount = parseFloat(((subtotal * (Number(form.tax_rate) || 0)) / 100).toFixed(2));
@@ -99,7 +105,8 @@ export default function QuotationFormPage() {
     if (isEdit) {
       pb.collection('quotations').getOne(id, { requestKey: `quotation-${id}`, expand: 'rfq' })
         .then(q => {
-          const { items: qItems, subtotal: _s, tax_amount: _t, total: _tt, ...rest } = q;
+          const { items: qItems, subtotal: _s, tax_amount: _t, total: _tt, costing: qCosting, expand: _e, ...rest } = q;
+          setCosting(normalizeCosting(qCosting));
           setForm(prev => ({
             ...prev,
             ...rest,
@@ -167,6 +174,7 @@ export default function QuotationFormPage() {
       tax_amount: taxAmount,
       discount_amount: discountAmount,
       total,
+      ...(showCosts ? { costing } : {}),
     };
     try {
       let saved;
@@ -323,6 +331,7 @@ export default function QuotationFormPage() {
                   <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</th>
                   <th className="w-24 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Qty</th>
                   <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Unit Price</th>
+                  {showCosts && <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-amber-700" title="Internal — never shown to the client">Our buying price 🔒</th>}
                   <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
                   <th className="w-10 pb-2"></th>
                 </tr>
@@ -354,6 +363,23 @@ export default function QuotationFormPage() {
                         onChange={e => updateItem(idx, 'unit_price', e.target.value)}
                       />
                     </td>
+                    {showCosts && (
+                      <td className="py-2 px-1.5">
+                        <input
+                          type="number" min="0" step="0.01"
+                          className={`${inputCls} border-amber-300 bg-amber-50/60 text-right`}
+                          value={item.cost ?? 0}
+                          onChange={e => updateItem(idx, 'cost', e.target.value)}
+                          aria-label="Our buying price per unit"
+                          placeholder="0"
+                        />
+                        {Number(item.cost) > 0 && Number(item.unit_price) > 0 && (
+                          <p className={`mt-0.5 text-right text-[11px] ${Number(item.unit_price) > Number(item.cost) ? 'text-emerald-700' : 'text-rose-600'}`}>
+                            {Math.round(((Number(item.unit_price) - Number(item.cost)) / Number(item.unit_price)) * 100)}% margin
+                          </p>
+                        )}
+                      </td>
+                    )}
                     <td className="py-2 pl-1.5 text-right font-medium text-foreground">
                       {fmt(item.amount, form.currency)}
                     </td>
@@ -414,6 +440,10 @@ export default function QuotationFormPage() {
             </div>
           </div>
         </div>
+
+        {showCosts && (
+          <CostingPanel items={items} costing={costing} onChange={setCosting} subtotal={subtotal} discount={discountAmount} currency={form.currency} />
+        )}
 
         {/* Notes & Terms */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

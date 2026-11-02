@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const pool = require('./../db');
-const { collections } = require('../collections');
+const { collections, COST_VIEW } = require('../collections');
 const { parseFilter } = require('../filterParser');
 const { genId } = require('../idGen');
 const { requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 const router = express.Router();
 
-const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills']);
+const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing']);
 
 function deserializeRow(row) {
   if (!row) return row;
@@ -41,13 +41,52 @@ const SENSITIVE_FIELDS = {
   users: ['password_hash', 'reset_token_hash', 'reset_token_expires', 'tokens_valid_after'],
 };
 
-function toPublic(collectionName, record) {
-  if (!record) return record;
-  const strip = SENSITIVE_FIELDS[collectionName];
-  if (!strip) return record;
+// Internal costing (buying prices, job budgets) — only for staff allowed to
+// see profit. Everyone else (technicians, HR) gets the record without it.
+const COST_FIELDS = { quotations: ['costing'], invoices: ['costing'], projects: ['cost_budget'] };
+const ITEM_COST_KEYS = ['cost'];
+
+function stripCosts(collectionName, record) {
   const out = { ...record };
-  strip.forEach((f) => delete out[f]);
+  (COST_FIELDS[collectionName] || []).forEach((f) => delete out[f]);
+  if (Array.isArray(out.items) && (collectionName === 'quotations' || collectionName === 'invoices')) {
+    out.items = out.items.map((it) => {
+      if (!it || typeof it !== 'object') return it;
+      const copy = { ...it };
+      ITEM_COST_KEYS.forEach((k) => delete copy[k]);
+      return copy;
+    });
+  }
   return out;
+}
+
+function toPublic(collectionName, record, user) {
+  if (!record) return record;
+  let out = record;
+  const strip = SENSITIVE_FIELDS[collectionName];
+  if (strip) {
+    out = { ...out };
+    strip.forEach((f) => delete out[f]);
+  }
+  if (!COST_VIEW(user)) {
+    out = stripCosts(collectionName, out);
+    if (out.expand) {
+      out.expand = Object.fromEntries(Object.entries(out.expand).map(([k, v]) => {
+        const rel = collections[collectionName]?.relations?.[k];
+        return [k, rel ? stripCosts(rel, v) : v];
+      }));
+    }
+  }
+  return out;
+}
+
+// A user who can't see costs must not overwrite them either.
+function dropCostInput(collectionName, body, user, before) {
+  if (COST_VIEW(user)) return;
+  (COST_FIELDS[collectionName] || []).forEach((f) => delete body[f]);
+  if (Array.isArray(body.items) && before && Array.isArray(before.items)) {
+    body.items = body.items.map((it, i) => (it && typeof it === 'object' && before.items[i] && before.items[i].cost !== undefined ? { ...it, cost: before.items[i].cost } : it));
+  }
 }
 
 function collectionMiddleware(req, res, next) {
@@ -68,7 +107,7 @@ async function expandRecord(def, record, expandParam) {
     const relatedDef = collections[relatedCollection];
     if (!relatedDef) continue;
     const [rows] = await pool.query(`SELECT * FROM \`${relatedDef.table}\` WHERE id = ?`, [record[field]]);
-    if (rows[0]) expand[field] = toPublic(relatedCollection, deserializeRow(rows[0]));
+    if (rows[0]) expand[field] = toPublic(relatedCollection, deserializeRow(rows[0]), { role: 'super_admin' });
   }
   if (Object.keys(expand).length) record.expand = expand;
   return record;
@@ -147,7 +186,7 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
     }
 
     res.json({
-      items: items.map((item) => toPublic(req.collectionName, item)),
+      items: items.map((item) => toPublic(req.collectionName, item, req.user)),
       page,
       perPage,
       totalItems: items.length === rows.length ? totalItems : items.length,
@@ -167,7 +206,7 @@ router.get('/:name/records/:id', collectionMiddleware, requireAuth, async (req, 
     let record = deserializeRow(rows[0]);
     if (!def.rules.view(req.user, record)) return res.status(404).json({ message: 'Not found.' });
     if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
-    res.json(toPublic(req.collectionName, record));
+    res.json(toPublic(req.collectionName, record, req.user));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -180,6 +219,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
 
   try {
     const body = extractBody(req, def);
+    dropCostInput(req.collectionName, body, req.user, null);
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const id = genId();
@@ -240,7 +280,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
-    res.status(200).json(toPublic(req.collectionName, record));
+    res.status(200).json(toPublic(req.collectionName, record, req.user));
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ message: 'A record with that unique value already exists.' });
     res.status(400).json({ message: err.message });
@@ -258,6 +298,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (!def.rules.update(req.user, before)) return res.status(403).json({ message: 'Not allowed to update this record.' });
 
     const body = extractBody(req, def);
+    dropCostInput(req.collectionName, body, req.user, before);
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });
     const setClauses = [];
@@ -299,7 +340,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     }
 
     if (setClauses.length === 0) {
-      return res.json(toPublic(req.collectionName, before));
+      return res.json(toPublic(req.collectionName, before, req.user));
     }
 
     values.push(req.params.id);
@@ -309,7 +350,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: req.collectionName, record: after, changes });
-    res.json(toPublic(req.collectionName, after));
+    res.json(toPublic(req.collectionName, after, req.user));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

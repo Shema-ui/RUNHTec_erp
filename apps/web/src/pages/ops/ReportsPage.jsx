@@ -6,6 +6,8 @@ import pb from '@/lib/pocketbaseClient';
 import { Card, StatCard, Loading, todayISO } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import { PROJECT_STATUSES, SERVICE_CATEGORIES } from '@/lib/projects';
+import { Link } from 'react-router-dom';
+import { computeCosting, marginTone } from '@/lib/costing';
 
 const C = DEFAULT_CURRENCY;
 const ymd = () => todayISO();
@@ -38,7 +40,8 @@ export default function ReportsPage() {
       safe(pb.collection('projects').getFullList({})),
       safe(pb.collection('rfqs').getFullList({})),
       safe(pb.collection('project_assignments').getFullList({})),
-    ]).then(([invoices, payments, quotes, projects, rfqs, assignments]) => setD({ invoices, payments, quotes, projects, rfqs, assignments }));
+      safe(pb.collection('project_costs').getFullList({})),
+    ]).then(([invoices, payments, quotes, projects, rfqs, assignments, costs]) => setD({ invoices, payments, quotes, projects, rfqs, assignments, costs }));
   }, []);
 
   const r = useMemo(() => {
@@ -68,7 +71,20 @@ export default function ReportsPage() {
     const byService = SERVICE_CATEGORIES.map((s) => ({ label: s.label, value: d.projects.filter((p) => p.service_category === s.value).reduce((t, p) => t + Number(p.value || 0), 0) }))
       .filter((x) => x.value).sort((a, b) => b.value - a.value);
     const rfqMonth = d.rfqs.filter((x) => String(x.created).startsWith(month)).length;
-    return { month: sumPaid(month), year: sumPaid(year), invoicedYear, outstanding, overdue: overdue.length, winRate, won: won.length, decided: decided.length, pipeline, owedContractors, months, byStatus, byService, rfqMonth };
+    // Profit per project: price (excl. VAT) minus everything logged as spent.
+    const quoteById = Object.fromEntries(d.quotes.map((q) => [q.id, q]));
+    const spent = {};
+    d.costs.forEach((c) => { spent[c.project] = (spent[c.project] || 0) + Number(c.amount || 0); });
+    const profit = d.projects.filter((p) => p.status !== 'cancelled').map((p) => {
+      const q = quoteById[p.quotation];
+      const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;
+      const revenue = plan ? plan.revenue : Number(p.value || 0);
+      const planned = plan ? plan.totalCost : Number(p.cost_budget || 0);
+      const actual = spent[p.id] || 0;
+      return { id: p.id, title: p.title, status: p.status, revenue, planned, actual, profit: revenue - actual, plannedProfit: planned ? revenue - planned : null, margin: revenue ? ((revenue - actual) / revenue) * 100 : 0 };
+    }).filter((x) => x.revenue || x.actual).sort((a, b) => b.revenue - a.revenue);
+    const doneProfit = profit.filter((x) => x.status === 'done').reduce((s, x) => s + x.profit, 0);
+    return { profit, doneProfit, month: sumPaid(month), year: sumPaid(year), invoicedYear, outstanding, overdue: overdue.length, winRate, won: won.length, decided: decided.length, pipeline, owedContractors, months, byStatus, byService, rfqMonth };
   }, [d]);
 
   return (
@@ -86,6 +102,29 @@ export default function ReportsPage() {
             <Card title="Cash received — last 6 months"><Bars rows={r.months} money /></Card>
             <Card title="Projects by status"><Bars rows={r.byStatus} /></Card>
             <Card title="Project value by service"><Bars rows={r.byService} money /></Card>
+            <Card title="Profit by project (internal)" className="lg:col-span-2">
+              {r.profit.length === 0 ? <p className="text-sm text-muted-foreground">No projects with a price or costs yet. Add buying prices on quotations and log work days and expenses on projects.</p> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr><th className="py-2 pr-3">Project</th><th className="py-2 pr-3 text-right">Price excl. VAT</th><th className="py-2 pr-3 text-right">Planned profit</th><th className="py-2 pr-3 text-right">Spent so far</th><th className="py-2 text-right">Profit so far</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {r.profit.map((x) => (
+                        <tr key={x.id}>
+                          <td className="py-2 pr-3"><Link to={`/projects/${x.id}`} className="font-medium hover:text-primary">{x.title}</Link><p className="text-xs capitalize text-muted-foreground">{String(x.status).replace('_', ' ')}</p></td>
+                          <td className="py-2 pr-3 text-right">{formatMoney(x.revenue, C)}</td>
+                          <td className="py-2 pr-3 text-right">{x.plannedProfit === null ? '—' : formatMoney(x.plannedProfit, C)}</td>
+                          <td className="py-2 pr-3 text-right">{formatMoney(x.actual, C)}</td>
+                          <td className={`py-2 text-right font-semibold ${marginTone(x.margin)}`}>{formatMoney(x.profit, C)} <span className="text-xs">({x.margin.toFixed(0)}%)</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-3 text-sm">Profit on completed projects: <strong>{formatMoney(r.doneProfit, C)}</strong></p>
+                </div>
+              )}
+            </Card>
             <Card title="This year">
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between"><span className="inline-flex items-center gap-2"><ReceiptText className="h-4 w-4 text-muted-foreground" />Invoiced</span><strong>{formatMoney(r.invoicedYear, C)}</strong></li>

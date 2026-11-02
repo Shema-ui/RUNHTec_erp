@@ -5,6 +5,8 @@ import {
   ChevronLeft, Plus, Trash2, Save, Eye, Loader2, Search,
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import CostingPanel from '@/components/erp/CostingPanel';
+import { canSeeCosts, emptyCosting, normalizeCosting } from '@/lib/costing';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +88,8 @@ export default function InvoiceFormPage() {
   });
 
   const [items, setItems] = useState([emptyItem()]);
+  const [costing, setCosting] = useState(emptyCosting());
+  const showCosts = canSeeCosts(user);
 
   const subtotal = items.reduce((s, i) => s + (i.amount || 0), 0);
   const taxAmount = parseFloat(((subtotal * (Number(form.tax_rate) || 0)) / 100).toFixed(2));
@@ -111,7 +115,8 @@ export default function InvoiceFormPage() {
     if (isEdit) {
       pb.collection('invoices').getOne(id, { requestKey: `invoice-${id}` })
         .then(inv => {
-          const { items: invItems, subtotal: _s, tax_amount: _t, total: _tt, ...rest } = inv;
+          const { items: invItems, subtotal: _s, tax_amount: _t, total: _tt, costing: invCosting, expand: _e, ...rest } = inv;
+          setCosting(normalizeCosting(invCosting));
           setForm(prev => ({ ...prev, ...rest }));
           setItems((invItems && Array.isArray(invItems) && invItems.length) ? invItems.map(i => ({ ...i, id: i.id || crypto.randomUUID() })) : [emptyItem()]);
           setLoading(false);
@@ -160,7 +165,9 @@ export default function InvoiceFormPage() {
               description: i.description || i.name || '',
               quantity: Number(i.quantity ?? i.qty ?? 1),
               unit_price: Number(i.unit_price ?? i.rate ?? i.price ?? 0),
+              cost: Number(i.cost) || 0,
             })));
+            if (quote?.costing) setCosting(normalizeCosting(quote.costing));
           } else if (project) {
             setItems([calcItem({ id: crypto.randomUUID(), description: project.title, quantity: 1, unit_price: Number(project.value) || 0 })]);
           }
@@ -223,6 +230,7 @@ export default function InvoiceFormPage() {
       tax_amount: taxAmount,
       discount_amount: discountAmount,
       total,
+      ...(showCosts ? { costing } : {}),
       created_by: user?.id || '',
       created_by_name: user?.name || user?.email || '',
     };
@@ -404,6 +412,7 @@ export default function InvoiceFormPage() {
                   <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</th>
                   <th className="w-24 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Qty</th>
                   <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Unit Price</th>
+                  {showCosts && <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-amber-700" title="Internal — never shown to the client">Our buying price 🔒</th>}
                   <th className="w-36 pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
                   <th className="w-10 pb-2"></th>
                 </tr>
@@ -439,6 +448,23 @@ export default function InvoiceFormPage() {
                         onChange={e => updateItem(idx, 'unit_price', e.target.value)}
                       />
                     </td>
+                    {showCosts && (
+                      <td className="py-2 px-1.5">
+                        <input
+                          type="number" min="0" step="0.01"
+                          className={`${inputCls} border-amber-300 bg-amber-50/60 text-right`}
+                          value={item.cost ?? 0}
+                          onChange={e => updateItem(idx, 'cost', e.target.value)}
+                          aria-label="Our buying price per unit"
+                          placeholder="0"
+                        />
+                        {Number(item.cost) > 0 && Number(item.unit_price) > 0 && (
+                          <p className={`mt-0.5 text-right text-[11px] ${Number(item.unit_price) > Number(item.cost) ? 'text-emerald-700' : 'text-rose-600'}`}>
+                            {Math.round(((Number(item.unit_price) - Number(item.cost)) / Number(item.unit_price)) * 100)}% margin
+                          </p>
+                        )}
+                      </td>
+                    )}
                     <td className="py-2 pl-1.5 text-right font-medium text-foreground">
                       {fmt(item.amount, form.currency)}
                     </td>
@@ -499,6 +525,10 @@ export default function InvoiceFormPage() {
             </div>
           </div>
         </div>
+
+        {showCosts && (
+          <CostingPanel items={items} costing={costing} onChange={setCosting} subtotal={subtotal} discount={discountAmount} currency={form.currency} />
+        )}
 
         {/* Notes & Additional */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

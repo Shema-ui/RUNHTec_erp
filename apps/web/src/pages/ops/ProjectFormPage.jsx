@@ -8,11 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, Field, BackLink, Loading, inputCls, textareaCls, btnPrimary, btnLine, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES, PRIORITIES, SERVICE_CATEGORIES } from '@/lib/projects';
 import { CURRENCIES, DEFAULT_CURRENCY } from '@/lib/money';
+import { useAuth } from '@/context/AuthContext';
+import { canSeeCosts } from '@/lib/costing';
 
 const EMPTY = {
   title: '', client: '', quotation: '', service_category: '', status: 'scheduled', priority: 'medium',
   project_manager: '', site_address: '', start_date: '', due_date: '', completed_date: '',
-  value: 0, currency: DEFAULT_CURRENCY, progress: 0, description: '', notes: '',
+  value: 0, currency: DEFAULT_CURRENCY, progress: 0, description: '', notes: '', cost_budget: 0,
 };
 
 export default function ProjectFormPage() {
@@ -20,6 +22,8 @@ export default function ProjectFormPage() {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const showCosts = canSeeCosts(user);
   const [form, setForm] = useState(EMPTY);
   const [clients, setClients] = useState([]);
   const [quotes, setQuotes] = useState([]);
@@ -65,6 +69,7 @@ export default function ProjectFormPage() {
       quotation: form.quotation || null,
       project_manager: form.project_manager || null,
       value: Number(form.value) || 0,
+      cost_budget: Number(form.cost_budget) || 0,
       progress: Math.max(0, Math.min(100, Number(form.progress) || 0)),
       completed_date: form.status === 'done' && !form.completed_date ? todayISO() : form.completed_date,
     };
@@ -137,6 +142,9 @@ export default function ProjectFormPage() {
                 </select>
               </Field>
               <Field label="Progress %" hint="Updates automatically from the task list"><input type="number" min="0" max="100" className={inputCls} value={form.progress} onChange={(e) => set('progress', e.target.value)} /></Field>
+              {showCosts && !form.quotation && (
+                <Field label="Planned cost 🔒" hint="Internal. Used when there is no quotation costing"><input type="number" min="0" className={inputCls} value={form.cost_budget} onChange={(e) => set('cost_budget', e.target.value)} /></Field>
+              )}
               <Field label="Completed on"><input type="date" className={inputCls} value={form.completed_date || ''} onChange={(e) => set('completed_date', e.target.value)} /></Field>
             </div>
           </Card>

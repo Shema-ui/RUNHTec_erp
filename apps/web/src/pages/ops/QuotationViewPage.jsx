@@ -5,6 +5,8 @@ import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight, ReceiptText
 import { useAuth } from '@/context/AuthContext';
 import { canAccessModule } from '@/lib/permissions';
 import pb from '@/lib/pocketbaseClient';
+import { InternalProfitCard } from '@/components/erp/CostingPanel';
+import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -76,6 +78,7 @@ export default function QuotationViewPage() {
   const [logoEmbed, setLogoEmbed] = useState(null);
   const [linkedProject, setLinkedProject] = useState(null);
   const { user } = useAuth();
+  const showCosts = canSeeCosts(user);
   const canInvoice = canAccessModule(user, 'invoices');
   const canProject = ['super_admin', 'project_manager', 'sales'].includes(user?.role);
 
@@ -282,6 +285,7 @@ export default function QuotationViewPage() {
 
       {/* A4 Quotation */}
       <div className="mx-auto max-w-4xl px-4 py-8">
+        {showCosts && <InternalProfitCard doc={q} editTo={`/quotations/${id}/edit`} />}
         <div
           id="quote-print"
           className="rounded-2xl bg-white shadow-xl"

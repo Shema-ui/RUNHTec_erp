@@ -116,6 +116,11 @@ async function runMigrations() {
     await ensureColumn(conn, 'documents', 'project', 'VARCHAR(20) DEFAULT NULL');
     await ensureColumn(conn, 'documents', 'notes', "VARCHAR(1000) DEFAULT ''");
     await ensureColumn(conn, 'documents', 'uploaded_by_name', "VARCHAR(200) DEFAULT ''");
+
+    // Internal costing (buying prices, labour/transport estimate) — staff only
+    await ensureColumn(conn, 'quotations', 'costing', 'JSON DEFAULT NULL');
+    await ensureColumn(conn, 'invoices', 'costing', 'JSON DEFAULT NULL');
+    await ensureColumn(conn, 'projects', 'cost_budget', 'DECIMAL(14,2) DEFAULT 0');
   } finally {
     conn.release();
   }
