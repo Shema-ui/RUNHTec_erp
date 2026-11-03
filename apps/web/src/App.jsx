@@ -12,6 +12,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import UsersPage from '@/pages/UsersPage';
 import MyProfilePage from '@/pages/MyProfilePage';
 import CatalogPage from '@/pages/catalog/CatalogPage';
+import SearchPage from '@/pages/SearchPage';
 import StaffProfilePage from '@/pages/StaffProfilePage';
 import ActivityLogPage from '@/pages/ActivityLogPage';
 import CrmDashboardPage from '@/pages/crm/CrmDashboardPage';
@@ -65,6 +66,7 @@ function App() {
 
           {/* Dashboard — every role lands here after login */}
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
           <Route path="/items" element={<RequireAuth><RequireModule moduleKey="catalog"><CatalogPage /></RequireModule></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfilePage /></RequireAuth>} />
           <Route path="/users/:id/profile" element={<RequireAuth><RequireRole roles={['super_admin', 'admin', 'hr']}><StaffProfilePage /></RequireRole></RequireAuth>} />

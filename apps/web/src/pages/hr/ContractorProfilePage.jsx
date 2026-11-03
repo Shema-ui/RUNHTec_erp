@@ -7,6 +7,7 @@ import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import HrTabs from './HrTabs';
+import ContractorLoginCard from '@/components/erp/ContractorLoginCard';
 import { Card, BackLink, Loading, Pill, InfoRow, Stars, StatCard, btnLine, btnDanger, fmtDate } from '@/components/erp/kit';
 import {
   CONTRACTOR_STATUSES, ASSIGNMENT_STATUSES, CONTRACTOR_PAYMENT_STATUSES,
@@ -22,8 +23,9 @@ export default function ContractorProfilePage() {
   const [c, setC] = useState(null);
   const [assignments, setAssignments] = useState([]);
 
+  const reload = () => pb.collection('contractors').getOne(id).then(setC).catch(() => navigate('/hr/contractors'));
   useEffect(() => {
-    pb.collection('contractors').getOne(id).then(setC).catch(() => navigate('/hr/contractors'));
+    reload();
     pb.collection('project_assignments').getFullList({ filter: `contractor = '${id}'`, sort: '-created', expand: 'project' })
       .then(setAssignments).catch(() => setAssignments([]));
   }, [id]);
@@ -77,7 +79,9 @@ export default function ContractorProfilePage() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <Card title="Profile" className="lg:col-span-1">
+        <div className="space-y-5 lg:col-span-1">
+        <ContractorLoginCard contractor={c} onChanged={reload} />
+        <Card title="Profile">
           <div className="space-y-3">
             <InfoRow label="Main skill">{tradeLabel(c.trade)}</InfoRow>
             <InfoRow label="Other skills">{Array.isArray(c.skills) ? c.skills.join(', ') : c.skills}</InfoRow>
@@ -100,6 +104,7 @@ export default function ContractorProfilePage() {
             ) : null)}
           </div>
         </Card>
+        </div>
 
         <Card title="Project engagements" className="lg:col-span-2">
           {assignments.length === 0 ? (

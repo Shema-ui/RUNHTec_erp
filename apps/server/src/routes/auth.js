@@ -5,6 +5,7 @@ const { signToken, sanitizeUser, requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = re
 const { createLimiter } = require('../rateLimit');
 
 const router = express.Router();
+const { sendEmail } = require('../mailer');
 
 // Brute-force protection: failed logins are counted per IP address and per
 // account; after too many, further attempts are refused for 15 minutes.
@@ -68,12 +69,13 @@ router.post('/users/request-password-reset', async (req, res) => {
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     await pool.query('UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?', [tokenHash, expires, rows[0].id]);
 
-    // TODO: wire up outbound email (SMTP) before going live — see
-    // apps/server/.env.example. Until then this logs the reset link so
-    // development/testing can proceed; it must not ship to production
-    // without real email delivery.
     const resetUrl = `${process.env.APP_URL || ''}/reset-password?token=${rawToken}`;
-    console.log(`[password-reset] ${email} -> ${resetUrl}`);
+    const sent = await sendEmail({
+      to: email,
+      subject: 'Reset your RUNHTec ERP password',
+      text: `Hello,\n\nSomeone (hopefully you) asked to reset the password for your RUNHTec ERP account.\n\nOpen this link within 1 hour to choose a new password:\n${resetUrl}\n\nIf you didn't ask for this, ignore this email — your password stays the same.\n\nRUNHTec Contractors`,
+    });
+    if (!sent) console.log(`[password-reset] email not sent (email not set up) for ${email}`);
   }
   res.status(200).json({});
 });

@@ -5,6 +5,7 @@ import {
   ChevronLeft, Plus, Trash2, Save, Eye, Loader2, Search,
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import { nextDocNumber } from '@/lib/numbering';
 import CostingPanel from '@/components/erp/CostingPanel';
 import CatalogItemInput from '@/components/erp/CatalogItemInput';
 import { canSeeCosts, emptyCosting, normalizeCosting, loadCostSettings } from '@/lib/costing';
@@ -100,16 +101,7 @@ export default function InvoiceFormPage() {
   const total = parseFloat((subtotal + taxAmount - discountAmount).toFixed(2));
 
   // Generate invoice number
-  const genNumber = useCallback(async () => {
-    const year = new Date().getFullYear();
-    try {
-      const r = await pb.collection('invoices').getList(1, 1, { sort: '-created', requestKey: 'gen-num' });
-      const n = r.totalItems + 1;
-      return `INV-${year}-${String(n).padStart(4, '0')}`;
-    } catch {
-      return `INV-${year}-0001`;
-    }
-  }, []);
+  const genNumber = useCallback(() => nextDocNumber('invoices', 'invoice_number', 'INV'), []);
 
   useEffect(() => {
     pb.collection('clients').getFullList({ sort: 'company_name', requestKey: 'clients-for-invoice' })

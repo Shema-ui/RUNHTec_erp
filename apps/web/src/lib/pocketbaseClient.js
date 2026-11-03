@@ -165,9 +165,31 @@ function collection(name) {
   };
 }
 
+// The free server sleeps after ~15 min without use; waking it takes up to a
+// minute. Calling this as soon as the app opens starts the wake-up early.
+let warm = null;
+function wakeServer() {
+  if (!warm) warm = fetch(`${API_URL}/api/health`).then(() => true).catch(() => false);
+  return warm;
+}
+
 const pb = {
   authStore,
   collection,
+  wakeServer,
+  apiUrl: API_URL,
+  async getConfig() {
+    try { return await (await fetch(`${API_URL}/api/config`)).json(); } catch (_) { return {}; }
+  },
+  async downloadBackup() {
+    const res = await fetch(`${API_URL}/api/me/backup`, { headers: { Authorization: `Bearer ${authStore.token}` } });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || 'Backup failed');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `runhtec-erp-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+  },
   // Unlocks a new staff account once their profile is complete.
   async completeProfile() {
     const res = await request('/api/me/complete-profile', { method: 'POST', body: {} });
@@ -180,7 +202,9 @@ const pb = {
     // record argument is accepted for interface compatibility but unused.
     getURL(_record, filenameOrId) {
       if (!filenameOrId) return '';
-      return `${API_URL}/api/files/${filenameOrId}`;
+      // Files need the sign-in token in the link (images and links can't send headers).
+      const t = authStore.token ? `?token=${encodeURIComponent(authStore.token)}` : '';
+      return `${API_URL}/api/files/${filenameOrId}${t}`;
     },
   },
 };

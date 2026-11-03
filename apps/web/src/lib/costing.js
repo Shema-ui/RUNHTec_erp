@@ -107,3 +107,14 @@ export function summarizeActual(costs = []) {
 }
 
 export const marginTone = (m) => (m >= 25 ? 'text-emerald-700' : m >= 12 ? 'text-amber-700' : 'text-rose-700');
+
+// Contractors engaged on a FIXED fee (or per milestone) are a project cost by
+// themselves. Daily/hourly contractors are costed through "Log work day", so
+// their engagement fee is NOT added again (that would count them twice).
+export const FIXED_BASES = ['fixed', 'milestone'];
+export function fixedFeeCosts(assignments = []) {
+  const list = assignments.filter((a) => FIXED_BASES.includes(a.payment_basis || 'fixed') && !['cancelled', 'declined'].includes(a.status));
+  const total = list.reduce((s, a) => s + n(a.agreed_amount), 0);
+  const unpaid = list.reduce((s, a) => s + Math.max(0, n(a.agreed_amount) - n(a.amount_paid)), 0);
+  return { list, total, unpaid };
+}

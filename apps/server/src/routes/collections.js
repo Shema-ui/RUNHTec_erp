@@ -8,6 +8,20 @@ const { requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
 const { writeAuditEntry, summarizeChanges } = require('../audit');
 const { storeFile } = require('../files');
 const { ensureQuoteForInvoice, syncQuoteFromInvoice, removeQuoteForInvoice } = require('../invoiceQuote');
+const { markOverdueInvoices, nextNumber } = require('../jobs');
+const { notifyUsers } = require('../notify');
+
+// People newly put on a project (technicians on site or lead) get an alert.
+function teamOf(p) {
+  let list = p?.assigned_technicians;
+  if (typeof list === 'string') { try { list = JSON.parse(list); } catch (_) { list = []; } }
+  return [...(Array.isArray(list) ? list : []), p?.lead_technician].filter(Boolean);
+}
+async function alertNewTeam(before, after, actor) {
+  const old = new Set(teamOf(before));
+  const added = teamOf(after).filter((id) => !old.has(id) && id !== actor?.id);
+  if (added.length) await notifyUsers(added, 'project', `You have been assigned to the project “${after.title}”. Open Projects to see it.`);
+}
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -96,6 +110,23 @@ const OPEN_BEFORE_PROFILE = new Set(['staff_profiles', 'staff_documents', 'compa
 const LEAD_PROJECT_FIELDS = ['tasks', 'progress', 'status', 'completed_date', 'notes'];
 const PM_ROLES = ['super_admin', 'admin', 'project_manager'];
 
+// A contractor who also has an ERP login is put on the project's
+// "Technicians on site" automatically when engaged (and alerted).
+async function putContractorOnSite(assignment, actor) {
+  try {
+    if (!assignment?.project || !assignment.contractor || ['cancelled', 'declined'].includes(assignment.status)) return;
+    const [c] = await pool.query('SELECT user FROM contractors WHERE id = ?', [assignment.contractor]);
+    const uid = c[0]?.user;
+    if (!uid) return;
+    const [pr] = await pool.query('SELECT * FROM projects WHERE id = ?', [assignment.project]);
+    if (!pr[0]) return;
+    const team = teamOf({ assigned_technicians: pr[0].assigned_technicians });
+    if (team.includes(uid) || pr[0].lead_technician === uid) return;
+    await pool.query('UPDATE projects SET assigned_technicians = ? WHERE id = ?', [JSON.stringify([...team, uid]), assignment.project]);
+    await notifyUsers([uid], 'project', `You have been assigned to the project “${pr[0].title}”. Open Projects to see it.`);
+  } catch (err) { console.error('on-site update failed:', err.message); }
+}
+
 function needsProfile(user) {
   return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
 }
@@ -164,6 +195,7 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
   const perPage = Math.min(500, Math.max(1, parseInt(req.query.perPage, 10) || 30));
 
   try {
+    if (req.collectionName === 'invoices') await markOverdueInvoices();
     let whereSql = '1=1';
     let params = [];
     if (req.query.filter) {
@@ -237,6 +269,13 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
     if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
+    // Never reuse a quotation / invoice number.
+    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV']]) {
+      if (req.collectionName !== coll) continue;
+      const wanted = String(body[col] || '').trim();
+      const [dup] = wanted ? await pool.query(`SELECT id FROM \`${coll}\` WHERE \`${col}\` = ?`, [wanted]) : [[{}]];
+      if (!wanted || dup.length) body[col] = await nextNumber(coll, col, prefix);
+    }
     if (req.collectionName === 'project_photos') {
       body.uploaded_by = req.user.id;
       body.uploaded_by_name = req.user.name || req.user.email || '';
@@ -324,6 +363,8 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       await ensureQuoteForInvoice(rows[0]);
       [rows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [id]);
     }
+    if (req.collectionName === 'projects') await alertNewTeam(null, rows[0], req.user);
+    if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
     res.status(200).json(toPublic(req.collectionName, record, req.user));
@@ -407,6 +448,8 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
 
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     if (req.collectionName === 'invoices') await syncQuoteFromInvoice(rows[0]);
+    if (req.collectionName === 'projects') await alertNewTeam(before, rows[0], req.user);
+    if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: req.collectionName, record: after, changes });

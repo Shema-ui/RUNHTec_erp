@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2 } from 'lucide-react';
+import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup } from 'lucide-react';
 import { DEFAULT_LABOUR_ROLES, applyCostSettings, rid } from '@/lib/costing';
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -129,6 +129,7 @@ export default function SettingsPage() {
     default_payment_instructions: DEFAULT_PAYMENT_INSTRUCTIONS,
     default_contingency: 10,
   });
+  const [backingUp, setBackingUp] = useState(false);
   const [rates, setRates] = useState(DEFAULT_LABOUR_ROLES.map((r) => ({ ...r })));
 
   useEffect(() => {
@@ -506,6 +507,18 @@ export default function SettingsPage() {
             </Field>
           </div>
         </SectionCard>
+
+        {isSuperAdmin && (
+          <SectionCard icon={DatabaseBackup} title="Backup" description="Download a copy of everything in the ERP (clients, quotes, invoices, payments, projects, people, prices…) as one file. Keep it somewhere safe, e.g. Google Drive.">
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={async () => { setBackingUp(true); try { await pb.downloadBackup(); toast({ title: 'Backup downloaded' }); } catch (e) { toast({ title: 'Backup failed', description: e.message, variant: 'destructive' }); } finally { setBackingUp(false); } }}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60" disabled={backingUp}>
+                {backingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <DatabaseBackup className="h-4 w-4" />} Download full backup
+              </button>
+              <p className="text-xs text-muted-foreground">Do this once a week. Uploaded files (photos, IDs, PDFs) stay on the server and are not inside this file.</p>
+            </div>
+          </SectionCard>
+        )}
 
         {isSuperAdmin && (
           <div className="flex justify-end pb-4">

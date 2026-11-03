@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, MailCheck } from 'lucide-react';
 import AuthShell from '@/components/AuthShell';
@@ -11,6 +11,8 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailOn, setEmailOn] = useState(null);
+  useEffect(() => { pb.getConfig().then((c) => setEmailOn(Boolean(c.email))); }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -27,7 +29,17 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell pageTitle="Reset password">
-      {sent ? (
+      {emailOn === false ? (
+        <div>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Forgot your password?</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Ask your administrator to reset it for you. They can do it in <span className="font-medium text-foreground">User Management → ⋯ → Reset password</span> and give you a new temporary password.
+          </p>
+          <Button asChild variant="outline" className="mt-8 w-full">
+            <Link to="/login"><ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in</Link>
+          </Button>
+        </div>
+      ) : sent ? (
         <div>
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-primary">
             <MailCheck className="h-6 w-6" />

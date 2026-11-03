@@ -6,6 +6,7 @@ import {
   CheckCircle2, Clock, XCircle, AlertCircle, Send,
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
+import { nextDocNumber } from '@/lib/numbering';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -81,10 +82,7 @@ export default function InvoicesPage() {
 
   const handleDuplicate = async (inv) => {
     try {
-      const year = new Date().getFullYear();
-      const allInv = await pb.collection('invoices').getList(1, 1, { sort: '-created', requestKey: 'dup-count' });
-      const num = allInv.totalItems + 1;
-      const newNum = `INV-${year}-${String(num).padStart(4, '0')}`;
+      const newNum = await nextDocNumber('invoices', 'invoice_number', 'INV');
       const { id, created, updated, ...rest } = inv;
       const created2 = await pb.collection('invoices').create({ ...rest, invoice_number: newNum, status: 'draft' });
       toast({ title: 'Invoice duplicated', description: newNum });
@@ -167,8 +165,26 @@ export default function InvoicesPage() {
               Create Invoice
             </Link>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
+        ) : (<>
+          {/* Phone: one card per invoice */}
+          <ul className="divide-y divide-border md:hidden">
+            {invoices.map(inv => (
+              <li key={inv.id}>
+                <Link to={`/invoices/${inv.id}/view`} className="flex items-start justify-between gap-3 px-4 py-3.5 active:bg-secondary/40">
+                  <span className="min-w-0">
+                    <span className="block font-mono text-xs font-semibold text-primary">{inv.invoice_number}</span>
+                    <span className="block truncate font-medium text-foreground">{inv.bill_to_company || inv.bill_to_name || '—'}</span>
+                    <span className="block text-xs text-muted-foreground">{inv.invoice_date || '—'}{inv.due_date ? ` · due ${inv.due_date}` : ''}</span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="font-semibold text-foreground">{fmt(inv.total, inv.currency)}</span>
+                    <StatusBadge status={inv.status} />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/40">
@@ -223,7 +239,7 @@ export default function InvoicesPage() {
               </tbody>
             </table>
           </div>
-        )}
+        </>)}
       </div>
     </PortalLayout>
   );

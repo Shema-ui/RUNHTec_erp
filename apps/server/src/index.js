@@ -34,6 +34,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '')
 async function main() {
   await runMigrations();
   await bootstrapAdmin();
+  require('./jobs').startJobs();
 
   const app = express();
   // Behind a hosting platform's proxy (Render, Hostinger): trust the first
@@ -55,6 +56,8 @@ async function main() {
   app.use(attachUser);
 
   app.get('/api/health', (req, res) => res.json({ message: 'API is healthy.', code: 200 }));
+  // Tells the sign-in page whether "Forgot password" emails can be sent.
+  app.get('/api/config', (req, res) => res.json({ email: require('./mailer').emailEnabled() }));
 
   app.use('/api/collections', authRoutes);
   app.use('/api/collections', collectionsRoutes);

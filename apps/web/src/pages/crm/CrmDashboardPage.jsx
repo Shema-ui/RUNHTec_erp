@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Building2, Users, TrendingUp, CheckCircle2, XCircle, Bell,
-  FolderKanban, Wrench, DollarSign, Phone, Mail, CalendarClock,
+  FolderKanban, Wrench, Banknote, Phone, Mail, CalendarClock,
   ArrowRight, Plus,
 } from 'lucide-react';
 import {
@@ -13,6 +13,8 @@ import {
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { PIPELINE_STAGES, CLIENT_STATUSES, formatCurrency } from '@/lib/crm';
+import { loadDeals } from '@/lib/deals';
+import { todayISO } from '@/components/erp/kit';
 
 const FOLLOWUP_TYPE_ICONS = {
   call: Phone, meeting: Users, site_visit: FolderKanban, email: Mail, task: Bell,
@@ -49,7 +51,7 @@ export default function CrmDashboardPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayISO();
         const [totalR, activeR, leadsR, followupsR, oppsR] = await Promise.all([
           pb.collection('clients').getList(1, 1, { requestKey: 'crm-total' }),
           pb.collection('clients').getList(1, 1, { filter: "status = 'active'", requestKey: 'crm-active' }),
@@ -60,9 +62,12 @@ export default function CrmDashboardPage() {
             expand: 'client',
             requestKey: 'crm-followups',
           }),
-          pb.collection('sales_opportunities').getFullList({
-            requestKey: 'crm-opps',
-          }),
+          loadDeals(),
+        ]);
+        const [maintR, projR, quoteR] = await Promise.all([
+          pb.collection('maintenance_contracts').getList(1, 1, { filter: 'active = true' }).catch(() => ({ totalItems: 0 })),
+          pb.collection('projects').getList(1, 1, { filter: "status = 'in_progress'" }).catch(() => ({ totalItems: 0 })),
+          pb.collection('quotations').getList(1, 1, { filter: "status = 'sent'" }).catch(() => ({ totalItems: 0 })),
         ]);
 
         const won = oppsR.filter(o => o.stage === 'won').length;
@@ -80,6 +85,9 @@ export default function CrmDashboardPage() {
           lost,
           pipelineValue,
           totalOpps: oppsR.length,
+          maintenance: maintR.totalItems,
+          projects: projR.totalItems,
+          quotesSent: quoteR.totalItems,
         });
 
         setFollowups(followupsR.items);
@@ -120,10 +128,10 @@ export default function CrmDashboardPage() {
     { label: 'Won Opportunities', value: stats?.won ?? '—', icon: CheckCircle2, color: 'bg-green-100 text-green-700' },
     { label: 'Lost Opportunities', value: stats?.lost ?? '—', icon: XCircle, color: 'bg-red-100 text-red-600' },
     { label: 'Upcoming Follow-Ups', value: stats?.followupsDue ?? '—', icon: Bell, color: 'bg-indigo-100 text-indigo-700' },
-    { label: 'Active Maintenance Contracts', value: '—', icon: Wrench, color: 'bg-orange-100 text-orange-700' },
-    { label: 'Projects in Progress', value: '—', icon: FolderKanban, color: 'bg-cyan-100 text-cyan-700' },
-    { label: 'Quotations Sent', value: '—', icon: Mail, color: 'bg-pink-100 text-pink-700' },
-    { label: 'Total Pipeline Value', value: stats ? formatCurrency(stats.pipelineValue) : '—', icon: DollarSign, color: 'bg-teal-100 text-teal-700' },
+    { label: 'Active Maintenance Contracts', value: stats?.maintenance ?? '—', icon: Wrench, color: 'bg-orange-100 text-orange-700' },
+    { label: 'Projects in Progress', value: stats?.projects ?? '—', icon: FolderKanban, color: 'bg-cyan-100 text-cyan-700' },
+    { label: 'Quotations Sent', value: stats?.quotesSent ?? '—', icon: Mail, color: 'bg-pink-100 text-pink-700' },
+    { label: 'Total Pipeline Value', value: stats ? formatCurrency(stats.pipelineValue) : '—', icon: Banknote, color: 'bg-teal-100 text-teal-700' },
   ];
 
   const PIE_COLORS = ['#f59e0b', '#10b981', '#64748b', '#ef4444'];

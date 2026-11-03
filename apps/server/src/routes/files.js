@@ -1,12 +1,14 @@
 const express = require('express');
 const { getFile } = require('../files');
+const { userFromToken } = require('../auth');
 
 const router = express.Router();
 
-// Public by design — file URLs are unguessable 20-char random ids, mirroring
-// how PocketBase's own file URLs work (no auth check on the file itself,
-// only on discovering its id via the owning, RBAC-protected record).
+// Files (ID copies, CVs, photos…) are only served to signed-in staff. Images
+// and links can't send a header, so the ERP adds the sign-in token to the link.
 router.get('/:id', async (req, res) => {
+  const user = req.user || await userFromToken(String(req.query.token || ''));
+  if (!user) return res.status(401).json({ message: 'Please sign in to the ERP to open this file.' });
   const file = await getFile(req.params.id);
   if (!file) return res.status(404).json({ message: 'File not found.' });
   // Only common image types and PDFs are shown in the browser; anything else

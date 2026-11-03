@@ -7,7 +7,7 @@ import { Card, Modal, Field, inputCls, btnPrimary, btnLine, fmtDate, todayISO } 
 import { InternalBadge } from '@/components/erp/CostingPanel';
 import { formatMoney } from '@/lib/money';
 import {
-  LABOUR_ROLES, COST_CATEGORIES, labourRole, costCategoryLabel, computeCosting, summarizeActual, marginTone, canRecordCosts,
+  LABOUR_ROLES, COST_CATEGORIES, labourRole, costCategoryLabel, computeCosting, summarizeActual, marginTone, canRecordCosts, fixedFeeCosts,
 } from '@/lib/costing';
 
 const n = (v) => Number(v) || 0;
@@ -43,14 +43,19 @@ export default function ProjectCostsCard({ project, team }) {
     : null), [quote]);
   const revenue = plan ? plan.revenue : n(project.value);
   const planned = plan ? plan.totalCost : n(project.cost_budget);
-  const actual = useMemo(() => summarizeActual(costs || []), [costs]);
+  const fees = useMemo(() => fixedFeeCosts(team || []), [team]);
+  const actual = useMemo(() => {
+    const a = summarizeActual(costs || []);
+    // Fixed-fee contractors from the Team section count as wages here.
+    return { ...a, total: a.total + fees.total, unpaid: a.unpaid + fees.unpaid, by: { ...a.by, labour: (a.by.labour || 0) + fees.total } };
+  }, [costs, fees]);
   const otherActual = actual.total - (actual.by.materials || 0) - (actual.by.labour || 0);
   const profitNow = revenue - actual.total;
   const done = project.status === 'done';
 
   const rows = [
     { label: 'Materials & equipment', plan: plan?.materials, used: actual.by.materials || 0, note: 'Add materials you buy with “Add expense” → Materials' },
-    { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used` },
+    { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used${fees.total ? ` · includes ${formatMoney(fees.total, currency)} fixed contractor fees from Team` : ''}` },
     { label: 'Transport & other', plan: plan ? plan.expenses + plan.contingency : undefined, used: otherActual },
   ];
   // Expected final cost: for each part, what we planned — or what we've already spent if that's more.
@@ -110,6 +115,11 @@ export default function ProjectCostsCard({ project, team }) {
 
       <div className="mt-5">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cost log</h4>
+        {fees.list.length > 0 && (
+          <p className="mb-2 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
+            Also counted: {fees.list.map((a) => `${a.expand?.contractor?.full_name || 'Contractor'} (fixed fee ${formatMoney(a.agreed_amount, a.currency)})`).join(', ')} from the Team section. Daily-rate contractors are counted through “Log work day” instead.
+          </p>
+        )}
         {!costs ? <p className="text-sm text-muted-foreground">Loading…</p> : costs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nothing recorded yet. Each day on site, click “Log work day” and tick who came — wages add up automatically. Add fuel, transport, materials bought and other spending with “Add expense”.</p>
         ) : (

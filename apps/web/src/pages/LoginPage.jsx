@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import pb from '@/lib/pocketbaseClient';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import AuthShell from '@/components/AuthShell';
@@ -19,6 +20,9 @@ export default function LoginPage() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
+  // If the server is still waking up after a few seconds, say so (instead of looking frozen).
+  useEffect(() => { if (!loading) { setSlow(false); return undefined; } const t = setTimeout(() => setSlow(true), 4000); return () => clearTimeout(t); }, [loading]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -51,6 +55,11 @@ export default function LoginPage() {
         </p>
       </div>
 
+      {slow && (
+        <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+          The system is waking up after a quiet period. This can take up to a minute the first time. Please wait, you don’t need to click again.
+        </div>
+      )}
       {error && (
         <div className="mb-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />

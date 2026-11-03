@@ -20,4 +20,18 @@ async function notifyRoles(roles, type, message) {
   }
 }
 
-module.exports = { notifyRoles };
+// Notify specific people (by user id).
+async function notifyUsers(userIds, type, message) {
+  try {
+    for (const id of [...new Set((userIds || []).filter(Boolean))]) {
+      await pool.query(
+        'INSERT INTO notifications (id, user, type, message, `read`, created) VALUES (?, ?, ?, ?, 0, NOW())',
+        [genId(), id, type, String(message).slice(0, 4000)]
+      );
+    }
+  } catch (err) {
+    console.error('notify failed:', err.message);
+  }
+}
+
+module.exports = { notifyRoles, notifyUsers };

@@ -16,7 +16,7 @@ import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule, needsProfile } from '@/lib/permissions';
 import QuickAccess from '@/components/erp/QuickAccess';
-import { UserRound } from 'lucide-react';
+import { UserRound, Search as SearchIcon } from 'lucide-react';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -200,6 +200,15 @@ export default function PortalLayout({ children, title, subtitle }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+            {!needsProfile(user) && (
+              <form onSubmit={(e) => { e.preventDefault(); const v = e.currentTarget.q.value.trim(); if (v) navigate(`/search?q=${encodeURIComponent(v)}`); }} className="relative hidden lg:block">
+                <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input name="q" className="h-9 w-56 rounded-lg border border-border bg-background pl-8 pr-2 text-sm outline-none focus:w-72 focus:ring-2 focus:ring-primary/30 transition-all" placeholder="Search everything…" aria-label="Search everything" />
+              </form>
+            )}
+            {!needsProfile(user) && (
+              <button type="button" onClick={() => navigate('/search')} className="rounded-md p-1.5 hover:bg-secondary lg:hidden" aria-label="Search"><SearchIcon className="h-5 w-5" /></button>
+            )}
             <NotificationBell />
 
             <DropdownMenu>

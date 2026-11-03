@@ -73,7 +73,25 @@ export default function PaymentsPage() {
       {!payments ? <Loading /> : filtered.length === 0 ? (
         <Empty>No payments recorded yet. When a client pays, click “Record payment” and choose the invoice — it is marked paid automatically once fully settled.</Empty>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+        <>
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-card shadow-sm md:hidden">
+          {filtered.map((p) => (
+            <li key={p.id} className="flex items-start justify-between gap-3 px-4 py-3.5">
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{p.expand?.client?.company_name || p.expand?.invoice?.bill_to_company || '—'}</span>
+                <span className="block text-xs text-muted-foreground">{fmtDate(p.paid_date || p.created)} · {p.method || '—'}{p.expand?.invoice?.invoice_number ? ` · ${p.expand.invoice.invoice_number}` : ''}</span>
+              </span>
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                <span className="font-semibold">{formatMoney(p.amount, p.currency)}</span>
+                <span className="flex gap-1">
+                  <button onClick={() => setEditing(p)} aria-label="Edit payment" className="inline-flex rounded-lg border border-border p-1.5 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
+                  <SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}`} after={afterDelete(p)} />
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-2xl border border-border bg-card shadow-sm md:block">
           <table className="w-full text-sm">
             <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th><th className="w-24 px-2 py-3" /></tr>
@@ -93,6 +111,7 @@ export default function PaymentsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <RecordPaymentDialog open={recording || Boolean(editing)} payment={editing} onClose={() => { setRecording(false); setEditing(null); }} invoices={invoices} paidByInvoice={paidByInvoice} onSaved={load} />

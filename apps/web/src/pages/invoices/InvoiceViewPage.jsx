@@ -217,7 +217,7 @@ export default function InvoiceViewPage() {
       </Helmet>
 
       {/* Toolbar */}
-      <div className="no-print sticky top-0 z-20 border-b border-border bg-white/95 backdrop-blur-sm px-4 py-3 shadow-sm">
+      <div className="no-print z-20 border-b sm:sticky sm:top-0 border-border bg-white/95 backdrop-blur-sm px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
           <Link to="/invoices" className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
             <ChevronLeft className="h-4 w-4" /> Back
@@ -239,7 +239,7 @@ export default function InvoiceViewPage() {
             <option value="overdue">Overdue</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <div className="ml-auto flex gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -266,7 +266,7 @@ export default function InvoiceViewPage() {
       </div>
 
       {/* A4 Invoice */}
-      <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
         {showCosts && <InternalProfitCard doc={invoice} editTo={`/invoices/${id}/edit`}
               extra={invoice?.project ? <p><Link className="font-medium text-primary hover:underline" to={`/projects/${invoice.project}`}>Open the project</Link> to see the real costs logged so far.</p> : null} />}
         <div

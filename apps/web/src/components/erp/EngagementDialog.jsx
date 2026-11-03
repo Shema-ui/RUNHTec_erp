@@ -134,7 +134,7 @@ export default function EngagementDialog({ open, onClose, onSaved, engagement, p
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Payment basis">
+          <Field label="Payment basis" hint={['daily', 'hourly'].includes(form.payment_basis) ? 'Cost counted from logged work days' : 'Fee counted in project costs'}>
             <select className={inputCls} value={form.payment_basis} onChange={(e) => set('payment_basis', e.target.value)}>
               {PAYMENT_BASIS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>

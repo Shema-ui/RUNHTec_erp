@@ -7,7 +7,7 @@ import { Card, StatCard, Loading, todayISO } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import { PROJECT_STATUSES, SERVICE_CATEGORIES } from '@/lib/projects';
 import { Link } from 'react-router-dom';
-import { computeCosting, marginTone } from '@/lib/costing';
+import { computeCosting, marginTone, fixedFeeCosts } from '@/lib/costing';
 
 const C = DEFAULT_CURRENCY;
 const ymd = () => todayISO();
@@ -75,6 +75,7 @@ export default function ReportsPage() {
     const quoteById = Object.fromEntries(d.quotes.map((q) => [q.id, q]));
     const spent = {};
     d.costs.forEach((c) => { spent[c.project] = (spent[c.project] || 0) + Number(c.amount || 0); });
+    d.projects.forEach((p) => { spent[p.id] = (spent[p.id] || 0) + fixedFeeCosts(d.assignments.filter((a) => a.project === p.id)).total; });
     const profit = d.projects.filter((p) => p.status !== 'cancelled').map((p) => {
       const q = quoteById[p.quotation];
       const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;

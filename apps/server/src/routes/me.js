@@ -32,5 +32,25 @@ router.post('/complete-profile', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/me/backup — Super Admin downloads every record as one JSON file
+// (uploaded files themselves are not included, only their references).
+router.get('/backup', requireAuth, async (req, res) => {
+  if (req.user.role !== 'super_admin') return res.status(403).json({ message: 'Only the Super Administrator can download a backup.' });
+  try {
+    const { collections } = require('../collections');
+    const out = { app: 'RUNHTec ERP', created: new Date().toISOString(), tables: {} };
+    for (const [name, def] of Object.entries(collections)) {
+      const [rows] = await pool.query(`SELECT * FROM \`${def.table}\``);
+      out.tables[name] = rows.map(({ password_hash, reset_token_hash, reset_token_expires, ...r }) => r);
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="runhtec-erp-backup-${stamp}.json"`);
+    res.send(JSON.stringify(out, null, 1));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.REQUIRED = REQUIRED;
