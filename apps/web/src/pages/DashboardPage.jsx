@@ -15,7 +15,6 @@ import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule } from '@/lib/permissions';
 import { Link } from 'react-router-dom';
-import QuickAccess from '@/components/erp/QuickAccess';
 import TechnicianDashboard from '@/components/erp/TechnicianDashboard';
 import pb from '@/lib/pocketbaseClient';
 
@@ -150,9 +149,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Phone: app-style icons instead of a long menu */}
-      <QuickAccess user={user} title="" className="mb-6 rounded-2xl border border-border bg-card p-4 shadow-sm md:hidden" />
 
       {isTech ? <TechnicianDashboard user={user} /> : (<>
       {/* Stat grid */}
