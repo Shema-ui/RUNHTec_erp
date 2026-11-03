@@ -31,6 +31,7 @@ export const TRADES = [
   { value: 'refrigeration', label: 'Cold Rooms & Refrigeration', dept: 'technical' },
   { value: 'borehole', label: 'Borehole Drilling & Water', dept: 'technical' },
   { value: 'plumbing', label: 'Plumbing', dept: 'technical' },
+  { value: 'fire_alarm', label: 'Fire Detection & Alarm Systems', dept: 'technical' },
   { value: 'cctv', label: 'CCTV & Security Systems', dept: 'technical' },
   { value: 'networking', label: 'Networking & Internet', dept: 'technical' },
   { value: 'welding', label: 'Welding & Metal Fabrication', dept: 'technical' },

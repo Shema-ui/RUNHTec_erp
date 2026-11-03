@@ -23,6 +23,7 @@ export const SERVICE_CATEGORIES = [
   { value: 'hvac', label: 'HVAC, Air Conditioning & Chillers' },
   { value: 'refrigeration', label: 'Cold Rooms & Refrigeration' },
   { value: 'borehole', label: 'Borehole Drilling & Water' },
+  { value: 'fire_alarm', label: 'Fire Detection & Alarm Systems' },
   { value: 'cctv', label: 'CCTV & Security Systems' },
   { value: 'networking', label: 'Networking & Internet' },
   { value: 'maintenance', label: 'Maintenance Contract Work' },
