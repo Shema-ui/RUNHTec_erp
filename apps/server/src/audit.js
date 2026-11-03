@@ -1,11 +1,12 @@
 const pool = require('./db');
 const { genId } = require('./idGen');
 
-const AUDITED = new Set(['users', 'company_settings', 'invoices', 'payments', 'quotations', 'rfqs', 'clients', 'projects', 'contractors', 'job_applications', 'project_assignments']);
+const AUDITED = new Set(['users', 'company_settings', 'invoices', 'payments', 'quotations', 'rfqs', 'clients', 'projects', 'contractors', 'job_applications', 'project_assignments', 'catalog_items']);
 
 const LABEL_FIELD = {
   users: 'email',
   invoices: 'invoice_number',
+  catalog_items: 'name',
   payments: 'reference',
   quotations: 'number',
   rfqs: 'company',

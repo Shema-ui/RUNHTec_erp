@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ScrollText,
   Bell,
+  Tags,
 } from 'lucide-react';
 
 // Primary operating modules. `to` is null for placeholders that are not yet
@@ -25,6 +26,7 @@ export const MODULE_NAV = [
   { key: 'clients', label: 'Clients', icon: Building2, to: '/crm/clients' },
   { key: 'rfq', label: 'Request for Quotations', icon: FileQuestion, to: '/rfqs' },
   { key: 'quotations', label: 'Quotations', icon: FileText, to: '/quotations' },
+  { key: 'catalog', label: 'Items & Prices', icon: Tags, to: '/items' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, to: '/projects' },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },
   { key: 'invoices', label: 'Invoices', icon: ReceiptText, to: '/invoices' },

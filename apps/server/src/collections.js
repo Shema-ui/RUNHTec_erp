@@ -169,6 +169,16 @@ const collections = {
     fileFields: ['file'],
     rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
   },
+  // Price list used to fill quotations and invoices. Everyone signed in can
+  // look items up; Super Admin, Administrators and Sales maintain it. The
+  // buying price and supplier are stripped for roles that may not see costs.
+  catalog_items: {
+    table: 'catalog_items',
+    fields: ['id', 'name', 'code', 'category', 'unit', 'description', 'brand', 'selling_price', 'buying_price', 'currency', 'supplier', 'active', 'notes', 'updated_by_name', 'created', 'updated'],
+    relations: {},
+    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    watchedFields: ['selling_price', 'buying_price', 'active'],
+  },
   // Daily site photos. Technicians add them on projects they're assigned to
   // or lead (checked when saving); anyone who can open the project sees them.
   project_photos: {

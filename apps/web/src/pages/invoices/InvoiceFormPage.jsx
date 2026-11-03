@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import CostingPanel from '@/components/erp/CostingPanel';
+import CatalogItemInput from '@/components/erp/CatalogItemInput';
 import { canSeeCosts, emptyCosting, normalizeCosting, loadCostSettings } from '@/lib/costing';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -168,6 +169,7 @@ export default function InvoiceFormPage() {
               quantity: Number(i.quantity ?? i.qty ?? 1),
               unit_price: Number(i.unit_price ?? i.rate ?? i.price ?? 0),
               cost: Number(i.cost) || 0,
+              ...(i.list_price ? { list_price: Number(i.list_price), catalog_item: i.catalog_item || '', unit: i.unit || '' } : {}),
             })));
             if (quote?.costing) setCosting(normalizeCosting(quote.costing));
           } else if (project) {
@@ -212,6 +214,23 @@ export default function InvoiceFormPage() {
     setItems(prev => {
       const next = [...prev];
       next[idx] = calcItem({ ...next[idx], [k]: v });
+      return next;
+    });
+  };
+
+  // Fill a line from the price list: name, our price and (internally) the buying price.
+  const pickCatalogItem = (idx, c) => {
+    setItems(prev => {
+      const next = [...prev];
+      next[idx] = calcItem({
+        ...next[idx],
+        description: c.description ? `${c.name} — ${c.description}` : c.name,
+        unit_price: Number(c.selling_price) || 0,
+        list_price: Number(c.selling_price) || 0,
+        catalog_item: c.id,
+        unit: c.unit || '',
+        ...(c.buying_price !== undefined ? { cost: Number(c.buying_price) || 0 } : {}),
+      });
       return next;
     });
   };
@@ -423,11 +442,11 @@ export default function InvoiceFormPage() {
                 {items.map((item, idx) => (
                   <tr key={item.id}>
                     <td className="py-2 pr-3">
-                      <input
+                      <CatalogItemInput
                         className={inputCls}
-                        placeholder="Item description or service"
                         value={item.description}
-                        onChange={e => updateItem(idx, 'description', e.target.value)}
+                        onChange={(v) => updateItem(idx, 'description', v)}
+                        onPick={(c) => pickCatalogItem(idx, c)}
                       />
                     </td>
                     <td className="py-2 px-1.5">
@@ -449,6 +468,11 @@ export default function InvoiceFormPage() {
                         value={item.unit_price}
                         onChange={e => updateItem(idx, 'unit_price', e.target.value)}
                       />
+                      {Number(item.list_price) > 0 && Number(item.unit_price) < Number(item.list_price) - 0.5 && (
+                        <p className="mt-0.5 text-right text-[11px] font-medium text-amber-700" title="Price is lower than the price list">
+                          ⚠ Below list price ({fmt(item.list_price, form.currency)})
+                        </p>
+                      )}
                     </td>
                     {showCosts && (
                       <td className="py-2 px-1.5">

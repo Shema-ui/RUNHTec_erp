@@ -60,6 +60,7 @@ export const MODULE_ACCESS = {
   clients: ['sales'],
   rfq: ['sales'],
   quotations: ['sales'],
+  catalog: ['sales', 'accountant', 'project_manager'],
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],

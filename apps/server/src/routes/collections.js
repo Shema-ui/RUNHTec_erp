@@ -44,7 +44,7 @@ const SENSITIVE_FIELDS = {
 
 // Internal costing (buying prices, job budgets) — only for staff allowed to
 // see profit. Everyone else (technicians, HR) gets the record without it.
-const COST_FIELDS = { quotations: ['costing'], invoices: ['costing'], projects: ['cost_budget'] };
+const COST_FIELDS = { quotations: ['costing'], invoices: ['costing'], projects: ['cost_budget'], catalog_items: ['buying_price', 'supplier'] };
 const ITEM_COST_KEYS = ['cost'];
 
 function stripCosts(collectionName, record) {
@@ -236,6 +236,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     dropCostInput(req.collectionName, body, req.user, null);
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
+    if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
     if (req.collectionName === 'project_photos') {
       body.uploaded_by = req.user.id;
       body.uploaded_by_name = req.user.name || req.user.email || '';
@@ -348,6 +349,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       return res.status(400).json({ message: 'There is only one Super Administrator. Give this person the Administrator role instead.' });
     }
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
+    if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
     if (req.collectionName === 'project_photos') { delete body.project; delete body.uploaded_by; delete body.uploaded_by_name; }
     if (req.user.role === 'lead_technician') {
       // A lead technician may only move a project forward on site, not change its money or client.

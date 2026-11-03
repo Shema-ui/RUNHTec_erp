@@ -139,6 +139,7 @@ export function InternalProfitCard({ doc, editTo, extra }) {
   const items = Array.isArray(doc.items) ? doc.items : [];
   const hasData = Boolean(doc.costing) || items.some((i) => Number(i.cost) > 0);
   const r = computeCosting({ items, costing: doc.costing, subtotal: doc.subtotal, discount: doc.discount_amount });
+  const below = items.filter((i) => Number(i.list_price) > 0 && Number(i.unit_price) < Number(i.list_price) - 0.5);
   return (
     <div className="no-print mb-6 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-5 print:hidden" data-internal="profit">
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -152,6 +153,11 @@ export function InternalProfitCard({ doc, editTo, extra }) {
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>Wages estimate: <strong className="text-foreground">{r.labourDays} person-days</strong>, {formatMoney(r.labour, doc.currency)}.</p>
             <p>This is the plan. Once work starts, real wages and expenses are logged on the project, which shows the actual profit.</p>
+            {below.length > 0 && (
+              <p className="flex items-start gap-1.5 rounded-lg bg-amber-100/70 px-3 py-2 text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {below.length} line{below.length === 1 ? ' is' : 's are'} priced below the price list: {below.map((i) => `${String(i.description).split(' — ')[0]} (${formatMoney(i.unit_price, doc.currency)} instead of ${formatMoney(i.list_price, doc.currency)})`).join('; ')}.
+              </p>
+            )}
             {extra}
           </div>
         </div>
