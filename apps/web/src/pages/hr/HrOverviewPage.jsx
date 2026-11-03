@@ -40,7 +40,7 @@ export default function HrOverviewPage() {
 
       {!stats ? <Loading /> : (
         <div className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard icon={Inbox} label="Applications to review" value={stats.open.length} note="New, shortlisted, interview or on hold" tone="amber" />
             <StatCard icon={Users} label="Contractors in register" value={stats.activeContractors.length} note="Excluding inactive / do not engage" />
             <StatCard icon={HardHat} label="Engaged on projects now" value={stats.live.length} note="Accepted or on site" tone="green" />

@@ -56,12 +56,12 @@ export function StatCard({ icon: Icon, label, value, note, tone = 'primary' }) {
     red: 'bg-rose-50 text-rose-600',
   };
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        {Icon && <div className={`rounded-xl p-3 ${tones[tone] || tones.primary}`}><Icon className="h-5 w-5" /></div>}
+    <div className="h-full rounded-2xl border border-border bg-card p-3.5 shadow-sm sm:p-5">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
+        {Icon && <div className={`rounded-xl p-2 sm:p-3 ${tones[tone] || tones.primary}`}><Icon className="h-5 w-5" /></div>}
         <div className="min-w-0">
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="font-display text-xl font-semibold text-foreground">{value}</p>
+          <p className="break-words font-display text-lg font-semibold text-foreground sm:text-xl">{value}</p>
           {note && <p className="text-[11px] text-muted-foreground">{note}</p>}
         </div>
       </div>

@@ -69,7 +69,7 @@ export default function ContractorProfilePage() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Projects engaged" value={totals.count} note={`${totals.completed} completed`} />
         <StatCard label="Average performance" value={totals.avg ? `${totals.avg.toFixed(1)} / 5` : '—'} tone="amber" />
         <StatCard label="Fees agreed" value={formatMoney(totals.agreed, currency)} tone="green" />

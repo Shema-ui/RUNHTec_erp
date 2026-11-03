@@ -13,7 +13,10 @@ import {
 } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
-import { roleLabel } from '@/lib/permissions';
+import { roleLabel, canAccessModule } from '@/lib/permissions';
+import { Link } from 'react-router-dom';
+import QuickAccess from '@/components/erp/QuickAccess';
+import TechnicianDashboard from '@/components/erp/TechnicianDashboard';
 import pb from '@/lib/pocketbaseClient';
 
 function formatRelativeTime(dateValue) {
@@ -27,26 +30,30 @@ function formatRelativeTime(dateValue) {
   return `${diffDays}d ago`;
 }
 
-function StatCard({ stat, index }) {
+const STAT_LINKS = { clients: ['/crm/clients', 'clients'], enquiries: ['/rfqs', 'rfq'], rfq: ['/rfqs', 'rfq'], quotations: ['/quotations', 'quotations'], projects: ['/projects', 'projects'], maintenance: ['/maintenance', 'maintenance'] };
+
+function StatCard({ stat, index, user }) {
   const Icon = stat.icon;
-  return (
+  const link = STAT_LINKS[stat.key];
+  const card = (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.04, ease: 'easeOut' }}
-      className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+      className="group h-full rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md active:scale-[0.98] sm:p-5"
     >
       <div className="flex items-start justify-between">
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-primary">
           <Icon className="h-5 w-5" strokeWidth={2} />
         </span>
       </div>
-      <p className="mt-4 font-display text-2xl font-extrabold tracking-tight text-foreground">
+      <p className="mt-3 font-display text-2xl font-extrabold tracking-tight text-foreground sm:mt-4">
         {stat.value}
       </p>
-      <p className="mt-0.5 text-[13px] text-muted-foreground">{stat.label}</p>
+      <p className="mt-0.5 text-[12px] text-muted-foreground sm:text-[13px]">{stat.label}</p>
     </motion.div>
   );
+  return link && canAccessModule(user, link[1]) ? <Link to={link[0]} className="block">{card}</Link> : card;
 }
 
 export default function DashboardPage() {
@@ -57,8 +64,10 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const firstName = (user?.name || 'there').split(' ')[0];
+  const isTech = ['technician', 'lead_technician'].includes(user?.role);
 
   useEffect(() => {
+    if (isTech) return undefined; // technicians get their own dashboard
     let cancelled = false;
     const load = async () => {
       try {
@@ -115,25 +124,25 @@ export default function DashboardPage() {
   const activityList = useMemo(() => activity, [activity]);
 
   return (
-    <PortalLayout title="Executive Dashboard" subtitle="Operations overview">
+    <PortalLayout title={isTech ? 'My work' : 'Dashboard'} subtitle={isTech ? 'Your projects, tasks and visits' : 'Operations overview'}>
       <Helmet>
         <title>Dashboard | RUNHTec Business Portal</title>
         <meta name="description" content="Executive operations dashboard for RUNHTec Contractors — clients, projects, quotations, invoices and workforce at a glance." />
       </Helmet>
 
       {/* Welcome banner */}
-      <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-slate-900 p-6 text-white sm:p-8">
+      <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-slate-900 p-5 text-white sm:p-8">
         <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-slate-300">{greeting},</p>
-            <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+            <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-3xl">
               Welcome back, {user?.name || firstName}
             </h2>
             <p className="mt-1 text-sm text-slate-400">
               Role: {roleLabel(user?.role)}
             </p>
           </div>
-          <div className="rounded-lg bg-white/5 px-4 py-3 ring-1 ring-white/10">
+          <div className="hidden rounded-lg bg-white/5 px-4 py-3 ring-1 ring-white/10 sm:block">
             <p className="text-xs text-slate-400">Today</p>
             <p className="text-sm font-semibold">
               {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -142,8 +151,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Phone: app-style icons instead of a long menu */}
+      <QuickAccess user={user} title="" className="mb-6 rounded-2xl border border-border bg-card p-4 shadow-sm md:hidden" />
+
+      {isTech ? <TechnicianDashboard user={user} /> : (<>
       {/* Stat grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {loading ? Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
@@ -151,7 +164,7 @@ export default function DashboardPage() {
             <div className="mt-2 h-4 w-32 animate-pulse rounded bg-muted" />
           </div>
         )) : stats.map((s, i) => (
-          <StatCard key={s.key} stat={s} index={i} />
+          <StatCard key={s.key} stat={s} index={i} user={user} />
         ))}
       </div>
 
@@ -207,6 +220,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </>)}
     </PortalLayout>
   );
 }

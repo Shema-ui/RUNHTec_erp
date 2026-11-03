@@ -92,7 +92,7 @@ export default function ReportsPage() {
       <Helmet><title>Reports | RUNHTec Business Portal</title></Helmet>
       {!r ? <Loading /> : (
         <div className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard icon={TrendingUp} label="Cash received this month" value={formatMoney(r.month, C)} note={`${formatMoney(r.year, C)} this year`} tone="green" />
             <StatCard icon={ReceiptText} label="Outstanding from clients" value={formatMoney(r.outstanding, C)} note={`${r.overdue} invoice(s) past due`} tone={r.overdue ? 'red' : 'amber'} />
             <StatCard icon={FileText} label="Quotation win rate" value={`${r.winRate}%`} note={`${r.won} won of ${r.decided} decided · ${formatMoney(r.pipeline, C)} awaiting reply`} />

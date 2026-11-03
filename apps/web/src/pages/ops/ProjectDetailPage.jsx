@@ -123,7 +123,7 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Progress" value={`${Number(p.progress) || 0}%`} note={tasks.length ? `${tasks.filter((t) => t.done).length} of ${tasks.length} tasks done` : 'Add tasks to track progress'} />
         {!isTechRole && <StatCard label="Contract value" value={value ? formatMoney(value, currency) : '—'} tone="green" />}
         {!isTechRole && <StatCard label="Contractor fees" value={formatMoney(costs.fees, currency)} note={`${formatMoney(costs.paid, currency)} paid`} tone="amber" />}

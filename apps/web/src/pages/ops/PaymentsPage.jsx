@@ -59,7 +59,7 @@ export default function PaymentsPage() {
     <PortalLayout title="Payments" subtitle="Money received from clients, matched to invoices">
       <Helmet><title>Payments | RUNHTec Business Portal</title></Helmet>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
         <StatCard icon={CreditCard} label="Received this month" value={formatMoney(stats.thisMonth, DEFAULT_CURRENCY)} tone="green" />
         <StatCard label="Still owed on sent invoices" value={formatMoney(stats.outstanding, DEFAULT_CURRENCY)} tone={stats.outstanding ? 'red' : 'green'} />
         <StatCard label="Invoices awaiting payment" value={stats.openCount} tone="amber" />

@@ -55,7 +55,7 @@ export default function CatalogPage() {
     <PortalLayout title="Items & Prices" subtitle="Everything we sell and the price we offer it at — used to build quotations">
       <Helmet><title>Items & Prices | RUNHTec Business Portal</title></Helmet>
 
-      <div className={`mb-5 grid gap-4 ${showCost ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+      <div className={`mb-5 grid grid-cols-2 gap-3 sm:gap-4 ${showCost ? 'sm:grid-cols-3' : ''}`}>
         <StatCard icon={Package} label="Items in the price list" value={stats.count} />
         <StatCard label="Categories used" value={stats.cats} />
         {showCost && <StatCard label="Items without a buying price" value={stats.noCost} tone={stats.noCost ? 'amber' : 'green'} note="Add it so quotes show the real profit" />}

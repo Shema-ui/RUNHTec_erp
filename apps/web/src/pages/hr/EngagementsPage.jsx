@@ -40,7 +40,7 @@ export default function EngagementsPage() {
       <Helmet><title>Project engagements | RUNHTec Business Portal</title></Helmet>
       <HrTabs />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3">
         <StatCard label="Fees agreed (shown)" value={formatMoney(sums.agreed, DEFAULT_CURRENCY)} />
         <StatCard label="Paid" value={formatMoney(sums.paid, DEFAULT_CURRENCY)} tone="green" />
         <StatCard label="Still to pay" value={formatMoney(sums.owed, DEFAULT_CURRENCY)} tone={sums.owed ? 'red' : 'green'} />

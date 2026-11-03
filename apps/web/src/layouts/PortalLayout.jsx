@@ -15,6 +15,7 @@ import BrandMark from '@/components/BrandMark';
 import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule, needsProfile } from '@/lib/permissions';
+import QuickAccess from '@/components/erp/QuickAccess';
 import { UserRound } from 'lucide-react';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
@@ -175,8 +176,10 @@ export default function PortalLayout({ children, title, subtitle }) {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div onClick={() => setMobileOpen(false)}>
-                <SidebarContent collapsed={false} user={user} />
+              <div onClick={() => setMobileOpen(false)} className="portal-scroll flex-1 overflow-y-auto">
+                {needsProfile(user)
+                  ? <SidebarContent collapsed={false} user={user} />
+                  : <QuickAccess user={user} title="" includeDashboard cols="grid-cols-3" className="px-3 py-5" />}
               </div>
             </motion.aside>
           </>

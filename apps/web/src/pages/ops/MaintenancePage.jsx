@@ -49,7 +49,7 @@ export default function MaintenancePage() {
     <PortalLayout title="Maintenance contracts" subtitle="Recurring service agreements and upcoming visits">
       <Helmet><title>Maintenance | RUNHTec Business Portal</title></Helmet>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Wrench} label="Active contracts" value={stats.active} />
         <StatCard label="Visits due in 7 days" value={stats.dueWeek} tone="amber" />
         <StatCard label="Visits overdue" value={stats.overdue} tone={stats.overdue ? 'red' : 'green'} />
