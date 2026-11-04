@@ -179,6 +179,23 @@ const collections = {
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['selling_price', 'buying_price', 'active'],
   },
+  // Suppliers and their price lists. These are buying prices, so only roles
+  // that may see costs can read them. Vendors themselves never use this API:
+  // they go through routes/vendor.js and only ever see their own items.
+  vendors: {
+    table: 'vendors',
+    fields: ['id', 'name', 'contact_name', 'phone', 'email', 'address', 'supplies', 'currency', 'status', 'notes', 'created', 'updated'],
+    relations: {},
+    rules: { list: COST_VIEW, view: COST_VIEW, create: COST_VIEW, update: COST_VIEW, delete: (u) => u?.role === 'super_admin' },
+    watchedFields: ['name', 'status'],
+  },
+  vendor_items: {
+    table: 'vendor_items',
+    fields: ['id', 'vendor', 'name', 'brand', 'code', 'category', 'unit', 'price', 'previous_price', 'price_changed_at', 'currency', 'availability', 'lead_time', 'notes', 'updated_by_name', 'created', 'updated'],
+    relations: { vendor: 'vendors' },
+    rules: { list: COST_VIEW, view: COST_VIEW, create: COST_VIEW, update: COST_VIEW, delete: COST_VIEW },
+    watchedFields: ['price'],
+  },
   // Messages between a client (portal) and the RUNHTec team. Staff use the
   // generic API; clients go through routes/portal.js (forced to their own client).
   client_messages: {
@@ -286,7 +303,7 @@ const collections = {
   },
   users: {
     table: 'users',
-    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'client', 'created', 'updated'],
+    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'client', 'vendor', 'created', 'updated'],
     relations: {},
     rules: {
       list: AUTHED,

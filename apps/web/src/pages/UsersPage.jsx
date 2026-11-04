@@ -78,7 +78,7 @@ export default function UsersPage() {
     setLoading(true);
     try {
       const list = await pb.collection('users').getFullList({ sort: 'name' });
-      setUsers(list.filter((u) => u.role !== 'client'));
+      setUsers(list.filter((u) => !['client', 'vendor'].includes(u.role)));
     } catch (err) {
       console.error(err);
     } finally {

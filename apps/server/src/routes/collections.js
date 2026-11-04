@@ -141,12 +141,14 @@ async function alertClientPhotos(photo) {
 }
 
 function needsProfile(user) {
-  return Boolean(user) && !['super_admin', 'client'].includes(user.role) && Number(user.profile_completed) !== 1;
+  return Boolean(user) && !['super_admin', 'client', 'vendor'].includes(user.role) && Number(user.profile_completed) !== 1;
 }
 
 function collectionMiddleware(req, res, next) {
   const def = collections[req.params.name];
   if (!def) return res.status(404).json({ message: 'Unknown collection.' });
+  // Vendor logins only use /api/vendor (their own items); nothing here.
+  if (req.user?.role === 'vendor') return res.status(403).json({ message: 'Not available in the vendor portal.' });
   if (req.user?.role === 'client') {
     const allowedWrite = (clientScope.WRITABLE[req.params.name] || []).includes(req.method);
     if (req.method === 'GET' ? !clientScope.READABLE.has(req.params.name) : !allowedWrite) {
@@ -303,6 +305,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
     if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
+    if (req.collectionName === 'vendor_items') { delete body.previous_price; delete body.price_changed_at; body.updated_by_name = `${req.user.name || req.user.email || ''} (RUNHTec)`; }
     if (req.collectionName === 'client_messages') {
       Object.assign(body, { sender: req.user.id, sender_name: req.user.name || req.user.email || 'RUNHTec', sender_role: 'staff', read_by_staff: 1, read_by_client: 0 });
       if (!body.kind) body.kind = 'message';
@@ -435,6 +438,11 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     }
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
     if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
+    if (req.collectionName === 'vendor_items') {
+      delete body.previous_price; delete body.price_changed_at;
+      body.updated_by_name = `${req.user.name || req.user.email || ''} (RUNHTec)`;
+      if (body.price !== undefined && Number(body.price) !== Number(before.price)) Object.assign(body, { previous_price: before.price, price_changed_at: new Date().toISOString().slice(0, 19).replace('T', ' ') });
+    }
     if (req.collectionName === 'project_photos') {
       delete body.project; delete body.uploaded_by; delete body.uploaded_by_name;
       if (['technician', 'lead_technician'].includes(req.user.role)) delete body.shared;
@@ -523,6 +531,11 @@ router.delete('/:name/records/:id', collectionMiddleware, requireAuth, async (re
     await pool.query(`DELETE FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     // Its automatic quotation goes too (quotations the client actually received stay).
     if (req.collectionName === 'invoices') await removeQuoteForInvoice(req.params.id);
+    // A removed vendor takes its price list and its portal login with it.
+    if (req.collectionName === 'vendors') {
+      await pool.query('DELETE FROM vendor_items WHERE vendor = ?', [req.params.id]);
+      await pool.query("DELETE FROM users WHERE role = 'vendor' AND vendor = ?", [req.params.id]);
+    }
     await writeAuditEntry({ actor: req.user, action: 'Deleted', collectionName: req.collectionName, record });
     res.status(204).send();
   } catch (err) {

@@ -30,7 +30,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const auth = await login(email.trim(), password, remember);
-      const to = auth?.record?.role === 'client' ? '/portal' : (location.state?.from?.pathname || '/dashboard');
+      const to = auth?.record?.role === 'client' ? '/portal' : auth?.record?.role === 'vendor' ? '/vendor' : (location.state?.from?.pathname || '/dashboard');
       navigate(to, { replace: true });
     } catch (err) {
       if (err?.status === 400) {

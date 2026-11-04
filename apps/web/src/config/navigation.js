@@ -17,6 +17,7 @@ import {
   Bell,
   Tags,
   MessagesSquare,
+  Truck,
 } from 'lucide-react';
 
 // Primary operating modules. `to` is null for placeholders that are not yet
@@ -28,6 +29,7 @@ export const MODULE_NAV = [
   { key: 'rfq', label: 'Request for Quotations', icon: FileQuestion, to: '/rfqs' },
   { key: 'quotations', label: 'Quotations', icon: FileText, to: '/quotations' },
   { key: 'catalog', label: 'Items & Prices', icon: Tags, to: '/items' },
+  { key: 'vendors', label: 'Vendors', icon: Truck, to: '/vendors' },
   { key: 'client_messages', label: 'Client Messages', icon: MessagesSquare, to: '/client-messages' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, to: '/projects' },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },

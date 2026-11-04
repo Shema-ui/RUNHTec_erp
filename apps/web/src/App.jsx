@@ -18,6 +18,10 @@ import PortalHomePage from '@/pages/portal/PortalHomePage';
 import PortalProjectPage from '@/pages/portal/PortalProjectPage';
 import PortalMessagesPage from '@/pages/portal/PortalMessagesPage';
 import ClientMessagesPage from '@/pages/ClientMessagesPage';
+import VendorEnterPage from '@/pages/vendor/VendorEnterPage';
+import VendorPortalPage from '@/pages/vendor/VendorPortalPage';
+import VendorsPage from '@/pages/vendors/VendorsPage';
+import VendorDetailPage from '@/pages/vendors/VendorDetailPage';
 import StaffProfilePage from '@/pages/StaffProfilePage';
 import ActivityLogPage from '@/pages/ActivityLogPage';
 import CrmDashboardPage from '@/pages/crm/CrmDashboardPage';
@@ -72,6 +76,10 @@ function App() {
           {/* Dashboard — every role lands here after login */}
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/p/:token" element={<PortalEnterPage />} />
+          <Route path="/v/:token" element={<VendorEnterPage />} />
+          <Route path="/vendor" element={<RequireAuth><VendorPortalPage /></RequireAuth>} />
+          <Route path="/vendors" element={<RequireAuth><RequireModule moduleKey="vendors"><VendorsPage /></RequireModule></RequireAuth>} />
+          <Route path="/vendors/:id" element={<RequireAuth><RequireModule moduleKey="vendors"><VendorDetailPage /></RequireModule></RequireAuth>} />
           <Route path="/portal" element={<RequireAuth><PortalHomePage /></RequireAuth>} />
           <Route path="/portal/projects/:id" element={<RequireAuth><PortalProjectPage /></RequireAuth>} />
           <Route path="/portal/messages" element={<RequireAuth><PortalMessagesPage /></RequireAuth>} />

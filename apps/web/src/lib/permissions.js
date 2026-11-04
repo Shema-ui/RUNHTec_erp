@@ -49,6 +49,11 @@ export const ROLES = {
     label: 'Client (portal)',
     description: 'A client company with access to the client portal: their own projects, shared photos, documents, invoices and messages.',
   },
+  vendor: {
+    key: 'vendor',
+    label: 'Vendor (supplier portal)',
+    description: 'A supplier with access to the vendor portal: they add and update only their own items and prices.',
+  },
   lead_technician: {
     key: 'lead_technician',
     label: 'Lead Technician',
@@ -67,6 +72,7 @@ export const MODULE_ACCESS = {
   quotations: ['sales'],
   client_messages: ['sales', 'project_manager', 'accountant', 'hr'],
   catalog: ['sales', 'accountant', 'project_manager'],
+  vendors: ['sales', 'accountant', 'project_manager'],
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],
@@ -80,7 +86,7 @@ export const MODULE_ACCESS = {
 
 export function canAccessModule(user, moduleKey) {
   if (!user || !user.role) return false;
-  if (user.role === 'client') return false;
+  if (user.role === 'client' || user.role === 'vendor') return false;
   if (user.role === 'super_admin' || user.role === 'admin') return true;
   const allowed = MODULE_ACCESS[moduleKey];
   return Array.isArray(allowed) && allowed.includes(user.role);
@@ -98,9 +104,10 @@ export function canUploadDocs(user) {
 // New staff must complete their profile (photo, ID, documents) before the
 // rest of the portal opens for them.
 export function needsProfile(user) {
-  return Boolean(user) && !['super_admin', 'client'].includes(user.role) && Number(user.profile_completed) !== 1;
+  return Boolean(user) && !['super_admin', 'client', 'vendor'].includes(user.role) && Number(user.profile_completed) !== 1;
 }
 
 export const isClient = (user) => user?.role === 'client';
+export const isVendor = (user) => user?.role === 'vendor';
 // Roles shown when creating staff accounts (clients get access from their client profile).
 export const STAFF_ROLE_KEYS = ['admin', 'sales', 'project_manager', 'accountant', 'hr', 'technician', 'lead_technician'];

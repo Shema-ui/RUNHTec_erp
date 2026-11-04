@@ -179,6 +179,8 @@ const pb = {
   // Plain POST to a non-collection endpoint, e.g. pb.post('/api/portal/messages', {...}).
   post(path, body) { return request(path, { method: 'POST', body: body || {} }); },
   get(path) { return request(path, { method: 'GET' }); },
+  patch(path, body) { return request(path, { method: 'PATCH', body: body || {} }); },
+  del(path) { return request(path, { method: 'DELETE' }); },
   wakeServer,
   apiUrl: API_URL,
   async getConfig() {
