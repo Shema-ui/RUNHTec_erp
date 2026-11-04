@@ -11,7 +11,7 @@ const when = (d) => (d ? new Date(String(d).replace(' ', 'T') + (String(d).inclu
 
 // Create / copy / replace / turn off a private no-password link (client portal, vendor portal).
 // api: '/api/portal' or '/api/vendor'; field: 'client' or 'vendor'; path: '/p/' or '/v/'.
-export default function PrivateLinkCard({ api, field, id, name, path, title, description, previewTo, shareText, icon: Icon = Globe }) {
+export default function PrivateLinkCard({ api, field, id, name, path, title, description, previewTo, shareText, icon: Icon = Globe, withPassword = false }) {
   const { toast } = useToast();
   const [info, setInfo] = useState(null);
   const [link, setLink] = useState('');
@@ -22,7 +22,7 @@ export default function PrivateLinkCard({ api, field, id, name, path, title, des
   useEffect(() => { load(); setLink(''); }, [id]);
 
   const create = async () => {
-    if (info?.active && !window.confirm('Make a new link? The old link will stop working straight away.')) return;
+    if (info?.active && !window.confirm(withPassword ? 'Make a new link? The old link stops working straight away, and the password is cleared: the vendor chooses a new one when they open the new link.' : 'Make a new link? The old link will stop working straight away.')) return;
     setBusy(true);
     try {
       const r = await pb.post(`${api}/access`, { [field]: id });
@@ -55,7 +55,7 @@ export default function PrivateLinkCard({ api, field, id, name, path, title, des
             {info && (
               <p className="mt-1 text-xs">
                 {info.active
-                  ? <span className="font-medium text-emerald-700">● Access on{info.link_at ? ` · link made ${when(info.link_at)}` : ''}{info.last_used ? ` · last opened ${when(info.last_used)}${info.last_name ? ` by ${info.last_name}` : ''}` : ' · not opened yet'}</span>
+                  ? <span className="font-medium text-emerald-700">● Access on{withPassword ? (info.password_set ? ' · password set 🔒' : ' · waiting for them to set a password') : ''}{info.link_at ? ` · link made ${when(info.link_at)}` : ''}{info.last_used ? ` · last opened ${when(info.last_used)}${info.last_name ? ` by ${info.last_name}` : ''}` : ' · not opened yet'}</span>
                   : <span className="text-muted-foreground">○ No active link</span>}
               </p>
             )}

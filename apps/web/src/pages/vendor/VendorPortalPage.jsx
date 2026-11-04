@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Rows3, Loader2, PackageOpen, Lock, Save, Clock, Boxes, AlertTriangle } from 'lucide-react';
+import { LogOut, Plus, Rows3, Loader2, PackageOpen, Lock, Save, Clock, Boxes, AlertTriangle, KeyRound } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import BrandMark from '@/components/BrandMark';
-import { Field, inputCls, textareaCls, btnPrimary, btnLine, SearchBox, fmtDate } from '@/components/erp/kit';
+import { Field, Modal, inputCls, textareaCls, btnPrimary, btnLine, SearchBox, fmtDate } from '@/components/erp/kit';
 import VendorItemsTable from '@/components/erp/VendorItemsTable';
 import { VendorItemDialog, VendorBulkDialog } from '@/components/erp/VendorItemDialogs';
 
@@ -24,7 +24,10 @@ export default function VendorPortalPage() {
   const [details, setDetails] = useState(null);
   const [savingDetails, setSavingDetails] = useState(false);
 
-  const load = () => pb.get('/api/vendor/me').then((d) => { setData(d); setDetails((p) => p || d.vendor); }).catch((e) => setError(e.message));
+  const [pwOpen, setPwOpen] = useState(false);
+  // Signed out after 12 hours: back to the link page.
+  const expired = (e) => { if (e?.status === 401) { logout(); navigate('/v/expired', { replace: true }); return true; } return false; };
+  const load = () => pb.get('/api/vendor/me').then((d) => { setData(d); setDetails((p) => p || d.vendor); }).catch((e) => { if (!expired(e)) setError(e.message); });
   useEffect(() => { load(); }, []);
 
   const items = data?.items || [];
@@ -37,7 +40,7 @@ export default function VendorPortalPage() {
   const currency = data?.vendor?.currency || 'RWF';
 
   const patch = async (id, body) => {
-    const r = await pb.patch(`/api/vendor/items/${id}`, body);
+    const r = await pb.patch(`/api/vendor/items/${id}`, body).catch((e) => { expired(e); throw e; });
     setData((d) => ({ ...d, items: d.items.map((x) => (x.id === id ? { ...x, ...r } : x)) }));
   };
   const saveOne = async (f) => {
@@ -71,7 +74,8 @@ export default function VendorPortalPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
           <BrandMark />
           <span className="hidden rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold sm:inline">Supplier portal</span>
-          <button onClick={leave} className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10" aria-label="Leave the supplier portal"><LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Leave</span></button>
+          <button onClick={() => setPwOpen(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10" aria-label="Change password"><KeyRound className="h-4 w-4" /> <span className="hidden sm:inline">Password</span></button>
+          <button onClick={leave} className=" inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white/85 hover:bg-white/10" aria-label="Leave the supplier portal"><LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Leave</span></button>
         </div>
       </header>
 
@@ -137,7 +141,7 @@ export default function VendorPortalPage() {
                 <ul className="space-y-2 text-muted-foreground">
                   <li>• Only the RUNHTec purchasing team sees your prices.</li>
                   <li>• Other suppliers cannot see your list, and you cannot see theirs.</li>
-                  <li>• Keep your link private. If someone else gets it, ask RUNHTec for a new one.</li>
+                  <li>• Keep your link and password private. If you forget the password, ask RUNHTec for a new link.</li>
                   <li>• When a price changes, just type the new one. We are told about the change.</li>
                 </ul>
               </div>
@@ -147,7 +151,43 @@ export default function VendorPortalPage() {
       </main>
 
       <VendorItemDialog open={Boolean(editing)} onClose={() => setEditing(null)} item={editing?.id ? editing : null} currency={currency} onSave={saveOne} />
+      <ChangePassword open={pwOpen} onClose={() => setPwOpen(false)} />
       <VendorBulkDialog open={bulk} onClose={() => setBulk(false)} currency={currency} onSave={saveMany} />
     </div>
+  );
+}
+
+function ChangePassword({ open, onClose }) {
+  const { toast } = useToast();
+  const [f, setF] = useState({ current: '', password: '', confirm: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { if (open) { setF({ current: '', password: '', confirm: '' }); setErr(''); } }, [open]);
+  const save = async () => {
+    if (f.password.length < 8 || !/[A-Za-z]/.test(f.password) || !/\d/.test(f.password)) { setErr('Use at least 8 characters, with letters and numbers.'); return; }
+    if (f.password !== f.confirm) { setErr('The two new passwords are not the same.'); return; }
+    setBusy(true); setErr('');
+    try {
+      const r = await pb.post('/api/vendor/password', { current: f.current, password: f.password });
+      pb.authStore.save(r.token, r.record);
+      toast({ title: 'Password changed', description: 'Other phones or computers using your link are signed out.' });
+      onClose();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+  const box = (k, label, ac) => <Field label={label}><input type="password" autoComplete={ac} className={inputCls} value={f[k]} onChange={(e) => setF((p) => ({ ...p, [k]: e.target.value }))} aria-label={label} /></Field>;
+  return (
+    <Modal open={open} onClose={onClose} title="Change your password" description="You need this password with your link every time you open the supplier portal.">
+      <div className="space-y-4">
+        {box('current', 'Current password', 'current-password')}
+        {box('password', 'New password', 'new-password')}
+        {box('confirm', 'Type the new password again', 'new-password')}
+        {err && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
+        <div className="flex justify-end gap-2">
+          <button className={btnLine} onClick={onClose}>Cancel</button>
+          <button className={btnPrimary} onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Change password</button>
+        </div>
+      </div>
+    </Modal>
   );
 }

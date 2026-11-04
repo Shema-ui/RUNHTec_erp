@@ -34,7 +34,8 @@ router.post('/users/auth-with-password', async (req, res) => {
   const user = rows[0];
   // Always run bcrypt so a wrong email and a wrong password take the same time.
   const valid = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
-  if (!user || !valid) {
+  // Vendors and clients come in only through their private link, never this sign-in page.
+  if (!user || !valid || ['vendor', 'client'].includes(user.role)) {
     loginByIp.hit(ipKey);
     loginByAccount.hit(accountKey);
     return res.status(400).json({ message: 'Invalid credentials.' });
@@ -50,7 +51,9 @@ router.get('/users/auth-refresh', requireAuth, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
   const user = rows[0];
   if (!user) return res.status(401).json({ message: 'Session no longer valid.' });
-  const token = signToken(user);
+  // A vendor's 12-hour sign-in is not extended: after that they open their link again.
+  const header = req.headers.authorization || '';
+  const token = user.role === 'vendor' ? header.slice(7) : signToken(user);
   res.json({ token, record: sanitizeUser(user) });
 });
 

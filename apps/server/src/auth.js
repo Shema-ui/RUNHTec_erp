@@ -9,7 +9,8 @@ if (!JWT_SECRET) {
 const TOKEN_TTL = '7d';
 
 function signToken(user) {
-  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: TOKEN_TTL });
+  // Vendors (supplier portal) get a shorter sign-in than staff.
+  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: user?.role === 'vendor' ? '12h' : TOKEN_TTL });
 }
 
 function sanitizeUser(row) {

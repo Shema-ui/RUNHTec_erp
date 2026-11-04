@@ -5,13 +5,15 @@ const express = require('express');
 const crypto = require('crypto');
 const pool = require('../db');
 const { genId } = require('../idGen');
-const { requireAuth, signToken, sanitizeUser, bcrypt } = require('../auth');
+const { requireAuth, signToken, sanitizeUser, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
 const { notifyRoles } = require('../notify');
 const { createLimiter } = require('../rateLimit');
 
 const router = express.Router();
 const writeLimit = createLimiter({ windowMs: 60 * 60 * 1000, max: 400 });
 const enterLimit = createLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+// Wrong passwords: 8 tries per link every 15 minutes, then it waits.
+const pwLimit = createLimiter({ windowMs: 15 * 60 * 1000, max: 8 });
 // Staff who may create / replace / turn off a vendor's link (same as who may see buying prices).
 const GRANT = ['super_admin', 'admin', 'sales', 'accountant', 'project_manager'];
 const hash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
@@ -146,7 +148,7 @@ async function vendorUserFor(vendorId) {
 router.get('/access', requireAuth, async (req, res) => {
   if (!GRANT.includes(req.user.role)) return res.status(403).json({ message: 'Not allowed.' });
   const u = await vendorUserFor(String(req.query.vendor || ''));
-  res.json(u ? { exists: true, active: u.status === 'active' && Boolean(u.portal_token_hash), link_at: u.portal_link_at, last_used: u.portal_last_used, last_name: u.name } : { exists: false, active: false });
+  res.json(u ? { exists: true, active: u.status === 'active' && Boolean(u.portal_token_hash), password_set: Number(u.portal_password_set) === 1, link_at: u.portal_link_at, last_used: u.portal_last_used, last_name: u.name } : { exists: false, active: false });
 });
 
 // POST /api/vendor/access {vendor} — create or replace the vendor's private link (shown once).
@@ -159,7 +161,9 @@ router.post('/access', requireAuth, async (req, res) => {
     const token = crypto.randomBytes(24).toString('base64url');
     const u = await vendorUserFor(vendorId);
     if (u) {
-      await pool.query("UPDATE users SET portal_token_hash = ?, portal_link_at = UTC_TIMESTAMP(), status = 'active', tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?", [hash(token), u.id]);
+      // A new link also clears the password: the vendor chooses a new one when they open it.
+      const pw = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
+      await pool.query("UPDATE users SET portal_token_hash = ?, password_hash = ?, portal_password_set = 0, portal_link_at = UTC_TIMESTAMP(), status = 'active', tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?", [hash(token), pw, u.id]);
     } else {
       const pw = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
       await pool.query(
@@ -178,7 +182,24 @@ router.post('/access/disable', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/vendor/enter {token, name} — public: opening the private link.
+async function userForLink(token) {
+  if (!token || token.length < 20) return null;
+  const [rows] = await pool.query("SELECT * FROM users WHERE role = 'vendor' AND status = 'active' AND portal_token_hash = ?", [hash(token)]);
+  return rows[0] || null;
+}
+
+// POST /api/vendor/link {token} — public: is this link valid, and has a password been chosen?
+router.post('/link', async (req, res) => {
+  if (enterLimit.isBlocked(req.ip)) return res.status(429).json({ message: 'Too many attempts. Please wait a few minutes.' });
+  enterLimit.hit(req.ip);
+  const u = await userForLink(String(req.body?.token || ''));
+  if (!u) return res.status(404).json({ message: 'This link has expired or was replaced. Please ask RUNHTec for a new one.' });
+  const [v] = await pool.query('SELECT name FROM vendors WHERE id = ?', [u.vendor]);
+  res.json({ vendor: v[0]?.name || '', password_set: Number(u.portal_password_set) === 1 });
+});
+
+// POST /api/vendor/enter {token, name, password, new_password?} — public: open the link.
+// First time: the vendor chooses a password (new_password). After that the password is required.
 router.post('/enter', async (req, res) => {
   if (enterLimit.isBlocked(req.ip)) return res.status(429).json({ message: 'Too many attempts. Please wait a few minutes.' });
   enterLimit.hit(req.ip);
@@ -186,15 +207,38 @@ router.post('/enter', async (req, res) => {
   const name = String(req.body?.name || '').trim().replace(/\s+/g, ' ').slice(0, 120);
   if (!token || token.length < 20) return res.status(400).json({ message: 'This link is not valid.' });
   if (name.length < 2) return res.status(400).json({ message: 'Please enter your name.' });
+  const key = hash(token);
+  if (pwLimit.isBlocked(key)) return res.status(429).json({ message: `Too many wrong passwords. Try again in ${Math.ceil(pwLimit.retryAfterSeconds(key) / 60)} minutes, or ask RUNHTec for a new link.` });
   try {
-    const [rows] = await pool.query("SELECT * FROM users WHERE role = 'vendor' AND status = 'active' AND portal_token_hash = ?", [hash(token)]);
-    const u = rows[0];
+    const u = await userForLink(token);
     if (!u) return res.status(404).json({ message: 'This link has expired or was replaced. Please ask RUNHTec for a new one.' });
+    if (Number(u.portal_password_set) === 1) {
+      const ok = await bcrypt.compare(String(req.body?.password || ''), u.password_hash || '');
+      if (!ok) { pwLimit.hit(key); return res.status(401).json({ message: 'Wrong password. If you forgot it, ask RUNHTec for a new link.' }); }
+      pwLimit.reset(key);
+      await pool.query('UPDATE users SET name = ?, portal_last_used = UTC_TIMESTAMP() WHERE id = ?', [name, u.id]);
+    } else {
+      const pw = String(req.body?.new_password || '');
+      if (pw.length < MIN_PASSWORD_LENGTH) return res.status(400).json({ message: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.` });
+      if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return res.status(400).json({ message: 'Use letters and numbers in your password.' });
+      await pool.query('UPDATE users SET name = ?, password_hash = ?, portal_password_set = 1, portal_last_used = UTC_TIMESTAMP() WHERE id = ?', [name, await bcrypt.hash(pw, 10), u.id]);
+    }
     enterLimit.reset(req.ip);
-    await pool.query('UPDATE users SET name = ?, portal_last_used = UTC_TIMESTAMP() WHERE id = ?', [name, u.id]);
     const [after] = await pool.query('SELECT * FROM users WHERE id = ?', [u.id]);
     res.json({ token: signToken(after[0]), record: sanitizeUser(after[0]) });
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// POST /api/vendor/password {current, password} — a signed-in vendor changes their password.
+router.post('/password', requireAuth, vendorOnly, async (req, res) => {
+  const pw = String(req.body?.password || '');
+  if (pw.length < MIN_PASSWORD_LENGTH || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return res.status(400).json({ message: `Use at least ${MIN_PASSWORD_LENGTH} characters with letters and numbers.` });
+  const [rows] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+  if (!(await bcrypt.compare(String(req.body?.current || ''), rows[0]?.password_hash || ''))) return res.status(401).json({ message: 'Your current password is wrong.' });
+  // Signs out every other device; this one gets a fresh sign-in.
+  await pool.query('UPDATE users SET password_hash = ?, tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?', [await bcrypt.hash(pw, 10), req.user.id]);
+  const [after] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+  res.json({ token: signToken(after[0]), record: sanitizeUser(after[0]) });
 });
 
 module.exports = router;

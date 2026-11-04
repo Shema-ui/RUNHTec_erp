@@ -19,6 +19,8 @@ export function RequireAuth({ children }) {
   const { isAuthed, ready, user } = useAuth();
   const location = useLocation();
   if (!ready) return <FullScreenLoader />;
+  // A vendor whose sign-in ended goes back to their link, not the staff login.
+  if (!isAuthed && /^\/vendor\/?$/.test(location.pathname)) return <Navigate to="/v/expired" replace />;
   if (!isAuthed) return <Navigate to="/login" replace state={{ from: location }} />;
   if (isVendor(user)) return /^\/vendor\/?$/.test(location.pathname) ? children : <Navigate to="/vendor" replace />;
   if (isClient(user)) return CLIENT_PATHS.some((re) => re.test(location.pathname)) ? children : <Navigate to="/portal" replace />;

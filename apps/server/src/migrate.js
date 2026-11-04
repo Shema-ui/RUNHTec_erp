@@ -84,6 +84,8 @@ async function runMigrations() {
       "ENUM('super_admin','admin','sales','project_manager','accountant','technician','lead_technician','hr','client','vendor') NOT NULL DEFAULT 'sales'");
     // Vendor portal: which supplier a vendor login belongs to
     await ensureColumn(conn, 'users', 'vendor', 'VARCHAR(20) DEFAULT NULL');
+    // Vendors protect their link with their own password (set the first time they open it)
+    await ensureColumn(conn, 'users', 'portal_password_set', 'TINYINT(1) NOT NULL DEFAULT 0');
 
     // Projects: full project record (manager, value, progress, priority…)
     for (const [col, def] of [

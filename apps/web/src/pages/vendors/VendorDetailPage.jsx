@@ -78,10 +78,10 @@ export default function VendorDetailPage() {
       </div>
 
       <PrivateLinkCard
-        api="/api/vendor" field="vendor" id={v.id} name={v.name} path="/v/" icon={Truck}
+        api="/api/vendor" field="vendor" id={v.id} name={v.name} path="/v/" icon={Truck} withPassword
         title="Vendor access"
-        description="A private link where this vendor adds and updates their own items and prices. They type only their name, no password, and see nothing else in the ERP."
-        shareText={(link) => `Hello, this is RUNHTec Contractors. Please add the items you supply and your prices here, and update them when prices change: ${link}\nJust open the link and type your name. Please keep it private.`}
+        description="A private link where this vendor adds and updates their own items and prices. The first time they open it they choose a password; after that they need the link and the password. They see nothing else in the ERP. Forgot password? Make a new link."
+        shareText={(link) => `Hello, this is RUNHTec Contractors. Please add the items you supply and your prices here, and update them when prices change: ${link}\nThe first time, you will choose a password. Please keep the link and password private.`}
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
