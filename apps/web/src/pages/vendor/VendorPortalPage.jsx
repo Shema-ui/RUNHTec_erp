@@ -64,7 +64,7 @@ export default function VendorPortalPage() {
     catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
     finally { setSavingDetails(false); }
   };
-  const leave = () => { logout(); navigate('/v/bye', { replace: true }); };
+  const leave = () => { navigate('/v/bye', { replace: true }); setTimeout(logout, 0); };
   const first = String(user?.name || '').split(' ')[0];
 
   return (

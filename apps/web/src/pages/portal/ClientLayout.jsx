@@ -40,7 +40,7 @@ export default function ClientLayout({ children }) {
   const wa = whatsappLink(data?.settings, `Hello RUNHTec, this is ${user?.name || ''} (${name}). `);
   const ctx = useMemo(() => ({ data, reload, preview, clientId, keep, openAssist: () => setAssist(true) }), [data, reload, preview, clientId, keep]);
 
-  const leave = () => { logout(); navigate(isClient ? '/p/bye' : '/login', { replace: true }); };
+  const leave = () => { navigate(isClient ? '/p/bye' : '/login', { replace: true }); setTimeout(logout, 0); };
   if (!clientId) {
     return <div className="flex min-h-[100dvh] items-center justify-center p-6 text-center text-sm text-muted-foreground">Open the portal from a client’s profile (“Preview portal”).</div>;
   }
