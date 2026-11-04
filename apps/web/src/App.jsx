@@ -13,6 +13,11 @@ import UsersPage from '@/pages/UsersPage';
 import MyProfilePage from '@/pages/MyProfilePage';
 import CatalogPage from '@/pages/catalog/CatalogPage';
 import SearchPage from '@/pages/SearchPage';
+import PortalEnterPage from '@/pages/portal/PortalEnterPage';
+import PortalHomePage from '@/pages/portal/PortalHomePage';
+import PortalProjectPage from '@/pages/portal/PortalProjectPage';
+import PortalMessagesPage from '@/pages/portal/PortalMessagesPage';
+import ClientMessagesPage from '@/pages/ClientMessagesPage';
 import StaffProfilePage from '@/pages/StaffProfilePage';
 import ActivityLogPage from '@/pages/ActivityLogPage';
 import CrmDashboardPage from '@/pages/crm/CrmDashboardPage';
@@ -66,6 +71,11 @@ function App() {
 
           {/* Dashboard — every role lands here after login */}
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="/p/:token" element={<PortalEnterPage />} />
+          <Route path="/portal" element={<RequireAuth><PortalHomePage /></RequireAuth>} />
+          <Route path="/portal/projects/:id" element={<RequireAuth><PortalProjectPage /></RequireAuth>} />
+          <Route path="/portal/messages" element={<RequireAuth><PortalMessagesPage /></RequireAuth>} />
+          <Route path="/client-messages" element={<RequireAuth><RequireModule moduleKey="client_messages"><ClientMessagesPage /></RequireModule></RequireAuth>} />
           <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
           <Route path="/items" element={<RequireAuth><RequireModule moduleKey="catalog"><CatalogPage /></RequireModule></RequireAuth>} />
           <Route path="/my-profile" element={<RequireAuth><MyProfilePage /></RequireAuth>} />

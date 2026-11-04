@@ -29,8 +29,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(email.trim(), password, remember);
-      const to = location.state?.from?.pathname || '/dashboard';
+      const auth = await login(email.trim(), password, remember);
+      const to = auth?.record?.role === 'client' ? '/portal' : (location.state?.from?.pathname || '/dashboard');
       navigate(to, { replace: true });
     } catch (err) {
       if (err?.status === 400) {

@@ -9,7 +9,8 @@ const { writeAuditEntry, summarizeChanges } = require('../audit');
 const { storeFile } = require('../files');
 const { ensureQuoteForInvoice, syncQuoteFromInvoice, removeQuoteForInvoice } = require('../invoiceQuote');
 const { markOverdueInvoices, nextNumber } = require('../jobs');
-const { notifyUsers } = require('../notify');
+const { notifyUsers, notifyClient, notifyRoles } = require('../notify');
+const clientScope = require('../clientScope');
 
 // People newly put on a project (technicians on site or lead) get an alert.
 function teamOf(p) {
@@ -53,7 +54,7 @@ function serializeValue(field, value) {
 // rule checks and audit diffing, where the full row is legitimately
 // needed) so this only strips things right before they go out over HTTP.
 const SENSITIVE_FIELDS = {
-  users: ['password_hash', 'reset_token_hash', 'reset_token_expires', 'tokens_valid_after'],
+  users: ['password_hash', 'reset_token_hash', 'reset_token_expires', 'tokens_valid_after', 'portal_token_hash'],
 };
 
 // Internal costing (buying prices, job budgets) — only for staff allowed to
@@ -127,13 +128,31 @@ async function putContractorOnSite(assignment, actor) {
   } catch (err) { console.error('on-site update failed:', err.message); }
 }
 
+// Tell the client about newly shared photos, at most once every 2 hours per project.
+async function alertClientPhotos(photo) {
+  try {
+    const [pr] = await pool.query('SELECT id, title, client FROM projects WHERE id = ?', [photo.project]);
+    if (!pr[0]?.client) return;
+    const link = `/portal/projects/${pr[0].id}`;
+    const [recent] = await pool.query("SELECT COUNT(*) AS n FROM notifications WHERE link = ? AND type = 'photos' AND created > (NOW() - INTERVAL 2 HOUR)", [link]);
+    if (recent[0].n) return;
+    await notifyClient(pr[0].client, 'photos', `New progress photos on “${pr[0].title}”.`, link);
+  } catch (err) { console.error('photo alert failed:', err.message); }
+}
+
 function needsProfile(user) {
-  return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
+  return Boolean(user) && !['super_admin', 'client'].includes(user.role) && Number(user.profile_completed) !== 1;
 }
 
 function collectionMiddleware(req, res, next) {
   const def = collections[req.params.name];
   if (!def) return res.status(404).json({ message: 'Unknown collection.' });
+  if (req.user?.role === 'client') {
+    const allowedWrite = (clientScope.WRITABLE[req.params.name] || []).includes(req.method);
+    if (req.method === 'GET' ? !clientScope.READABLE.has(req.params.name) : !allowedWrite) {
+      return res.status(403).json({ message: 'Not available in the client portal.' });
+    }
+  }
   if (needsProfile(req.user) && !OPEN_BEFORE_PROFILE.has(req.params.name)) {
     return res.status(403).json({ message: 'Please complete your profile first.', code: 'PROFILE_REQUIRED' });
   }
@@ -225,14 +244,23 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
     const limitSql = isFullList ? '' : `LIMIT ${perPage} OFFSET ${(page - 1) * perPage}`;
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE ${whereSql} ${sortSql} ${limitSql}`, params);
 
-    let items = rows.map(deserializeRow).filter((record) => def.rules.list(req.user, record));
+    let items;
+    if (req.user.role === 'client') {
+      const ctx = await clientScope.clientContext(req.user);
+      items = rows.map(deserializeRow).filter((record) => clientScope.visible(req.collectionName, record, req.user, ctx));
+    } else {
+      items = rows.map(deserializeRow).filter((record) => def.rules.list(req.user, record));
+    }
 
     if (req.query.expand) {
       items = await Promise.all(items.map((item) => expandRecord(def, item, req.query.expand)));
     }
 
     res.json({
-      items: items.map((item) => toPublic(req.collectionName, item, req.user)),
+      items: items.map((item) => {
+        const pub = toPublic(req.collectionName, item, req.user);
+        return req.user.role === 'client' ? clientScope.clean(req.collectionName, pub) : pub;
+      }),
       page,
       perPage,
       totalItems: items.length === rows.length ? totalItems : items.length,
@@ -250,6 +278,12 @@ router.get('/:name/records/:id', collectionMiddleware, requireAuth, async (req, 
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ message: 'Not found.' });
     let record = deserializeRow(rows[0]);
+    if (req.user.role === 'client') {
+      const ctx = await clientScope.clientContext(req.user);
+      if (!clientScope.visible(req.collectionName, record, req.user, ctx)) return res.status(404).json({ message: 'Not found.' });
+      if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
+      return res.json(clientScope.clean(req.collectionName, toPublic(req.collectionName, record, req.user)));
+    }
     if (!def.rules.view(req.user, record)) return res.status(404).json({ message: 'Not found.' });
     if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
     res.json(toPublic(req.collectionName, record, req.user));
@@ -269,6 +303,10 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     // Records owned by a person (staff profiles): staff can only create their own.
     if (def.ownerField && !def.ownerAdmin(req.user)) body[def.ownerField] = req.user.id;
     if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
+    if (req.collectionName === 'client_messages') {
+      Object.assign(body, { sender: req.user.id, sender_name: req.user.name || req.user.email || 'RUNHTec', sender_role: 'staff', read_by_staff: 1, read_by_client: 0 });
+      if (!body.kind) body.kind = 'message';
+    }
     // Never reuse a quotation / invoice number.
     for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV']]) {
       if (req.collectionName !== coll) continue;
@@ -277,6 +315,8 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       if (!wanted || dup.length) body[col] = await nextNumber(coll, col, prefix);
     }
     if (req.collectionName === 'project_photos') {
+      // Sharing with the client is decided by the office, not on site.
+      if (['technician', 'lead_technician'].includes(req.user.role)) body.shared = 0;
       body.uploaded_by = req.user.id;
       body.uploaded_by_name = req.user.name || req.user.email || '';
       if (['technician', 'lead_technician'].includes(req.user.role)) {
@@ -364,6 +404,9 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       [rows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [id]);
     }
     if (req.collectionName === 'projects') await alertNewTeam(null, rows[0], req.user);
+    if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
+    if (req.collectionName === 'client_messages') await notifyClient(rows[0].client, 'message', `New message from ${rows[0].sender_name}: ${String(rows[0].body).slice(0, 120)}`, '/portal/messages');
+    if (req.collectionName === 'invoices' && rows[0].status === 'sent') await notifyClient(rows[0].client, 'invoice', `New invoice ${rows[0].invoice_number} is available in your portal.`, '/portal');
     if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
@@ -383,6 +426,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     const before = deserializeRow(existingRows[0]);
 
     if (!def.rules.update(req.user, before)) return res.status(403).json({ message: 'Not allowed to update this record.' });
+    if (req.user.role === 'client' && !(req.collectionName === 'notifications' && before.user === req.user.id)) return res.status(403).json({ message: 'Not allowed.' });
 
     const body = extractBody(req, def);
     dropCostInput(req.collectionName, body, req.user, before);
@@ -391,7 +435,10 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     }
     if (def.ownerField && !def.ownerAdmin(req.user)) delete body[def.ownerField];
     if (req.collectionName === 'catalog_items') body.updated_by_name = req.user.name || req.user.email || '';
-    if (req.collectionName === 'project_photos') { delete body.project; delete body.uploaded_by; delete body.uploaded_by_name; }
+    if (req.collectionName === 'project_photos') {
+      delete body.project; delete body.uploaded_by; delete body.uploaded_by_name;
+      if (['technician', 'lead_technician'].includes(req.user.role)) delete body.shared;
+    }
     if (req.user.role === 'lead_technician') {
       // A lead technician may only move a project forward on site, not change its money or client.
       if (req.collectionName === 'projects' && !PM_ROLES.includes(req.user.role)) {
@@ -448,7 +495,12 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
 
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     if (req.collectionName === 'invoices') await syncQuoteFromInvoice(rows[0]);
-    if (req.collectionName === 'projects') await alertNewTeam(before, rows[0], req.user);
+    if (req.collectionName === 'projects') {
+      await alertNewTeam(before, rows[0], req.user);
+      if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
+    }
+    if (req.collectionName === 'invoices' && before.status !== 'sent' && rows[0].status === 'sent') await notifyClient(rows[0].client, 'invoice', `New invoice ${rows[0].invoice_number} is available in your portal.`, '/portal');
+    if (req.collectionName === 'project_photos' && !Number(before.shared) && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);

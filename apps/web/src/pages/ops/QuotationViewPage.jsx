@@ -78,6 +78,7 @@ export default function QuotationViewPage() {
   const [logoEmbed, setLogoEmbed] = useState(null);
   const [linkedProject, setLinkedProject] = useState(null);
   const { user } = useAuth();
+  const isClientView = user?.role === 'client';
   const showCosts = canSeeCosts(user);
   const canInvoice = canAccessModule(user, 'invoices');
   const canProject = ['super_admin', 'admin', 'project_manager', 'sales'].includes(user?.role);
@@ -211,7 +212,7 @@ export default function QuotationViewPage() {
       {/* Toolbar */}
       <div className="no-print z-20 border-b sm:sticky sm:top-0 border-border bg-white/95 backdrop-blur-sm px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
-          <Link to="/quotations" className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
+          <Link to={isClientView ? '/portal' : '/quotations'} className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <span
@@ -220,7 +221,7 @@ export default function QuotationViewPage() {
           >
             {statusLabel}
           </span>
-          <select
+          {!isClientView && (<select
             className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium"
             value={q.status || 'draft'}
             onChange={e => handleStatusChange(e.target.value)}
@@ -230,8 +231,9 @@ export default function QuotationViewPage() {
             <option value="accepted">Accepted</option>
             <option value="declined">Declined</option>
             <option value="expired">Expired</option>
-          </select>
+          </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+            {!isClientView && (<>
             {canInvoice && q.source_invoice && (
               <Link
                 to={`/invoices/${q.source_invoice}/view`}
@@ -273,6 +275,7 @@ export default function QuotationViewPage() {
               <Edit2 className="h-4 w-4" /> Edit
             </Link>
             <SuperDelete collection="quotations" id={id} text="Delete" label={`quotation ${q.number || ''}`.trim()} after={() => navigate('/quotations')} />
+            </>)}
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"

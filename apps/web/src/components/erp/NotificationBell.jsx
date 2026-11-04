@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 // Where a notification should take you when clicked.
 export function notificationLink(n) {
+  if (n.link) return n.link;
   if (n.type === 'application') return '/hr/applications';
   if (n.type === 'rfq') return '/rfqs';
   return '/notifications';

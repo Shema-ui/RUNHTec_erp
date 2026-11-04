@@ -14,7 +14,7 @@ function signToken(user) {
 
 function sanitizeUser(row) {
   if (!row) return null;
-  const { password_hash, reset_token_hash, reset_token_expires, tokens_valid_after, ...rest } = row;
+  const { password_hash, reset_token_hash, reset_token_expires, tokens_valid_after, portal_token_hash, ...rest } = row;
   return rest;
 }
 

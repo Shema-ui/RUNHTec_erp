@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
-import { ROLES, roleLabel } from '@/lib/permissions';
+import { ROLES, roleLabel, STAFF_ROLE_KEYS } from '@/lib/permissions';
 import { DEPARTMENTS, deptShort } from '@/lib/hr';
 import { logActivity } from '@/lib/activity';
 import { useToast } from '@/hooks/use-toast';
@@ -78,7 +78,7 @@ export default function UsersPage() {
     setLoading(true);
     try {
       const list = await pb.collection('users').getFullList({ sort: 'name' });
-      setUsers(list);
+      setUsers(list.filter((u) => u.role !== 'client'));
     } catch (err) {
       console.error(err);
     } finally {
@@ -322,7 +322,7 @@ function ChangeRoleDialog({ target, onClose, onChanged }) {
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Object.values(ROLES).filter((r) => r.key !== 'super_admin').map((r) => (
+                {Object.values(ROLES).filter((r) => STAFF_ROLE_KEYS.includes(r.key)).map((r) => (
                   <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -412,7 +412,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }) {
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.values(ROLES).filter((r) => r.key !== 'super_admin').map((r) => (
+                  {Object.values(ROLES).filter((r) => STAFF_ROLE_KEYS.includes(r.key)).map((r) => (
                     <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>

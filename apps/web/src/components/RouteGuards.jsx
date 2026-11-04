@@ -1,7 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { canAccessModule, needsProfile } from '@/lib/permissions';
+import { canAccessModule, needsProfile, isClient } from '@/lib/permissions';
+
+// Pages a client login may open: the portal, and the quote/invoice documents it links to.
+const CLIENT_PATHS = [/^\/portal(\/|$)/, /^\/quotations\/[^/]+\/view$/, /^\/invoices\/[^/]+\/view$/];
 import { Loader2 } from 'lucide-react';
 
 function FullScreenLoader() {
@@ -17,6 +20,7 @@ export function RequireAuth({ children }) {
   const location = useLocation();
   if (!ready) return <FullScreenLoader />;
   if (!isAuthed) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (isClient(user)) return CLIENT_PATHS.some((re) => re.test(location.pathname)) ? children : <Navigate to="/portal" replace />;
   // First thing a new staff member sees: their profile. Everything else opens once it's done.
   if (needsProfile(user) && location.pathname !== '/my-profile') return <Navigate to="/my-profile" replace />;
   return children;
@@ -46,6 +50,6 @@ export function RequireModule({ moduleKey, children }) {
 export function RedirectIfAuthed({ children }) {
   const { isAuthed, ready, user } = useAuth();
   if (!ready) return <FullScreenLoader />;
-  if (isAuthed) return <Navigate to={needsProfile(user) ? '/my-profile' : '/dashboard'} replace />;
+  if (isAuthed) return <Navigate to={isClient(user) ? '/portal' : needsProfile(user) ? '/my-profile' : '/dashboard'} replace />;
   return children;
 }

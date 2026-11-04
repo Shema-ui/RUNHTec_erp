@@ -15,6 +15,7 @@ import EquipmentTab from '@/components/crm/EquipmentTab';
 import NotesTab from '@/components/crm/NotesTab';
 import DocumentsTab from '@/components/crm/DocumentsTab';
 import FollowUpsTab from '@/components/crm/FollowUpsTab';
+import ClientPortalCard from '@/components/crm/ClientPortalCard';
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
@@ -307,7 +308,7 @@ export default function ClientProfilePage() {
 
       {/* Tab content */}
       <div>
-        {activeTab === 'overview' && <OverviewTab client={client} />}
+        {activeTab === 'overview' && <><ClientPortalCard client={client} /><OverviewTab client={client} /></>}
         {activeTab === 'contacts' && <ContactsTab clientId={id} />}
         {activeTab === 'activities' && <ActivitiesTab clientId={id} />}
         {activeTab === 'equipment' && <EquipmentTab clientId={id} />}

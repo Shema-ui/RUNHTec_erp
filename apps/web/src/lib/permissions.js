@@ -44,6 +44,11 @@ export const ROLES = {
     label: 'Technician',
     description: 'Handles assigned tasks, maintenance jobs and work updates.',
   },
+  client: {
+    key: 'client',
+    label: 'Client (portal)',
+    description: 'A client company with access to the client portal: their own projects, shared photos, documents, invoices and messages.',
+  },
   lead_technician: {
     key: 'lead_technician',
     label: 'Lead Technician',
@@ -60,6 +65,7 @@ export const MODULE_ACCESS = {
   clients: ['sales'],
   rfq: ['sales'],
   quotations: ['sales'],
+  client_messages: ['sales', 'project_manager', 'accountant', 'hr'],
   catalog: ['sales', 'accountant', 'project_manager'],
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
@@ -74,6 +80,7 @@ export const MODULE_ACCESS = {
 
 export function canAccessModule(user, moduleKey) {
   if (!user || !user.role) return false;
+  if (user.role === 'client') return false;
   if (user.role === 'super_admin' || user.role === 'admin') return true;
   const allowed = MODULE_ACCESS[moduleKey];
   return Array.isArray(allowed) && allowed.includes(user.role);
@@ -91,5 +98,9 @@ export function canUploadDocs(user) {
 // New staff must complete their profile (photo, ID, documents) before the
 // rest of the portal opens for them.
 export function needsProfile(user) {
-  return Boolean(user) && user.role !== 'super_admin' && Number(user.profile_completed) !== 1;
+  return Boolean(user) && !['super_admin', 'client'].includes(user.role) && Number(user.profile_completed) !== 1;
 }
+
+export const isClient = (user) => user?.role === 'client';
+// Roles shown when creating staff accounts (clients get access from their client profile).
+export const STAFF_ROLE_KEYS = ['admin', 'sales', 'project_manager', 'accountant', 'hr', 'technician', 'lead_technician'];

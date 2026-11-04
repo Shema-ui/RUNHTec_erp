@@ -96,7 +96,7 @@ const collections = {
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'created', 'updated'],
+    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'created', 'updated'],
     relations: { quotation: 'quotations', client: 'clients', project_manager: 'users', lead_technician: 'users' },
     rules: {
       list: AUTHED,
@@ -164,7 +164,7 @@ const collections = {
   },
   documents: {
     table: 'documents',
-    fields: ['id', 'title', 'client', 'project', 'type', 'file', 'notes', 'uploaded_by_name', 'created'],
+    fields: ['id', 'title', 'client', 'project', 'type', 'file', 'notes', 'uploaded_by_name', 'share_with_client', 'created'],
     relations: { client: 'clients', project: 'projects' },
     fileFields: ['file'],
     rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
@@ -179,11 +179,25 @@ const collections = {
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['selling_price', 'buying_price', 'active'],
   },
+  // Messages between a client (portal) and the RUNHTec team. Staff use the
+  // generic API; clients go through routes/portal.js (forced to their own client).
+  client_messages: {
+    table: 'client_messages',
+    fields: ['id', 'client', 'project', 'sender', 'sender_name', 'sender_role', 'kind', 'topic', 'body', 'read_by_client', 'read_by_staff', 'created', 'updated'],
+    relations: { client: 'clients', project: 'projects' },
+    rules: {
+      list: (u) => any(u, ['sales', 'project_manager', 'accountant', 'hr']),
+      view: (u) => any(u, ['sales', 'project_manager', 'accountant', 'hr']),
+      create: (u) => any(u, ['sales', 'project_manager', 'accountant', 'hr']),
+      update: (u) => any(u, ['sales', 'project_manager', 'accountant', 'hr']),
+      delete: (u) => u?.role === 'super_admin',
+    },
+  },
   // Daily site photos. Technicians add them on projects they're assigned to
   // or lead (checked when saving); anyone who can open the project sees them.
   project_photos: {
     table: 'project_photos',
-    fields: ['id', 'project', 'photo', 'taken_on', 'caption', 'uploaded_by', 'uploaded_by_name', 'created', 'updated'],
+    fields: ['id', 'project', 'photo', 'taken_on', 'caption', 'uploaded_by', 'uploaded_by_name', 'shared', 'created', 'updated'],
     relations: { project: 'projects', uploaded_by: 'users' },
     fileFields: ['photo'],
     rules: {
@@ -245,7 +259,7 @@ const collections = {
   },
   notifications: {
     table: 'notifications',
-    fields: ['id', 'user', 'type', 'message', 'read', 'created'],
+    fields: ['id', 'user', 'type', 'message', 'read', 'link', 'created'],
     relations: { user: 'users' },
     rules: {
       // Scoped to the owner, matching PocketBase's `user = @request.auth.id` rule.
@@ -258,7 +272,7 @@ const collections = {
   },
   company_settings: {
     table: 'company_settings',
-    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'created', 'updated'],
+    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'created', 'updated'],
     relations: {},
     fileFields: ['logo', 'signature', 'stamp'],
     rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
@@ -272,7 +286,7 @@ const collections = {
   },
   users: {
     table: 'users',
-    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'created', 'updated'],
+    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'client', 'created', 'updated'],
     relations: {},
     rules: {
       list: AUTHED,

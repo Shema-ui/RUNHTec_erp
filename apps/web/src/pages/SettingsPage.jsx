@@ -113,6 +113,7 @@ export default function SettingsPage() {
     company_address: '',
     company_phone: '',
     company_email: '',
+    whatsapp_number: '',
     company_website: '',
     bank_name: '',
     account_name: '',
@@ -146,6 +147,7 @@ export default function SettingsPage() {
             company_address: rec.company_address || '',
             company_phone: rec.company_phone || '',
             company_email: rec.company_email || '',
+            whatsapp_number: rec.whatsapp_number || '',
             company_website: rec.company_website || '',
             bank_name: rec.bank_name || '',
             account_name: rec.account_name || '',
@@ -286,6 +288,15 @@ export default function SettingsPage() {
                 placeholder="+250 7XX XXX XXX"
                 value={form.company_phone}
                 onChange={e => isSuperAdmin && setField('company_phone', e.target.value)}
+                readOnly={!isSuperAdmin}
+              />
+            </Field>
+            <Field label="WhatsApp number for clients" hint="Used by the WhatsApp button in the client portal. Leave empty to use the phone number.">
+              <input
+                className={`${inputCls} ${!isSuperAdmin ? 'opacity-70 cursor-not-allowed' : ''}`}
+                placeholder="+250 7XX XXX XXX"
+                value={form.whatsapp_number}
+                onChange={e => isSuperAdmin && setField('whatsapp_number', e.target.value)}
                 readOnly={!isSuperAdmin}
               />
             </Field>

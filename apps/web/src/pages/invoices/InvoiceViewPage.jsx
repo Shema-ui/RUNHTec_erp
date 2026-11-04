@@ -94,6 +94,7 @@ export default function InvoiceViewPage() {
   const [embeds, setEmbeds] = useState({ logo: null, signature: null, stamp: null });
   const printRef = useRef(null);
   const { user } = useAuth();
+  const isClientView = user?.role === 'client';
   const showCosts = canSeeCosts(user);
 
   useEffect(() => {
@@ -219,7 +220,7 @@ export default function InvoiceViewPage() {
       {/* Toolbar */}
       <div className="no-print z-20 border-b sm:sticky sm:top-0 border-border bg-white/95 backdrop-blur-sm px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
-          <Link to="/invoices" className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
+          <Link to={isClientView ? '/portal' : '/invoices'} className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <span
@@ -228,7 +229,7 @@ export default function InvoiceViewPage() {
           >
             {statusLabel}
           </span>
-          <select
+          {!isClientView && (<select
             className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium"
             value={inv.status || 'draft'}
             onChange={e => handleStatusChange(e.target.value)}
@@ -238,8 +239,9 @@ export default function InvoiceViewPage() {
             <option value="paid">Paid</option>
             <option value="overdue">Overdue</option>
             <option value="cancelled">Cancelled</option>
-          </select>
+          </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+            {!isClientView && (<>
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -247,6 +249,7 @@ export default function InvoiceViewPage() {
               <Edit2 className="h-4 w-4" /> Edit
             </Link>
             <SuperDelete collection="invoices" id={id} text="Delete" label={`invoice ${invoice?.invoice_number || ''} and any payments recorded on it`} before={deleteInvoicePayments} after={() => navigate('/invoices')} />
+            </>)}
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"

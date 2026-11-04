@@ -176,6 +176,9 @@ function wakeServer() {
 const pb = {
   authStore,
   collection,
+  // Plain POST to a non-collection endpoint, e.g. pb.post('/api/portal/messages', {...}).
+  post(path, body) { return request(path, { method: 'POST', body: body || {} }); },
+  get(path) { return request(path, { method: 'GET' }); },
   wakeServer,
   apiUrl: API_URL,
   async getConfig() {

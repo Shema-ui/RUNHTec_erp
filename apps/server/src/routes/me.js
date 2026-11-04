@@ -41,7 +41,7 @@ router.get('/backup', requireAuth, async (req, res) => {
     const out = { app: 'RUNHTec ERP', created: new Date().toISOString(), tables: {} };
     for (const [name, def] of Object.entries(collections)) {
       const [rows] = await pool.query(`SELECT * FROM \`${def.table}\``);
-      out.tables[name] = rows.map(({ password_hash, reset_token_hash, reset_token_expires, ...r }) => r);
+      out.tables[name] = rows.map(({ password_hash, reset_token_hash, reset_token_expires, portal_token_hash, ...r }) => r);
     }
     const stamp = new Date().toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/json');

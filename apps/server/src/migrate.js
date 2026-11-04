@@ -78,6 +78,8 @@ async function runMigrations() {
       "ENUM('super_admin','sales','project_manager','accountant','technician','lead_technician','hr') NOT NULL DEFAULT 'sales'");
     await ensureEnumValue(conn, 'users', 'role', 'admin',
       "ENUM('super_admin','admin','sales','project_manager','accountant','technician','lead_technician','hr') NOT NULL DEFAULT 'sales'");
+    await ensureEnumValue(conn, 'users', 'role', 'client',
+      "ENUM('super_admin','admin','sales','project_manager','accountant','technician','lead_technician','hr','client') NOT NULL DEFAULT 'sales'");
 
     // Projects: full project record (manager, value, progress, priority…)
     for (const [col, def] of [
@@ -134,6 +136,20 @@ async function runMigrations() {
     // Lead technician of a project (a user account), who logs the crew's days on site
     await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');
     await ensureColumn(conn, 'project_costs', 'recorded_by', 'VARCHAR(20) DEFAULT NULL');
+
+    // Client portal: which client a login belongs to, what is shared, handover sign-off
+    await ensureColumn(conn, 'users', 'client', 'VARCHAR(20) DEFAULT NULL');
+    // Clients open the portal with a private link (no password): only its hash is stored.
+    await ensureColumn(conn, 'users', 'portal_token_hash', 'VARCHAR(64) DEFAULT NULL');
+    await ensureColumn(conn, 'users', 'portal_link_at', 'DATETIME NULL');
+    await ensureColumn(conn, 'users', 'portal_last_used', 'DATETIME NULL');
+    await ensureColumn(conn, 'project_photos', 'shared', 'TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(conn, 'documents', 'share_with_client', 'TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(conn, 'projects', 'handover_confirmed_at', 'DATETIME NULL');
+    await ensureColumn(conn, 'projects', 'handover_confirmed_by', "VARCHAR(200) DEFAULT ''");
+    await ensureColumn(conn, 'projects', 'handover_note', "VARCHAR(1000) DEFAULT ''");
+    await ensureColumn(conn, 'notifications', 'link', "VARCHAR(300) DEFAULT ''");
+    await ensureColumn(conn, 'company_settings', 'whatsapp_number', "VARCHAR(40) DEFAULT ''");
 
     // Invoices also appear as quotations (see invoiceQuote.js)
     await ensureColumn(conn, 'quotations', 'source_invoice', 'VARCHAR(20) DEFAULT NULL');

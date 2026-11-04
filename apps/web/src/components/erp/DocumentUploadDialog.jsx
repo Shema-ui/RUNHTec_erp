@@ -14,7 +14,8 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
   const isEdit = Boolean(doc?.id);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [form, setForm] = useState({ title: '', type: DOCUMENT_TYPES[0], client: '', project: '', notes: '' });
+  const [form, setForm] = useState({ title: '', type: DOCUMENT_TYPES[0], client: '', project: '', notes: '', share: false });
+  const canShare = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
   const [file, setFile] = useState(null);
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -23,8 +24,8 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
   useEffect(() => {
     if (!open) return;
     setForm(isEdit
-      ? { title: doc.title || '', type: doc.type || DOCUMENT_TYPES[0], client: doc.client || '', project: doc.project || '', notes: doc.notes || '' }
-      : { title: '', type: DOCUMENT_TYPES[0], client: client || project?.client || '', project: project?.id || '', notes: '' });
+      ? { title: doc.title || '', type: doc.type || DOCUMENT_TYPES[0], client: doc.client || '', project: doc.project || '', notes: doc.notes || '', share: Boolean(Number(doc.share_with_client)) }
+      : { title: '', type: DOCUMENT_TYPES[0], client: client || project?.client || '', project: project?.id || '', notes: '', share: false });
     setFile(null);
     if (!project) {
       pb.collection('clients').getFullList({ sort: 'company_name' }).then(setClients).catch(() => {});
@@ -42,6 +43,7 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
       if (isEdit) {
         await pb.collection('documents').update(doc.id, toBody({
           title: form.title || doc.title, type: form.type, client: form.client || '', project: form.project || '', notes: form.notes,
+          ...(canShare ? { share_with_client: form.share ? 1 : 0 } : {}),
         }, file ? { file } : {}));
         toast({ title: 'Document updated' });
         onSaved?.(); onClose();
@@ -53,6 +55,7 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
         client: form.client || '',
         project: form.project || '',
         notes: form.notes,
+        ...(canShare ? { share_with_client: form.share ? 1 : 0 } : {}),
         uploaded_by_name: user?.name || user?.email || '',
       }, { file }));
       toast({ title: 'Document uploaded' });
@@ -90,6 +93,12 @@ export default function DocumentUploadDialog({ open, onClose, onSaved, project, 
           </div>
         )}
         <Field label="Notes"><textarea className={textareaCls} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
+        {canShare && (
+          <label className="flex items-start gap-2 rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={form.share} onChange={(e) => set('share', e.target.checked)} />
+            <span><span className="font-medium">Show to the client in their portal</span><span className="block text-xs text-muted-foreground">Only tick for documents the client should have, e.g. handover certificate, warranty, drawings.</span></span>
+          </label>
+        )}
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
           <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {isEdit ? 'Save changes' : 'Upload'}</button>

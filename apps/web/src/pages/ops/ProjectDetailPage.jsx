@@ -142,7 +142,7 @@ export default function ProjectDetailPage() {
               {tasks.map((t) => (
                 <li key={t.id} className="flex items-center gap-3 py-2">
                   <input type="checkbox" checked={!!t.done} disabled={!canWork && user?.role !== 'technician'} aria-label={`Mark ${t.title} done`}
-                    onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))} className="h-4 w-4" />
+                    onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done, done_at: !x.done ? new Date().toISOString() : null } : x)))} className="h-4 w-4" />
                   {editTask?.id === t.id ? (
                     <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (editTask.title.trim()) saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, title: editTask.title.trim() } : x))); setEditTask(null); }}>
                       <input autoFocus className={inputCls} value={editTask.title} onChange={(e) => setEditTask({ ...editTask, title: e.target.value })} aria-label="Task name" />
@@ -203,7 +203,7 @@ export default function ProjectDetailPage() {
               <ul className="divide-y divide-border">
                 {docs.map((d) => (
                   <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span className="inline-flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{d.title}</span><span className="text-xs text-muted-foreground">· {d.type}</span></span>
+                    <span className="inline-flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{d.title}</span><span className="text-xs text-muted-foreground">· {d.type}</span>{Number(d.share_with_client) ? <span className="rounded-full bg-emerald-100 px-1.5 text-[10px] font-semibold text-emerald-700">Client can see</span> : null}</span>
                     <span className="flex shrink-0 items-center gap-3">
                       {d.file && <a className="inline-flex items-center gap-1 text-primary hover:underline" href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Open</a>}
                       {canUpload && <button onClick={() => setEditingDoc(d)} aria-label="Edit document" className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
@@ -226,6 +226,7 @@ export default function ProjectDetailPage() {
               <InfoRow label="Site">{p.site_address ? <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{p.site_address}</span> : ''}</InfoRow>
               <InfoRow label="Dates"><span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{[fmtDate(p.start_date) || 'Start not set', fmtDate(p.due_date) || 'due not set'].join(' → ')}</span></InfoRow>
               <InfoRow label="Completed">{fmtDate(p.completed_date)}</InfoRow>
+              {p.status === 'done' && <InfoRow label="Client handover">{p.handover_confirmed_at ? <span className="text-emerald-700">Confirmed by {p.handover_confirmed_by || 'the client'} on {fmtDate(p.handover_confirmed_at)}{p.handover_note ? ` — “${p.handover_note}”` : ''}</span> : 'Waiting for the client to confirm in their portal'}</InfoRow>}
               <InfoRow label="Scope / description">{p.description}</InfoRow>
               <InfoRow label="Internal notes">{p.notes}</InfoRow>
             </div>
