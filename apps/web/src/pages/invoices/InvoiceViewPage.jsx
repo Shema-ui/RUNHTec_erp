@@ -107,7 +107,7 @@ export default function InvoiceViewPage() {
         await new Promise((r) => setTimeout(r, 150));
       }
 
-      // Real text (small, sharp, searchable); a compressed picture only if that fails.
+      // Compressed picture, one slice per page (a few hundred KB, same look as the screen).
       await savePdf(document.getElementById('invoice-print'), `${invoice?.invoice_number || 'invoice'}.pdf`);
     } catch (e) {
       alert('PDF generation failed: ' + e.message);

@@ -1,10 +1,11 @@
-// Small, sharp PDFs for invoices and quotations.
+// Small PDFs for invoices and quotations that look exactly like the screen.
 //
-// 1. Preferred: the page is drawn into the PDF as real text and lines
-//    (jsPDF's html renderer). Text stays sharp, can be searched and copied,
-//    and a one-page invoice is typically a few hundred KB.
-// 2. Fallback (if that fails on a device): a compressed JPEG picture,
-//    cut into one slice per A4 page, so each page carries only its own part.
+// The page is captured as a compressed JPEG picture (not a huge PNG), cut into
+// one slice per A4 page at a row boundary, so each page only carries its own
+// part. A one-page invoice is typically a few hundred KB instead of tens of MB.
+// (jsPDF's "real text" mode was tried: it breaks the layout — odd gaps, missing
+// white text on coloured boxes — so it isn't used. Print → "Save as PDF" in the
+// browser gives a real-text PDF when one is needed.)
 //
 // Logos, signatures and stamps are shrunk to print size first (see
 // toBase64Image), since a phone photo of a stamp alone can be several MB.
@@ -51,58 +52,56 @@ async function waitForImages(el) {
     : new Promise((resolve) => { img.addEventListener('load', resolve, { once: true }); img.addEventListener('error', resolve, { once: true }); }))));
 }
 
-// Real-text PDF. Throws if the browser can't do it.
-async function textPdf(el, jsPDF) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const widthPx = el.scrollWidth || el.offsetWidth || 794;
-  await pdf.html(el, {
-    x: 0,
-    y: 0,
-    width: pageW,
-    windowWidth: widthPx,
-    margin: [0, 0, 0, 0],
-    autoPaging: 'text', // never cut a line of text in half at a page break
-    html2canvas: { useCORS: true, allowTaint: false, backgroundColor: '#ffffff', imageTimeout: 15000, logging: false },
+// Where a page may break without cutting through text: the bottom of each
+// table row and of each block, in CSS pixels from the top of the document.
+function breakPoints(el) {
+  const top = el.getBoundingClientRect().top;
+  const ys = new Set();
+  el.querySelectorAll('tr, p, h1, h2, h3, h4, li, img, div').forEach((n) => {
+    const r = n.getBoundingClientRect();
+    if (r.height > 0 && r.height < 400) ys.add(Math.round(r.bottom - top));
   });
-  if (!pdf.getNumberOfPages()) throw new Error('empty PDF');
-  return pdf;
+  return [...ys].sort((a, b) => a - b);
 }
 
-// Compressed picture PDF: JPEG, one slice per page.
+// The document as a compressed picture (JPEG), one A4 slice per page, with
+// page breaks placed between rows so no line of text is cut in half.
 async function picturePdf(el, jsPDF) {
   const { default: html2canvas } = await import('html2canvas');
-  const canvas = await html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', imageTimeout: 15000, logging: false });
+  const scale = 2; // sharp when printed, still small
+  const canvas = await html2canvas(el, { scale, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', imageTimeout: 15000, logging: false });
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  const pxPerMm = canvas.width / pageW;
-  const slicePx = Math.floor(pageH * pxPerMm);
-  for (let top = 0, page = 0; top < canvas.height; top += slicePx, page += 1) {
-    const h = Math.min(slicePx, canvas.height - top);
+  const cssW = canvas.width / scale;
+  const pageCss = Math.floor(cssW * (pageH / pageW)); // page height in CSS px
+  const totalCss = canvas.height / scale;
+  const points = breakPoints(el);
+  let top = 0; let page = 0;
+  while (top < totalCss - 1) {
+    let bottom = Math.min(top + pageCss, totalCss);
+    if (bottom < totalCss) {
+      // last safe break on this page, but don't leave a page mostly empty
+      const safe = points.filter((y) => y > top + pageCss * 0.6 && y <= top + pageCss).pop();
+      if (safe) bottom = safe;
+    }
+    const sy = Math.round(top * scale); const sh = Math.round((bottom - top) * scale);
     const slice = document.createElement('canvas');
-    slice.width = canvas.width; slice.height = h;
+    slice.width = canvas.width; slice.height = sh;
     const ctx = slice.getContext('2d');
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, slice.width, h);
-    ctx.drawImage(canvas, 0, top, canvas.width, h, 0, 0, canvas.width, h);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, slice.width, sh);
+    ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
     if (page > 0) pdf.addPage();
-    pdf.addImage(slice.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageW, h / pxPerMm, undefined, 'FAST');
+    pdf.addImage(slice.toDataURL('image/jpeg', 0.82), 'JPEG', 0, 0, pageW, (sh / canvas.width) * pageW, undefined, 'FAST');
+    top = bottom; page += 1;
   }
   return pdf;
 }
 
-/** Save the element as a small A4 PDF. Returns 'text' or 'picture' (the method used). */
+/** Save the element as a small A4 PDF that looks exactly like the screen. */
 export async function savePdf(el, filename) {
   const { default: jsPDF } = await import('jspdf');
   await waitForImages(el);
-  let pdf; let method = 'text';
-  try {
-    pdf = await textPdf(el, jsPDF);
-  } catch (err) {
-    console.warn('[PDF] text PDF failed, using a compressed picture instead:', err?.message || err);
-    pdf = await picturePdf(el, jsPDF);
-    method = 'picture';
-  }
+  const pdf = await picturePdf(el, jsPDF);
   pdf.save(filename);
-  return method;
 }
