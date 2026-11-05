@@ -10,6 +10,7 @@ import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
+import { toBase64Image, savePdf } from '@/lib/pdfExport';
 
 const DEFAULT_LOGO_URL = '/logo.png';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
@@ -36,35 +37,6 @@ const PRINT_STYLE = `
   @page { size: A4; margin: 0; }
 }
 `;
-
-async function toBase64Image(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
-    if (res.ok) {
-      const blob = await res.blob();
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image') && dataUrl.length > 100) return dataUrl;
-    }
-  } catch (_) { /* fall through to canvas method */ }
-  try {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || 240;
-    canvas.height = img.naturalHeight || 240;
-    canvas.getContext('2d').drawImage(img, 0, 0);
-    const dataUrl = canvas.toDataURL('image/png');
-    if (dataUrl && dataUrl.length > 100) return dataUrl;
-  } catch (_) { /* give up, caller falls back to remote url */ }
-  return null;
-}
 
 export default function QuotationViewPage() {
   const { id } = useParams();
@@ -113,37 +85,14 @@ export default function QuotationViewPage() {
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: html2canvas } = await import('html2canvas');
       let embed = logoEmbed;
       if (!String(embed).startsWith('data:image')) {
         embed = (await toBase64Image(logoUrl)) || logoUrl;
         setLogoEmbed(embed);
         await new Promise((r) => setTimeout(r, 150));
       }
-      const el = document.getElementById('quote-print');
-      const imgs = Array.from(el.querySelectorAll('img'));
-      await Promise.all(imgs.map((img) => (
-        img.complete && img.naturalWidth > 0
-          ? Promise.resolve()
-          : new Promise((resolve) => {
-              img.addEventListener('load', resolve, { once: true });
-              img.addEventListener('error', resolve, { once: true });
-            })
-      )));
-      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', imageTimeout: 15000 });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pdfW = pdf.internal.pageSize.getWidth();
-      const pdfH = (canvas.height * pdfW) / canvas.width;
-      let y = 0;
-      const pageH = pdf.internal.pageSize.getHeight();
-      while (y < pdfH) {
-        if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, -y, pdfW, pdfH);
-        y += pageH;
-      }
-      pdf.save(`${quote?.number || 'quotation'}.pdf`);
+      // Real text (small, sharp, searchable); a compressed picture only if that fails.
+      await savePdf(document.getElementById('quote-print'), `${quote?.number || 'quotation'}.pdf`);
     } catch (e) {
       alert('PDF generation failed: ' + e.message);
     } finally {
