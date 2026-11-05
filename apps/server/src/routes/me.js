@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
-const { requireAuth, sanitizeUser } = require('../auth');
+const { requireAuth, sanitizeUser, signToken, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
+const { createLimiter } = require('../rateLimit');
+const pwLimit = createLimiter({ windowMs: 15 * 60 * 1000, max: 8 });
 const { writeAuditEntry } = require('../audit');
 
 const router = express.Router();
@@ -50,6 +52,32 @@ router.get('/backup', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// POST /api/me/password {current, password} — change your own password.
+// Every other session (other phones/computers, and any old password) stops working.
+router.post('/password', requireAuth, async (req, res) => {
+  if (['client', 'vendor'].includes(req.user.role)) return res.status(403).json({ message: 'Not available here.' });
+  if (pwLimit.isBlocked(req.user.id)) return res.status(429).json({ message: 'Too many attempts. Please wait 15 minutes.' });
+  const current = String(req.body?.current || '');
+  const pw = String(req.body?.password || '');
+  if (pw.length < MIN_PASSWORD_LENGTH || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+    return res.status(400).json({ message: `Use at least ${MIN_PASSWORD_LENGTH} characters with letters and numbers.` });
+  }
+  if (pw === current) return res.status(400).json({ message: 'Choose a password different from your current one.' });
+  try {
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!rows[0] || !(await bcrypt.compare(current, rows[0].password_hash || ''))) {
+      pwLimit.hit(req.user.id);
+      return res.status(401).json({ message: 'Your current password is wrong.' });
+    }
+    pwLimit.reset(req.user.id);
+    await pool.query('UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL, tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?',
+      [await bcrypt.hash(pw, 10), req.user.id]);
+    await writeAuditEntry({ actor: req.user, action: 'Changed password', collectionName: 'users', record: { id: req.user.id, name: req.user.name || req.user.email } }).catch(() => {});
+    const [after] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    res.json({ token: signToken(after[0]), record: sanitizeUser(after[0]) });
+  } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 module.exports = router;

@@ -16,7 +16,8 @@ import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule, needsProfile } from '@/lib/permissions';
 import QuickAccess from '@/components/erp/QuickAccess';
-import { UserRound, Search as SearchIcon } from 'lucide-react';
+import { UserRound, Search as SearchIcon, KeyRound } from 'lucide-react';
+import ChangePasswordDialog from '@/components/erp/ChangePasswordDialog';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -116,6 +117,7 @@ export default function PortalLayout({ children, title, subtitle }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
 
   const initials = (user?.name || user?.email || 'U')
     .split(' ')
@@ -236,6 +238,10 @@ export default function PortalLayout({ children, title, subtitle }) {
                   <UserRound className="mr-2 h-4 w-4" />
                   My profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPwOpen(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Change password
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -248,6 +254,7 @@ export default function PortalLayout({ children, title, subtitle }) {
         <main className="portal-scroll flex-1 overflow-y-auto px-4 py-6 md:px-6 md:py-8">
           {children}
         </main>
+        <ChangePasswordDialog open={pwOpen} onClose={() => setPwOpen(false)} />
       </div>
     </div>
   );
