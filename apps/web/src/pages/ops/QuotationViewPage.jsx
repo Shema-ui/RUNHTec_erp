@@ -11,7 +11,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 
-const DEFAULT_LOGO_URL = 'https://horizons-cdn.hostinger.com/2757b26b-44c6-4111-a4b2-af6d71351715/f9d1fad541d7f3b6fd43d5a1326794e7.jpg';
+const DEFAULT_LOGO_URL = '/logo.png';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
 const BRAND = '#003DA5';
 
