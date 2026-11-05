@@ -162,7 +162,10 @@ export default function QuotationFormPage() {
         description: c.description ? `${c.name} — ${c.description}` : c.name,
         unit_price: Number(c.selling_price) || 0,
         list_price: Number(c.selling_price) || 0,
-        catalog_item: c.id,
+        // From Items & Prices (catalog_item) or from a vendor's price list (vendor_item).
+        catalog_item: c.vendor_item ? '' : c.id,
+        vendor_item: c.vendor_item || '',
+        cost_source: c.cost_source || '',
         unit: c.unit || '',
         ...(c.buying_price !== undefined ? { cost: Number(c.buying_price) || 0 } : {}),
       });
@@ -357,6 +360,7 @@ export default function QuotationFormPage() {
                         value={item.description}
                         onChange={(v) => updateItem(idx, 'description', v)}
                         onPick={(c) => pickCatalogItem(idx, c)}
+                        currency={form.currency}
                       />
                     </td>
                     <td className="py-2 px-1.5">
@@ -390,6 +394,7 @@ export default function QuotationFormPage() {
                           aria-label="Our buying price per unit"
                           placeholder="0"
                         />
+                        {item.cost_source && <p className="mt-0.5 truncate text-right text-[10px] text-muted-foreground" title={item.cost_source}>🚚 {item.cost_source}</p>}
                         {Number(item.cost) > 0 && Number(item.unit_price) > 0 && (
                           <p className={`mt-0.5 text-right text-[11px] ${Number(item.unit_price) > Number(item.cost) ? 'text-emerald-700' : 'text-rose-600'}`}>
                             {Math.round(((Number(item.unit_price) - Number(item.cost)) / Number(item.unit_price)) * 100)}% margin

@@ -28,7 +28,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 const router = express.Router();
 
-const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing', 'labour_rates']);
+const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing', 'labour_rates', 'exchange_rates']);
 
 function deserializeRow(row) {
   if (!row) return row;
@@ -60,7 +60,8 @@ const SENSITIVE_FIELDS = {
 // Internal costing (buying prices, job budgets) — only for staff allowed to
 // see profit. Everyone else (technicians, HR) gets the record without it.
 const COST_FIELDS = { quotations: ['costing'], invoices: ['costing'], projects: ['cost_budget'], catalog_items: ['buying_price', 'supplier'] };
-const ITEM_COST_KEYS = ['cost'];
+// Per-line internal fields the client must never see: buying price and where it came from.
+const ITEM_COST_KEYS = ['cost', 'vendor_item', 'cost_source'];
 
 function stripCosts(collectionName, record) {
   const out = { ...record };

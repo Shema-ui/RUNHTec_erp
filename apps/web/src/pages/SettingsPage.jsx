@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup } from 'lucide-react';
+import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck } from 'lucide-react';
+import { CURRENCIES } from '@/lib/money';
+import { resetVendorOffers } from '@/lib/vendorPricing';
 import { DEFAULT_LABOUR_ROLES, applyCostSettings, rid } from '@/lib/costing';
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -129,9 +131,12 @@ export default function SettingsPage() {
     default_terms_conditions: DEFAULT_TERMS,
     default_payment_instructions: DEFAULT_PAYMENT_INSTRUCTIONS,
     default_contingency: 10,
+    vendor_markup: 30,
   });
   const [backingUp, setBackingUp] = useState(false);
   const [rates, setRates] = useState(DEFAULT_LABOUR_ROLES.map((r) => ({ ...r })));
+  // Exchange rates: how many RWF one unit of each currency is worth.
+  const [fx, setFx] = useState({});
 
   useEffect(() => {
     pb.collection('company_settings').getList(1, 1, { requestKey: 'settings-load' })
@@ -163,8 +168,11 @@ export default function SettingsPage() {
             default_terms_conditions: rec.default_terms_conditions || DEFAULT_TERMS,
             default_payment_instructions: rec.default_payment_instructions || DEFAULT_PAYMENT_INSTRUCTIONS,
             default_contingency: rec.default_contingency ?? 10,
+            vendor_markup: rec.vendor_markup ?? 30,
           }));
           if (Array.isArray(rec.labour_rates) && rec.labour_rates.length) setRates(rec.labour_rates.map((r) => ({ ...r })));
+          let x = rec.exchange_rates; if (typeof x === 'string') { try { x = JSON.parse(x); } catch { x = {}; } }
+          if (x && typeof x === 'object') setFx(Object.fromEntries(Object.entries(x).map(([k, v]) => [k, String(v)])));
           if (rec.logo) setLogo(p => ({ ...p, url: pb.files.getURL(rec, rec.logo) }));
           if (rec.signature) setSignature(p => ({ ...p, url: pb.files.getURL(rec, rec.signature) }));
           if (rec.stamp) setStamp(p => ({ ...p, url: pb.files.getURL(rec, rec.stamp) }));
@@ -183,6 +191,8 @@ export default function SettingsPage() {
       Object.entries(form).forEach(([k, v]) => fd.append(k, typeof v === 'boolean' ? String(v) : v));
       const cleanRates = rates.filter((r) => String(r.label || '').trim()).map((r) => ({ value: r.value || rid(), label: String(r.label).trim(), rate: Number(r.rate) || 0 }));
       fd.append('labour_rates', JSON.stringify(cleanRates));
+      const cleanFx = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, Number(String(v).replace(/[\s,]/g, ''))]).filter(([, v]) => v > 0));
+      fd.append('exchange_rates', JSON.stringify(cleanFx));
 
       const assets = [['logo', logo], ['signature', signature], ['stamp', stamp]];
       assets.forEach(([key, asset]) => {
@@ -198,6 +208,7 @@ export default function SettingsPage() {
         setRecordId(rec.id);
       }
       applyCostSettings(rec);
+      resetVendorOffers();
 
       setLogo({ url: rec.logo ? pb.files.getURL(rec, rec.logo) : null, file: null, remove: false });
       setSignature({ url: rec.signature ? pb.files.getURL(rec, rec.signature) : null, file: null, remove: false });
@@ -484,6 +495,29 @@ export default function SettingsPage() {
               <input type="number" min="0" max="100" className={inputCls} value={form.default_contingency} readOnly={!isSuperAdmin}
                 onChange={(e) => isSuperAdmin && setField('default_contingency', e.target.value)} />
             </Field>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={Truck} title="Vendor prices on quotations" description="When you type an item on a quotation or invoice, matching items from the vendors' price lists are suggested with their buying price and your selling price (buying price + markup). Internal only — clients only ever see your selling price.">
+          <div className="max-w-xs">
+            <Field label="Markup on vendor prices (%)" hint="Your selling price = buying price + this percentage. You can still change the price on each line.">
+              <input type="number" min="0" max="500" className={inputCls} value={form.vendor_markup} readOnly={!isSuperAdmin} aria-label="Markup on vendor prices"
+                onChange={(e) => isSuperAdmin && setField('vendor_markup', e.target.value)} />
+            </Field>
+          </div>
+          <div className="mt-5">
+            <p className="text-sm font-medium">Exchange rates</p>
+            <p className="mb-3 text-xs text-muted-foreground">How many RWF one unit is worth. Used to convert vendor prices in other currencies (for example Solis prices in USD) into the quotation's currency. Update them when the rate changes.</p>
+            <div className="grid max-w-xl gap-3 sm:grid-cols-2">
+              {CURRENCIES.filter((c) => c.value !== 'RWF').map((c) => (
+                <label key={c.value} className="flex items-center gap-2 text-sm">
+                  <span className="w-28 shrink-0 font-medium">1 {c.value} =</span>
+                  <input className={inputCls} inputMode="decimal" value={fx[c.value] ?? ''} readOnly={!isSuperAdmin} placeholder="not set" aria-label={`RWF per 1 ${c.value}`}
+                    onChange={(e) => isSuperAdmin && setFx((p) => ({ ...p, [c.value]: e.target.value }))} />
+                  <span className="shrink-0 text-muted-foreground">RWF</span>
+                </label>
+              ))}
+            </div>
           </div>
         </SectionCard>
 

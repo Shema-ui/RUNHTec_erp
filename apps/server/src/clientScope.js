@@ -44,7 +44,7 @@ function clean(collection, record) {
   if (!record) return record;
   const out = { ...record };
   (HIDDEN[collection] || []).forEach((f) => delete out[f]);
-  if (Array.isArray(out.items)) out.items = out.items.map((i) => (i && typeof i === 'object' ? (({ cost, ...rest }) => rest)(i) : i));
+  if (Array.isArray(out.items)) out.items = out.items.map((i) => (i && typeof i === 'object' ? (({ cost, vendor_item, cost_source, ...rest }) => rest)(i) : i));
   if (out.expand) {
     const e = {};
     for (const [k, v] of Object.entries(out.expand)) {

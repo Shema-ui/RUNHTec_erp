@@ -138,6 +138,9 @@ async function runMigrations() {
     // Daily wage rates per role and the default safety margin, editable in Settings
     await ensureColumn(conn, 'company_settings', 'labour_rates', 'JSON DEFAULT NULL');
     await ensureColumn(conn, 'company_settings', 'default_contingency', 'DECIMAL(5,2) DEFAULT 10');
+    // Vendor prices on quotations: markup on the buying price, and exchange rates (RWF per 1 unit)
+    await ensureColumn(conn, 'company_settings', 'vendor_markup', 'DECIMAL(6,2) DEFAULT 30');
+    await ensureColumn(conn, 'company_settings', 'exchange_rates', 'JSON DEFAULT NULL');
 
     // Lead technician of a project (a user account), who logs the crew's days on site
     await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');

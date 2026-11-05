@@ -289,7 +289,7 @@ const collections = {
   },
   company_settings: {
     table: 'company_settings',
-    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'created', 'updated'],
+    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'vendor_markup', 'exchange_rates', 'created', 'updated'],
     relations: {},
     fileFields: ['logo', 'signature', 'stamp'],
     rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
