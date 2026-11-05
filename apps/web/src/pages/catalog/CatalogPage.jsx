@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Plus, Pencil, Trash2, Loader2, Save, Package, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Save, Package, Copy, Truck, Check, AlertTriangle } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { convert, roundPrice, DEFAULT_MARKUP } from '@/lib/vendorPricing';
+import { availabilityInfo } from '@/lib/vendors';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +28,10 @@ export default function CatalogPage() {
   const [editing, setEditing] = useState(null);
   const canEdit = canEditCatalog(user);
   const showCost = canSeeCosts(user);
+  const [params, setParams] = useSearchParams();
+  // Vendor items use buying prices, so the tab only exists for staff who may see costs.
+  const tab = showCost && params.get('tab') === 'vendors' ? 'vendors' : 'own';
+  const [vendorCount, setVendorCount] = useState(null);
 
   const load = () => pb.collection('catalog_items').getFullList({ sort: 'name' }).then(setItems).catch(() => setItems([]));
   useEffect(() => { load(); }, []);
@@ -55,6 +62,13 @@ export default function CatalogPage() {
     <PortalLayout title="Items & Prices" subtitle="Everything we sell and the price we offer it at — used to build quotations">
       <Helmet><title>Items & Prices | RUNHTec Business Portal</title></Helmet>
 
+      {showCost && (
+        <div className="mb-4 inline-flex gap-1 rounded-xl border border-border bg-card p-1">
+          <button onClick={() => setParams({})} className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === 'own' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}><Package className="mr-1.5 inline h-4 w-4" />My price list{items ? ` (${stats.count})` : ''}</button>
+          <button onClick={() => setParams({ tab: 'vendors' })} className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === 'vendors' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}><Truck className="mr-1.5 inline h-4 w-4" />From vendors{vendorCount !== null ? ` (${vendorCount})` : ''}</button>
+        </div>
+      )}
+      {tab === 'vendors' ? <VendorItemsTab own={items || []} canEdit={canEdit} onAdded={saved} onCount={setVendorCount} /> : (<>
       <div className={`mb-5 grid grid-cols-2 gap-3 sm:gap-4 ${showCost ? 'sm:grid-cols-3' : ''}`}>
         <StatCard icon={Package} label="Items in the price list" value={stats.count} />
         <StatCard label="Categories used" value={stats.cats} />
@@ -111,6 +125,7 @@ export default function CatalogPage() {
         </div>
       )}
 
+      </>)}
       <ItemDialog item={editing} onClose={() => setEditing(null)} onSaved={saved} showCost={showCost} />
     </PortalLayout>
   );
@@ -186,5 +201,108 @@ function ItemDialog({ item, onClose, onSaved, showCost }) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+// Every vendor's items, with their price, our buying price in the company currency
+// and our selling price at the vendor markup (Settings). Staff who may see costs only.
+function VendorItemsTab({ own, canEdit, onAdded, onCount }) {
+  const { toast } = useToast();
+  const [data, setData] = useState(null);
+  const [q, setQ] = useState('');
+  const [vendor, setVendor] = useState('all');
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      pb.collection('vendor_items').getFullList({ sort: 'name' }),
+      pb.collection('vendors').getFullList({ sort: 'name' }),
+      pb.collection('company_settings').getList(1, 1).then((r) => r.items[0] || {}).catch(() => ({})),
+    ]).then(([items, vendors, cfg]) => {
+      let rates = cfg.exchange_rates; if (typeof rates === 'string') { try { rates = JSON.parse(rates); } catch { rates = {}; } }
+      const markup = cfg.vendor_markup === null || cfg.vendor_markup === undefined || cfg.vendor_markup === '' ? DEFAULT_MARKUP : Number(cfg.vendor_markup);
+      const vmap = new Map(vendors.map((v) => [v.id, v]));
+      const list = items.filter((i) => vmap.get(i.vendor)?.status !== 'inactive');
+      setData({ items: list, vendors: vendors.filter((v) => v.status !== 'inactive'), vmap, rates: rates || {}, markup, currency: cfg.currency || DEFAULT_CURRENCY });
+      onCount(list.length);
+    }).catch(() => { setData({ items: [], vendors: [], vmap: new Map(), rates: {}, markup: DEFAULT_MARKUP, currency: DEFAULT_CURRENCY }); onCount(0); });
+  }, []);
+
+  const rows = useMemo(() => {
+    if (!data) return [];
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const mine = new Set(own.map((i) => String(i.name).trim().toLowerCase()));
+    return data.items
+      .filter((i) => vendor === 'all' || i.vendor === vendor)
+      .map((i) => {
+        const vname = data.vmap.get(i.vendor)?.name || 'Vendor';
+        const priced = n(i.price) > 0;
+        const cost = priced ? convert(i.price, i.currency || 'RWF', data.currency, data.rates) : null;
+        return { ...i, vname, priced, missingRate: priced && cost === null ? i.currency : '', buy: cost === null ? null : Math.round(cost), sell: cost === null ? null : roundPrice(cost * (1 + data.markup / 100), data.currency), inMine: mine.has(String(i.name).trim().toLowerCase()) };
+      })
+      .filter((i) => words.every((w) => `${i.name} ${i.brand} ${i.code} ${i.vname}`.toLowerCase().includes(w)));
+  }, [data, q, vendor, own]);
+
+  const addToMine = async (i) => {
+    setBusy(i.id);
+    try {
+      await pb.collection('catalog_items').create({
+        name: i.name, brand: i.brand || '', code: i.code || '', category: i.category || 'other', unit: i.unit || 'pcs',
+        selling_price: i.sell, buying_price: i.buy, currency: data.currency, supplier: i.vname, active: true,
+        notes: `From ${i.vname}'s price list: ${formatMoney(i.price, i.currency)} + ${data.markup}%`,
+      });
+      toast({ title: 'Added to your price list', description: `${i.name} at ${formatMoney(i.sell, data.currency)}. You can change the price there.` });
+      onAdded();
+    } catch (e) { toast({ title: 'Could not add', description: e.message, variant: 'destructive' }); }
+    finally { setBusy(''); }
+  };
+
+  if (!data) return <Loading />;
+  const cur = data.currency;
+  return (
+    <>
+      <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        🔒 Internal: buying prices from your vendors. <b>Your price</b> = buying price + {data.markup}% (change it in <Link to="/settings" className="underline">Settings</Link>). These also appear as suggestions when you type an item on a quotation. Clients never see this page.
+      </p>
+      <Toolbar>
+        <SearchBox value={q} onChange={setQ} placeholder="Search item, brand or vendor" />
+        <FilterSelect value={vendor} onChange={setVendor} options={data.vendors.map((v) => ({ value: v.id, label: v.name }))} allLabel="All vendors" />
+      </Toolbar>
+      {data.items.length === 0 ? <Empty>No vendor items yet. Add vendors and their price lists in <Link to="/vendors" className="text-primary hover:underline">Vendors</Link>.</Empty>
+        : rows.length === 0 ? <Empty>No vendor item matches your search.</Empty> : (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+          <table className="w-full min-w-[860px] text-sm">
+            <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Item</th><th className="px-4 py-3">Vendor</th><th className="px-4 py-3">Unit</th>
+                <th className="px-4 py-3 text-right">Vendor's price</th>
+                <th className="px-4 py-3 text-right text-amber-700">Buying price 🔒</th>
+                <th className="px-4 py-3 text-right">Your price (+{data.markup}%)</th>
+                <th className="w-40 px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((i) => (
+                <tr key={i.id} className={!i.priced ? 'opacity-60' : ''}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{i.name}</p>
+                    <p className="text-xs text-muted-foreground">{[i.brand, i.code && `Code ${i.code}`].filter(Boolean).join(' · ')}{i.availability && i.availability !== 'in_stock' ? <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${availabilityInfo(i.availability).cls}`}>{availabilityInfo(i.availability).label}</span> : null}</p>
+                  </td>
+                  <td className="px-4 py-3"><Link to={`/vendors/${i.vendor}`} className="text-primary hover:underline">{i.vname}</Link></td>
+                  <td className="px-4 py-3">{i.unit || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">{i.priced ? formatMoney(i.price, i.currency || 'RWF') : 'price on request'}</td>
+                  <td className="px-4 py-3 text-right">{i.missingRate ? <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="h-3.5 w-3.5" />Set the {i.missingRate} rate in Settings</span> : i.buy === null ? '—' : formatMoney(i.buy, cur)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-emerald-700">{i.sell === null ? '—' : formatMoney(i.sell, cur)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    {i.inMine ? <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><Check className="h-3.5 w-3.5" /> In your list</span>
+                      : canEdit && i.sell !== null ? <button onClick={() => addToMine(i)} disabled={busy === i.id} className={btnLine}>{busy === i.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add to my list</button> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }
