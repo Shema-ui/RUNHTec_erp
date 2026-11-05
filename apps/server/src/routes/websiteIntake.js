@@ -130,7 +130,8 @@ router.post('/', async (req, res) => {
     // Power Planner request: build a draft solar quotation from the vendor price lists (no AI).
     try {
       const load = solarKit.loadFromPayload(payload);
-      if (load && requestType !== 'contact_enquiry') {
+      // Only realistic loads (up to 500 kW, 48 h backup); anything else is left for a person to look at.
+      if (load && requestType !== 'contact_enquiry' && load.peakW <= 500000 && load.hours <= 48) {
         const q = await solarKit.createDraftQuote({ load, rfq: rfqId, client: clientId, billTo: { name, company, address, email, phone } });
         if (q) {
           const miss = q.kit.missing.length ? ` Prices still needed: ${q.kit.missing.join(', ')}.` : '';
