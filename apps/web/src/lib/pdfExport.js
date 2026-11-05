@@ -74,11 +74,13 @@ async function picturePdf(el, jsPDF) {
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const cssW = canvas.width / scale;
-  const pageCss = Math.floor(cssW * (pageH / pageW)); // page height in CSS px
+  const gapMm = 10; // white space at the top of page 2, 3…
+  const pageCssFor = (pg) => Math.floor(cssW * ((pageH - (pg > 0 ? gapMm : 0)) / pageW)); // usable page height in CSS px
   const totalCss = canvas.height / scale;
   const points = breakPoints(el);
   let top = 0; let page = 0;
   while (top < totalCss - 1) {
+    const pageCss = pageCssFor(page);
     let bottom = Math.min(top + pageCss, totalCss);
     if (bottom < totalCss) {
       // last safe break on this page, but don't leave a page mostly empty
@@ -92,7 +94,7 @@ async function picturePdf(el, jsPDF) {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, slice.width, sh);
     ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
     if (page > 0) pdf.addPage();
-    pdf.addImage(slice.toDataURL('image/jpeg', 0.82), 'JPEG', 0, 0, pageW, (sh / canvas.width) * pageW, undefined, 'FAST');
+    pdf.addImage(slice.toDataURL('image/jpeg', 0.82), 'JPEG', 0, page > 0 ? gapMm : 0, pageW, (sh / canvas.width) * pageW, undefined, 'FAST');
     top = bottom; page += 1;
   }
   return pdf;
