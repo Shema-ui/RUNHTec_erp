@@ -141,6 +141,8 @@ async function runMigrations() {
     // Vendor prices on quotations: markup on the buying price, and exchange rates (RWF per 1 unit)
     await ensureColumn(conn, 'company_settings', 'vendor_markup', 'DECIMAL(6,2) DEFAULT 30');
     await ensureColumn(conn, 'company_settings', 'exchange_rates', 'JSON DEFAULT NULL');
+    // Solar kit builder rules (sun hours, battery depth, extra lines…), editable in Settings
+    await ensureColumn(conn, 'company_settings', 'solar_kit', 'JSON DEFAULT NULL');
 
     // Lead technician of a project (a user account), who logs the crew's days on site
     await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');

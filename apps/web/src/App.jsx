@@ -21,6 +21,7 @@ import ClientMessagesPage from '@/pages/ClientMessagesPage';
 import VendorEnterPage from '@/pages/vendor/VendorEnterPage';
 import VendorPortalPage from '@/pages/vendor/VendorPortalPage';
 import VendorsPage from '@/pages/vendors/VendorsPage';
+import SolarKitPage from '@/pages/ops/SolarKitPage';
 import VendorDetailPage from '@/pages/vendors/VendorDetailPage';
 import StaffProfilePage from '@/pages/StaffProfilePage';
 import ActivityLogPage from '@/pages/ActivityLogPage';
@@ -116,6 +117,7 @@ function App() {
           <Route path="/crm/pipeline" element={<Protected moduleKey="crm"><PipelinePage /></Protected>} />
           <Route path="/rfqs" element={<Protected moduleKey="rfq"><RfqsPage /></Protected>} />
           <Route path="/quotations" element={<Protected moduleKey="quotations"><QuotationsPage /></Protected>} />
+          <Route path="/solar-kit" element={<Protected moduleKey="solar_kit"><SolarKitPage /></Protected>} />
           <Route path="/quotations/new" element={<Protected moduleKey="quotations"><QuotationFormPage /></Protected>} />
           <Route path="/quotations/:id/edit" element={<Protected moduleKey="quotations"><QuotationFormPage /></Protected>} />
           <Route path="/quotations/:id/view" element={<Protected moduleKey="quotations"><QuotationViewPage /></Protected>} />

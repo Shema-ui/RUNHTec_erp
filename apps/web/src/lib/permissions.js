@@ -73,6 +73,8 @@ export const MODULE_ACCESS = {
   client_messages: ['sales', 'project_manager', 'accountant', 'hr'],
   catalog: ['sales', 'accountant', 'project_manager'],
   vendors: ['sales', 'accountant', 'project_manager'],
+  // Uses buying prices, so the same people as Vendors.
+  solar_kit: ['sales', 'accountant', 'project_manager'],
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],

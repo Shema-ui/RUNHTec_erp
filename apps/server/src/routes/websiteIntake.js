@@ -9,6 +9,7 @@ const pool = require('../db');
 const { genId } = require('../idGen');
 const { createLimiter } = require('../rateLimit');
 const { notifyRoles } = require('../notify');
+const solarKit = require('../solarKit');
 
 const router = express.Router();
 
@@ -99,11 +100,12 @@ router.post('/', async (req, res) => {
       defaultDescription = 'Service request from website';
     }
 
+    const rfqId = genId();
     await pool.query(
       `INSERT INTO rfqs (id, name, company, email, phone, service_type, urgency, budget, address, description, status, source, request_type, request_status, client, created)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, 'new', ?, NOW())`,
       [
-        genId(),
+        rfqId,
         name || company || 'Website request',
         company || name,
         email,
@@ -125,6 +127,19 @@ router.post('/', async (req, res) => {
     );
 
     await notifyRoles(['sales', 'super_admin', 'admin'], 'rfq', `New website ${requestType === 'quote_request' ? 'quote request' : requestType === 'service_request' ? 'site-visit / service request' : 'enquiry'} from ${name}${company ? ` (${company})` : ''}`);
+    // Power Planner request: build a draft solar quotation from the vendor price lists (no AI).
+    try {
+      const load = solarKit.loadFromPayload(payload);
+      if (load && requestType !== 'contact_enquiry') {
+        const q = await solarKit.createDraftQuote({ load, rfq: rfqId, client: clientId, billTo: { name, company, address, email, phone } });
+        if (q) {
+          const miss = q.kit.missing.length ? ` Prices still needed: ${q.kit.missing.join(', ')}.` : '';
+          await notifyRoles(['sales', 'super_admin', 'admin'], 'quote',
+            `Draft solar quotation ${q.number} is ready for ${name} (from the Power Planner). Please check it and send it.${miss}`, `/quotations/${q.id}/edit`);
+        }
+      }
+    } catch (err) { console.error('solar kit builder failed:', err.message); }
+
     res.status(200).json({ success: true, message: 'Submission received', type });
   } catch (err) {
     console.error('website-intake error:', err);

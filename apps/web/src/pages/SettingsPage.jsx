@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck } from 'lucide-react';
+import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck, Sun } from 'lucide-react';
 import { CURRENCIES } from '@/lib/money';
 import { resetVendorOffers } from '@/lib/vendorPricing';
+import { SOLAR_KIT_DEFAULTS, EXTRA_PER, solarKitFrom } from '@/lib/solarKit';
 import { DEFAULT_LABOUR_ROLES, applyCostSettings, rid } from '@/lib/costing';
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -137,6 +138,8 @@ export default function SettingsPage() {
   const [rates, setRates] = useState(DEFAULT_LABOUR_ROLES.map((r) => ({ ...r })));
   // Exchange rates: how many RWF one unit of each currency is worth.
   const [fx, setFx] = useState({});
+  const [kit, setKit] = useState(SOLAR_KIT_DEFAULTS);
+  const setK = (k, v) => setKit((p) => ({ ...p, [k]: v }));
 
   useEffect(() => {
     pb.collection('company_settings').getList(1, 1, { requestKey: 'settings-load' })
@@ -172,6 +175,7 @@ export default function SettingsPage() {
           }));
           if (Array.isArray(rec.labour_rates) && rec.labour_rates.length) setRates(rec.labour_rates.map((r) => ({ ...r })));
           let x = rec.exchange_rates; if (typeof x === 'string') { try { x = JSON.parse(x); } catch { x = {}; } }
+          setKit(solarKitFrom(rec.solar_kit));
           if (x && typeof x === 'object') setFx(Object.fromEntries(Object.entries(x).map(([k, v]) => [k, String(v)])));
           if (rec.logo) setLogo(p => ({ ...p, url: pb.files.getURL(rec, rec.logo) }));
           if (rec.signature) setSignature(p => ({ ...p, url: pb.files.getURL(rec, rec.signature) }));
@@ -193,6 +197,15 @@ export default function SettingsPage() {
       fd.append('labour_rates', JSON.stringify(cleanRates));
       const cleanFx = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, Number(String(v).replace(/[\s,]/g, ''))]).filter(([, v]) => v > 0));
       fd.append('exchange_rates', JSON.stringify(cleanFx));
+      const numOr = (v, d) => (Number.isFinite(Number(v)) && String(v).trim() !== '' ? Number(v) : d);
+      const D = SOLAR_KIT_DEFAULTS;
+      fd.append('solar_kit', JSON.stringify({
+        enabled: kit.enabled !== false,
+        psh: numOr(kit.psh, D.psh), performance: numOr(kit.performance, D.performance), dod: numOr(kit.dod, D.dod),
+        inverter_eff: numOr(kit.inverter_eff, D.inverter_eff), headroom: numOr(kit.headroom, D.headroom),
+        three_phase_above_kw: numOr(kit.three_phase_above_kw, D.three_phase_above_kw), default_panel_w: numOr(kit.default_panel_w, D.default_panel_w),
+        extras: (kit.extras || []).filter((e) => String(e.label || '').trim()).map((e) => ({ label: String(e.label).trim(), per: e.per || 'fixed', price: numOr(e.price, 0), cost: numOr(e.cost, 0) })),
+      }));
 
       const assets = [['logo', logo], ['signature', signature], ['stamp', stamp]];
       assets.forEach(([key, asset]) => {
@@ -518,6 +531,62 @@ export default function SettingsPage() {
                 </label>
               ))}
             </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={Sun} title="Solar kit builder" description="Builds a draft solar quotation from a client's load (website Power Planner, or Quotations → Solar kit builder): it sizes the inverter, batteries and panels, picks the cheapest matching items from the vendors' price lists and adds the vendor markup. Internal only.">
+          <label className="mb-4 flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5 h-4 w-4" checked={kit.enabled !== false} disabled={!isSuperAdmin} onChange={(e) => setK('enabled', e.target.checked)} />
+            <span><span className="font-medium">Create draft quotations automatically from the website Power Planner</span><span className="block text-xs text-muted-foreground">You get an alert to check each draft before sending. Drafts are never sent to clients automatically.</span></span>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Sun hours per day" hint="Peak sun hours. Kigali is about 4.5.">
+              <input type="number" step="0.1" className={inputCls} value={kit.psh} readOnly={!isSuperAdmin} aria-label="Sun hours per day"
+                onChange={(e) => isSuperAdmin && setK('psh', e.target.value)} />
+            </Field>
+            <Field label="Solar performance (%)" hint="Real output vs panel rating (heat, dust, losses). 75% is typical.">
+              <input type="number" step="1" className={inputCls} value={Math.round(Number(kit.performance) * 100)} readOnly={!isSuperAdmin} aria-label="Solar performance (%)"
+                onChange={(e) => isSuperAdmin && setK('performance', Number(e.target.value) / 100)} />
+            </Field>
+            <Field label="Usable battery (%)" hint="Share of a lithium battery you can use. 90% for LiFePO4.">
+              <input type="number" step="1" className={inputCls} value={Math.round(Number(kit.dod) * 100)} readOnly={!isSuperAdmin} aria-label="Usable battery (%)"
+                onChange={(e) => isSuperAdmin && setK('dod', Number(e.target.value) / 100)} />
+            </Field>
+            <Field label="Inverter efficiency (%)" hint="About 92% for hybrid inverters.">
+              <input type="number" step="1" className={inputCls} value={Math.round(Number(kit.inverter_eff) * 100)} readOnly={!isSuperAdmin} aria-label="Inverter efficiency (%)"
+                onChange={(e) => isSuperAdmin && setK('inverter_eff', Number(e.target.value) / 100)} />
+            </Field>
+            <Field label="Inverter size (% of peak load)" hint="125% means 25% above the peak load.">
+              <input type="number" step="1" className={inputCls} value={Math.round(Number(kit.headroom) * 100)} readOnly={!isSuperAdmin} aria-label="Inverter size (% of peak load)"
+                onChange={(e) => isSuperAdmin && setK('headroom', Number(e.target.value) / 100)} />
+            </Field>
+            <Field label="Three-phase above (kW)" hint="Bigger inverters than this are chosen three-phase.">
+              <input type="number" step="1" className={inputCls} value={kit.three_phase_above_kw} readOnly={!isSuperAdmin} aria-label="Three-phase above (kW)"
+                onChange={(e) => isSuperAdmin && setK('three_phase_above_kw', e.target.value)} />
+            </Field>
+            <Field label="Panel size if none listed (W)" hint="Used for the panel count when no panel is in a vendor list.">
+              <input type="number" step="10" className={inputCls} value={kit.default_panel_w} readOnly={!isSuperAdmin} aria-label="Panel size if none listed (W)"
+                onChange={(e) => isSuperAdmin && setK('default_panel_w', e.target.value)} />
+            </Field>
+          </div>
+          <div className="mt-6">
+            <p className="text-sm font-medium">Extra lines added to every solar kit</p>
+            <p className="mb-3 text-xs text-muted-foreground">Mounting, cables, installation and so on. Your price is what the client sees; your cost is internal (both in the company currency). Set your own figures, the starting ones are only examples.</p>
+            <div className="space-y-2">
+              <div className="hidden grid-cols-[minmax(0,1fr)_150px_120px_120px_36px] gap-2 px-1 text-[11px] font-semibold uppercase text-muted-foreground md:grid"><span>Line</span><span>Counted</span><span>Your price</span><span>Your cost</span><span /></div>
+              {(kit.extras || []).map((e, i) => (
+                <div key={i} className="grid grid-cols-2 gap-2 rounded-lg border border-border p-2 md:grid-cols-[minmax(0,1fr)_150px_120px_120px_36px] md:border-0 md:p-0">
+                  <input className={`${inputCls} col-span-2 md:col-span-1`} value={e.label} readOnly={!isSuperAdmin} aria-label={`Extra line ${i + 1}`} onChange={(ev) => setK('extras', kit.extras.map((x, j) => (j === i ? { ...x, label: ev.target.value } : x)))} />
+                  <select className={inputCls} value={e.per} disabled={!isSuperAdmin} aria-label={`How line ${i + 1} is counted`} onChange={(ev) => setK('extras', kit.extras.map((x, j) => (j === i ? { ...x, per: ev.target.value } : x)))}>
+                    {EXTRA_PER.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <input className={inputCls} type="number" min="0" value={e.price} readOnly={!isSuperAdmin} aria-label={`Price of line ${i + 1}`} onChange={(ev) => setK('extras', kit.extras.map((x, j) => (j === i ? { ...x, price: ev.target.value } : x)))} />
+                  <input className={inputCls} type="number" min="0" value={e.cost} readOnly={!isSuperAdmin} aria-label={`Cost of line ${i + 1}`} onChange={(ev) => setK('extras', kit.extras.map((x, j) => (j === i ? { ...x, cost: ev.target.value } : x)))} />
+                  {isSuperAdmin && <button type="button" onClick={() => setK('extras', kit.extras.filter((_, j) => j !== i))} aria-label="Remove line" className="rounded p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+                </div>
+              ))}
+            </div>
+            {isSuperAdmin && <button type="button" onClick={() => setK('extras', [...(kit.extras || []), { label: '', per: 'fixed', price: 0, cost: 0 }])} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"><Plus className="h-4 w-4" /> Add line</button>}
           </div>
         </SectionCard>
 

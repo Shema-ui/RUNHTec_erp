@@ -12,7 +12,7 @@ const HIDDEN = {
   projects: ['notes', 'cost_budget', 'assigned_technicians'],
   quotations: ['costing', 'notes_internal'],
   invoices: ['costing', 'created_by'],
-  company_settings: ['labour_rates', 'default_contingency'],
+  company_settings: ['labour_rates', 'default_contingency', 'vendor_markup', 'exchange_rates', 'solar_kit'],
   clients: ['potential_value', 'account_manager', 'categories'],
   documents: ['notes'],
   payments: ['notes', 'recorded_by_name'],

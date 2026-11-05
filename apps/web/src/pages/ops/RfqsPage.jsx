@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight, Pencil, Loader2, Save } from 'lucide-react';
+import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight, Pencil, Loader2, Save, Sun } from 'lucide-react';
 import { Modal, Field, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import pb from '@/lib/pocketbaseClient';
 import SuperDelete from '@/components/erp/SuperDelete';
+import { useAuth } from '@/context/AuthContext';
+import { canAccessModule } from '@/lib/permissions';
+import { plannerFromText } from '@/lib/solarKit';
 
 const TABS = [
   { key: 'quote_request', label: 'Quote Requests', icon: FileQuestion },
@@ -38,6 +41,8 @@ function normalizedStatus(rfq) {
 
 export default function RfqsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canKit = canAccessModule(user, 'solar_kit');
   const { toast } = useToast();
   const [rfqs, setRfqs] = useState([]);
   const [query, setQuery] = useState('');
@@ -221,6 +226,11 @@ export default function RfqsPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                       >
                         Convert to quotation <ArrowRight className="h-4 w-4" />
+                      </button>
+                    )}
+                    {tab === 'quote_request' && canKit && (
+                      <button onClick={() => navigate(`/solar-kit?rfq=${rfq.id}`)} className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${plannerFromText(rfq.description) ? 'bg-amber-500 text-white hover:bg-amber-600' : 'border border-border hover:bg-secondary'}`}>
+                        <Sun className="h-4 w-4" /> Build solar quote
                       </button>
                     )}
                     <button onClick={() => setEditing(rfq)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"><Pencil className="h-4 w-4" /> Edit details</button>
