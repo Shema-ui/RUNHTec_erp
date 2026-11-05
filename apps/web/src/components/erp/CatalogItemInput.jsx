@@ -35,7 +35,14 @@ export default function CatalogItemInput({ value, onChange, onPick, className, c
 
   const place = () => {
     const r = ref.current?.getBoundingClientRect();
-    if (r) setPos({ left: r.left, top: r.bottom + 4, width: Math.max(r.width, 400) });
+    if (!r) return;
+    // Open below the box, or above it when there isn't enough room below; never past the screen edge.
+    const below = window.innerHeight - r.bottom - 8;
+    const above = r.top - 8;
+    const width = Math.min(Math.max(r.width, 400), window.innerWidth - 16);
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+    if (below < 260 && above > below) setPos({ left, bottom: window.innerHeight - r.top + 4, width, maxHeight: Math.min(360, above) });
+    else setPos({ left, top: r.bottom + 4, width, maxHeight: Math.min(360, below) });
   };
   useEffect(() => {
     if (!open) return undefined;
@@ -84,7 +91,7 @@ export default function CatalogItemInput({ value, onChange, onPick, className, c
         }}
       />
       {open && shown > 0 && pos && createPortal(
-        <div role="listbox" className="fixed z-[60] max-h-80 overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-xl" style={{ left: pos.left, top: pos.top, width: pos.width }}>
+        <div role="listbox" className="fixed z-[60] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-xl" style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxHeight }}>
           {own.length > 0 && <p className="flex items-center gap-1 px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><Tags className="h-3 w-3" /> From Items &amp; Prices</p>}
           {own.map((m) => {
             const i = idxOf('own', m.id);
