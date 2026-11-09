@@ -81,11 +81,12 @@ const collections = {
   },
   rfqs: {
     table: 'rfqs',
-    fields: ['id', 'name', 'company', 'email', 'phone', 'service_type', 'urgency', 'budget', 'address', 'description', 'attachments', 'status', 'source', 'client', 'request_type', 'request_status', 'created', 'updated'],
+    fields: ['id', 'name', 'company', 'email', 'phone', 'service_type', 'urgency', 'budget', 'address', 'description', 'attachments', 'status', 'source', 'client', 'request_type', 'request_status', 'kind', 'preferred_time', 'scheduled_for', 'technician_name', 'client_note', 'project', 'created', 'updated'],
     relations: { client: 'clients' },
     fileFields: [], // `attachments` is a multi-file JSON array of file ids, handled separately from single fileFields
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
-    watchedFields: ['status', 'request_status'],
+    // Project managers schedule service visits too.
+    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: (u) => any(u, ['sales', 'project_manager']), delete: SALES_WRITE },
+    watchedFields: ['status', 'request_status', 'scheduled_for', 'technician_name'],
   },
   quotations: {
     table: 'quotations',

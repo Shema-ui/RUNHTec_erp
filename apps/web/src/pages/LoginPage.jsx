@@ -9,7 +9,52 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
+const MODE_KEY = 'runhtec-login-mode';
+
+// Clients sign in with their phone number and PIN (no email, no password).
+function ClientSignIn() {
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState(() => { try { return localStorage.getItem('runhtec-client-phone') || ''; } catch { return ''; } });
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const res = await pb.post('/api/client/login', { phone, pin });
+      try { localStorage.setItem('runhtec-client-phone', phone); } catch { /* ignore */ }
+      pb.authStore.save(res.token, res.record);
+      navigate('/portal', { replace: true });
+    } catch (err) { setError(err.message || 'Could not sign in.'); setLoading(false); }
+  };
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      {error && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span>
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone number</Label>
+        <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0788 123 456" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pin">PIN</Label>
+        <Input id="pin" type="password" inputMode="numeric" autoComplete="current-password" required maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••" className="tracking-[0.4em]" />
+      </div>
+      <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign in'}
+      </Button>
+      <p className="text-center text-sm text-muted-foreground">New to RUNHTec? <Link to="/join" className="font-semibold text-primary hover:underline">Create your account</Link></p>
+      <p className="text-center text-xs text-muted-foreground">Forgot your PIN? Open the private link we sent you, or call RUNHTec to reset it.</p>
+    </form>
+  );
+}
+
 export default function LoginPage() {
+  const [mode, setModeState] = useState(() => { try { return localStorage.getItem(MODE_KEY) || 'staff'; } catch { return 'staff'; } });
+  const setMode = (m) => { setModeState(m); try { localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ } };
   const { login, rememberedEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,14 +91,21 @@ export default function LoginPage() {
 
   return (
     <AuthShell pageTitle="Sign in">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">
-          Sign in to your portal
+          {mode === 'client' ? 'Welcome to RUNHTec' : 'Sign in to your portal'}
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Enter your credentials to access the workspace.
+          {mode === 'client' ? 'Sign in with your phone number and PIN.' : 'Enter your credentials to access the workspace.'}
         </p>
       </div>
+      <div className="mb-6 grid grid-cols-2 rounded-xl bg-secondary p-1" role="tablist" aria-label="Who is signing in">
+        {[['client', 'I’m a client'], ['staff', 'RUNHTec staff']].map(([m, label]) => (
+          <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
+            className={`rounded-lg py-2 text-sm font-semibold transition ${mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>{label}</button>
+        ))}
+      </div>
+      {mode === 'client' ? <ClientSignIn /> : (<>
 
       {slow && (
         <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
@@ -119,12 +171,13 @@ export default function LoginPage() {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign in'}
         </Button>
       </form>
+      </>)}
 
       <p className="mt-6 text-center text-sm">
         <Link to="/app" className="font-semibold text-primary hover:underline">Install the RUNHTec app on your phone</Link>
       </p>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Accounts are provisioned by administrators only. No public registration.
+        {mode === 'client' ? 'Your details stay private and are only used to serve you.' : 'Staff accounts are created by administrators only.'}
       </p>
     </AuthShell>
   );

@@ -7,6 +7,9 @@ import { Toaster } from '@/components/ui/toaster';
 
 import LoginPage from '@/pages/LoginPage';
 import InstallAppPage from '@/pages/InstallAppPage';
+import JoinPage from '@/pages/JoinPage';
+import { PortalRequestsPage, PortalNewRequestPage, PortalNewsPage, PortalEquipmentPage } from '@/pages/portal/ClientAppPages';
+import AnnouncementsPage from '@/pages/crm/AnnouncementsPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -74,6 +77,7 @@ function App() {
           <Route path="/login" element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/app" element={<InstallAppPage />} />
+          <Route path="/join" element={<RedirectIfAuthed><JoinPage /></RedirectIfAuthed>} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Dashboard — every role lands here after login */}
@@ -86,6 +90,11 @@ function App() {
           <Route path="/portal" element={<RequireAuth><PortalHomePage /></RequireAuth>} />
           <Route path="/portal/projects/:id" element={<RequireAuth><PortalProjectPage /></RequireAuth>} />
           <Route path="/portal/messages" element={<RequireAuth><PortalMessagesPage /></RequireAuth>} />
+          <Route path="/portal/requests" element={<RequireAuth><PortalRequestsPage /></RequireAuth>} />
+          <Route path="/portal/requests/new" element={<RequireAuth><PortalNewRequestPage /></RequireAuth>} />
+          <Route path="/portal/news" element={<RequireAuth><PortalNewsPage /></RequireAuth>} />
+          <Route path="/portal/equipment" element={<RequireAuth><PortalEquipmentPage /></RequireAuth>} />
+          <Route path="/announcements" element={<RequireAuth><RequireModule moduleKey="announcements"><AnnouncementsPage /></RequireModule></RequireAuth>} />
           <Route path="/client-messages" element={<RequireAuth><RequireModule moduleKey="client_messages"><ClientMessagesPage /></RequireModule></RequireAuth>} />
           <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
           <Route path="/items" element={<RequireAuth><RequireModule moduleKey="catalog"><CatalogPage /></RequireModule></RequireAuth>} />

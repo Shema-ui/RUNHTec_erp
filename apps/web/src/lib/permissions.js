@@ -71,6 +71,8 @@ export const MODULE_ACCESS = {
   rfq: ['sales'],
   quotations: ['sales'],
   client_messages: ['sales', 'project_manager', 'accountant', 'hr'],
+  // News & offers sent to clients in the app
+  announcements: ['sales', 'project_manager'],
   catalog: ['sales', 'accountant', 'project_manager'],
   vendors: ['sales', 'accountant', 'project_manager'],
   // Uses buying prices, so the same people as Vendors.

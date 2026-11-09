@@ -17,6 +17,8 @@ export async function loadPortal(clientId) {
     pb.collection('company_settings').getList(1, 1).then((r) => r.items).catch(() => []),
     pb.collection('clients').getOne(clientId).catch(() => null),
   ]);
+  // Client app extras: service requests, equipment & schedule, news, things to rate.
+  const app = await pb.get(`/api/client/overview?client=${encodeURIComponent(clientId)}`).catch(() => ({}));
   const myProjects = projects.filter((p) => p.client === clientId && p.status !== 'cancelled');
   const ids = new Set(myProjects.map((p) => p.id));
   const [photos, docs] = await Promise.all([
@@ -32,6 +34,11 @@ export async function loadPortal(clientId) {
     payments: payments.filter((x) => x.client === clientId && x.status === 'completed'),
     messages: msgs.filter((m) => m.client === clientId),
     photos: photos.filter((ph) => Number(ph.shared) === 1 && ids.has(ph.project)).sort((a, b) => String(b.taken_on || b.created).localeCompare(String(a.taken_on || a.created)) || String(b.created).localeCompare(String(a.created))),
+    requests: app.requests || [],
+    equipment: app.equipment || [],
+    contracts: app.contracts || [],
+    news: app.news || [],
+    toRate: app.toRate || [],
     docs: docs.filter((d) => Number(d.share_with_client) === 1 && (d.client === clientId || ids.has(d.project))),
   };
 }

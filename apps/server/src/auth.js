@@ -10,12 +10,13 @@ const TOKEN_TTL = '7d';
 
 function signToken(user) {
   // Vendors (supplier portal) get a shorter sign-in than staff.
-  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: user?.role === 'vendor' ? '12h' : TOKEN_TTL });
+  // Clients sign in with phone + PIN on their own phone, so they stay signed in longer.
+  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: user?.role === 'vendor' ? '12h' : user?.role === 'client' ? '30d' : TOKEN_TTL });
 }
 
 function sanitizeUser(row) {
   if (!row) return null;
-  const { password_hash, reset_token_hash, reset_token_expires, tokens_valid_after, portal_token_hash, ...rest } = row;
+  const { password_hash, reset_token_hash, reset_token_expires, tokens_valid_after, portal_token_hash, pin_hash, ...rest } = row;
   return rest;
 }
 

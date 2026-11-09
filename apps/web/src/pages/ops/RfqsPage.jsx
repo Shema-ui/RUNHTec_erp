@@ -189,10 +189,15 @@ export default function RfqsPage() {
                         <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-muted-foreground">
                           {REQUEST_STATUS_LABELS[reqStatus] || reqStatus}
                         </span>
-                        {rfq.source && (
+                        {rfq.source === 'app' ? (
+                          <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">Client app</span>
+                        ) : rfq.source && (
                           <span className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">
                             via {rfq.source}
                           </span>
+                        )}
+                        {['urgent', 'emergency'].includes(String(rfq.urgency).toLowerCase()) && (
+                          <span className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-bold uppercase text-white">{rfq.urgency}</span>
                         )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
@@ -204,7 +209,24 @@ export default function RfqsPage() {
                         <span>Service: {rfq.service_type || '—'}</span>
                         {rfq.urgency && <span>Urgency: {rfq.urgency}</span>}
                         <span>Received: {rfq.created ? new Date(rfq.created).toLocaleDateString() : '—'}</span>
+                        {rfq.phone && <a href={`tel:${rfq.phone}`} className="font-medium text-primary">{rfq.phone}</a>}
+                        {rfq.address && <span>Site: {rfq.address}</span>}
+                        {rfq.preferred_time && <span>Prefers: {rfq.preferred_time}</span>}
                       </div>
+                      {(rfq.scheduled_for || rfq.technician_name) && (
+                        <p className="mt-2 inline-flex rounded-lg bg-blue-50 px-2.5 py-1 text-sm text-blue-900">
+                          Visit {rfq.scheduled_for ? new Date(`${rfq.scheduled_for}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : 'date not set'}{rfq.technician_name ? ` · ${rfq.technician_name}` : ''}
+                        </p>
+                      )}
+                      {(() => {
+                        let files = rfq.attachments;
+                        if (typeof files === 'string') { try { files = JSON.parse(files); } catch { files = []; } }
+                        return Array.isArray(files) && files.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {files.map((fid) => <a key={fid} href={pb.files.getURL(null, fid)} target="_blank" rel="noreferrer"><img src={pb.files.getURL(null, fid)} alt="Photo from the client" loading="lazy" className="h-16 w-16 rounded-lg object-cover" /></a>)}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 
@@ -233,7 +255,7 @@ export default function RfqsPage() {
                         <Sun className="h-4 w-4" /> Build solar quote
                       </button>
                     )}
-                    <button onClick={() => setEditing(rfq)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"><Pencil className="h-4 w-4" /> Edit details</button>
+                    <button onClick={() => setEditing(rfq)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"><Pencil className="h-4 w-4" /> {tab === 'service_request' ? 'Schedule / edit' : 'Edit details'}</button>
                     <SuperDelete collection="rfqs" id={rfq.id} text="Delete" label={`request from ${rfq.company || rfq.name || 'website'}`} after={() => setRfqs((prev) => prev.filter((x) => x.id !== rfq.id))} />
                   </div>
                 </div>
@@ -247,6 +269,9 @@ export default function RfqsPage() {
   );
 }
 
+// Visit planning: the client sees these in their app and gets a notification when they change.
+const PLAN_FIELDS = ['scheduled_for', 'technician_name', 'client_note'];
+
 const RFQ_FIELDS = [
   ['name', 'Contact name'], ['company', 'Company'], ['email', 'Email'], ['phone', 'Phone'],
   ['service_type', 'Service'], ['urgency', 'Urgency'], ['budget', 'Budget'], ['address', 'Location / address'],
@@ -256,7 +281,7 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
   const { toast } = useToast();
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (rfq) setForm(Object.fromEntries([...RFQ_FIELDS.map(([k]) => [k, rfq[k] || '']), ['description', rfq.description || '']])); }, [rfq]);
+  useEffect(() => { if (rfq) setForm(Object.fromEntries([...RFQ_FIELDS.map(([k]) => [k, rfq[k] || '']), ...PLAN_FIELDS.map((k) => [k, rfq[k] || '']), ['description', rfq.description || '']])); }, [rfq]);
   if (!rfq) return null;
   const save = async () => {
     setSaving(true);
@@ -276,6 +301,15 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
           ))}
         </div>
         <Field label="What they need"><textarea className={textareaCls} rows={4} value={form.description || ''} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></Field>
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+          <p className="mb-3 text-sm font-semibold text-blue-900">Plan the visit <span className="font-normal text-blue-800">· the client sees this in their app</span></p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Visit date"><input type="date" className={inputCls} value={form.scheduled_for || ''} onChange={(e) => setForm((p) => ({ ...p, scheduled_for: e.target.value }))} /></Field>
+            <Field label="Technician"><input className={inputCls} value={form.technician_name || ''} onChange={(e) => setForm((p) => ({ ...p, technician_name: e.target.value }))} placeholder="e.g. Eric Habimana" /></Field>
+          </div>
+          <div className="mt-4"><Field label="Note to the client (optional)"><textarea className={textareaCls} rows={2} value={form.client_note || ''} onChange={(e) => setForm((p) => ({ ...p, client_note: e.target.value }))} placeholder="e.g. Our technician will call 30 minutes before arriving." /></Field></div>
+          <p className="mt-2 text-xs text-blue-800">Tip: also set the status to “Scheduled” so the client sees the visit is booked.</p>
+        </div>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
           <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save changes</button>

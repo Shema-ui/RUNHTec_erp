@@ -186,6 +186,49 @@ async function runMigrations() {
       value TEXT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+    // Client app: phone + PIN sign-in, service requests from the app,
+    // announcements, ratings and reminders.
+    await ensureColumn(conn, 'users', 'pin_hash', 'VARCHAR(100) DEFAULT NULL');
+    await ensureColumn(conn, 'users', 'signup_source', "VARCHAR(10) DEFAULT ''");
+    await ensureEnumValue(conn, 'rfqs', 'source', 'app', "ENUM('website','manual','app') NOT NULL DEFAULT 'manual'");
+    for (const [col, def] of [
+      ['kind', "VARCHAR(30) DEFAULT ''"],
+      ['preferred_time', "VARCHAR(120) DEFAULT ''"],
+      ['scheduled_for', "VARCHAR(20) DEFAULT ''"],
+      ['technician_name', "VARCHAR(200) DEFAULT ''"],
+      ['client_note', "VARCHAR(1000) DEFAULT ''"],
+      ['project', 'VARCHAR(20) DEFAULT NULL'],
+    ]) await ensureColumn(conn, 'rfqs', col, def);
+    await conn.query(`CREATE TABLE IF NOT EXISTS announcements (
+      id VARCHAR(20) PRIMARY KEY,
+      title VARCHAR(150) NOT NULL DEFAULT '',
+      body TEXT,
+      audience VARCHAR(60) NOT NULL DEFAULT 'all',
+      link VARCHAR(300) DEFAULT '',
+      sent_count INT DEFAULT 0,
+      created_by VARCHAR(20) DEFAULT NULL,
+      created_by_name VARCHAR(200) DEFAULT '',
+      created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await conn.query(`CREATE TABLE IF NOT EXISTS ratings (
+      id VARCHAR(20) PRIMARY KEY,
+      client VARCHAR(20) DEFAULT NULL,
+      user VARCHAR(20) DEFAULT NULL,
+      user_name VARCHAR(200) DEFAULT '',
+      target_type VARCHAR(20) NOT NULL,
+      target_id VARCHAR(20) NOT NULL,
+      target_title VARCHAR(200) DEFAULT '',
+      rating TINYINT NOT NULL,
+      comment VARCHAR(1000) DEFAULT '',
+      created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_rating_target (target_type, target_id),
+      INDEX idx_ratings_client (client)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await ensureColumn(conn, 'maintenance_contracts', 'last_reminded', "VARCHAR(20) DEFAULT ''");
+    await ensureColumn(conn, 'equipment', 'last_reminded', "VARCHAR(20) DEFAULT ''");
+    await ensureColumn(conn, 'equipment', 'warranty_reminded', 'TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(conn, 'invoices', 'due_reminded', 'TINYINT(1) NOT NULL DEFAULT 0');
+
     // Leads who already accepted a quotation or have a project are clients now.
     const [act] = await conn.query(`UPDATE clients SET status = 'active' WHERE status = 'lead' AND (
       id IN (SELECT client FROM quotations WHERE status = 'accepted' AND client IS NOT NULL)

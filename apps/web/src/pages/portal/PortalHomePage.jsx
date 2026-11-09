@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { Camera, CalendarDays, MapPin, Phone, Mail, ChevronRight, LifeBuoy, Wallet, FolderKanban, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Camera, CalendarDays, MapPin, Phone, Mail, ChevronRight, LifeBuoy, Wallet, FolderKanban, CheckCircle2, MessageCircle, Cpu, Newspaper, KeyRound, ClipboardList } from 'lucide-react';
+import { REQUEST_KINDS, ToRate, RateDialog, statusChip } from './ClientAppPages';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { formatMoney } from '@/lib/money';
@@ -14,7 +15,9 @@ const initials = (s) => String(s || '?').split(/\s+/).filter(Boolean).slice(0, 2
 
 function Home() {
   const { user } = useAuth();
-  const { data, keep, openAssist } = usePortal();
+  const { data, keep, openAssist, reload, signin, openPin } = usePortal();
+  const [rate, setRate] = React.useState(null);
+  const openRequests = data.requests.filter((r) => !['completed', 'closed'].includes(r.request_status));
   const name = data.client?.company_name || data.client?.trading_name || '';
   const first = String(user?.role === 'client' ? user?.name : name).split(' ')[0];
   const hour = new Date().getHours();
@@ -56,6 +59,57 @@ function Home() {
         </div>
       </section>
 
+      {/* What the client can do, one tap away */}
+      <section>
+        <h2 className="mb-3 font-display text-lg font-bold">How can we help?</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {REQUEST_KINDS.map((k) => {
+            const Icon = k.icon;
+            return (
+              <Link key={k.key} to={`/portal/requests/new${keep ? `${keep}&` : '?'}kind=${k.key}`} className="flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 shadow-sm transition active:scale-[0.98]">
+                <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${k.tone}`}><Icon className="h-5 w-5" /></span>
+                <span className="text-sm font-semibold leading-tight text-slate-900">{k.label}</span>
+                <span className="text-xs leading-snug text-muted-foreground">{k.hint}</span>
+              </Link>
+            );
+          })}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <Link to={`/portal/requests${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><ClipboardList className="h-4 w-4 text-[#003DA5]" /> Requests{openRequests.length > 0 && <span className="rounded-full bg-[#003DA5] px-1.5 text-[11px] font-bold text-white">{openRequests.length}</span>}</Link>
+          <Link to={`/portal/equipment${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Cpu className="h-4 w-4 text-[#003DA5]" /> Equipment</Link>
+          <Link to={`/portal/news${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Newspaper className="h-4 w-4 text-[#003DA5]" /> News</Link>
+        </div>
+      </section>
+
+      <ToRate onRate={setRate} />
+      <RateDialog item={rate} onClose={() => setRate(null)} onDone={reload} />
+
+      {signin && !signin.has_pin && (
+        <button type="button" onClick={openPin} className="flex w-full items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003DA5] text-white"><KeyRound className="h-5 w-5" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">Set up your app sign-in</span><span className="block text-xs text-slate-600">Choose a PIN to sign in to the RUNHTec app with your phone number.</span></span>
+          <ChevronRight className="h-5 w-5 text-[#003DA5]" />
+        </button>
+      )}
+
+      {openRequests.length > 0 && (
+        <section>
+          <h2 className="mb-3 font-display text-lg font-bold">Open requests</h2>
+          <div className="space-y-2">
+            {openRequests.slice(0, 3).map((r) => {
+              const chip = statusChip(r);
+              return (
+                <Link key={r.id} to={`/portal/requests${keep}`} className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{r.service_type}</span><span className="block truncate text-xs text-muted-foreground">{r.scheduled_for ? `Visit ${dayLabel(r.scheduled_for)}${r.technician_name ? ` · ${r.technician_name}` : ''}` : r.description}</span></span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${chip.cls}`}>{chip.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {data.projects.length > 0 && (
       <section>
         <h2 className="mb-3 font-display text-lg font-bold">Your projects</h2>
         {data.projects.length === 0 ? (
@@ -95,6 +149,7 @@ function Home() {
           </div>
         )}
       </section>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-border bg-white p-5 shadow-sm">

@@ -25,6 +25,26 @@ async function activateLead(clientId) {
   try { await pool.query("UPDATE clients SET status = 'active' WHERE id = ? AND status = 'lead'", [clientId]); } catch (_) { /* never block the save */ }
 }
 
+// Tell the client (in their app) when their request moves on.
+const REQ_WORDS = { reviewing: 'is being reviewed', scheduled: 'is scheduled', in_progress: 'is in progress — our team is on it', completed: 'is complete', closed: 'is closed' };
+async function tellClientAboutRequest(before, after) {
+  if (!after?.client) return;
+  const statusChanged = before.request_status !== after.request_status;
+  const planChanged = before.scheduled_for !== after.scheduled_for || before.technician_name !== after.technician_name;
+  if (!statusChanged && !planChanged) return;
+  const what = after.service_type || 'request';
+  let msg = statusChanged && REQ_WORDS[after.request_status] ? `Your ${what} ${REQ_WORDS[after.request_status]}` : `Update on your ${what}`;
+  if (after.scheduled_for && ['scheduled', 'in_progress'].includes(after.request_status)) {
+    const d = new Date(`${after.scheduled_for}T00:00:00`);
+    msg += ` — visit on ${Number.isNaN(d.getTime()) ? after.scheduled_for : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+  }
+  if (after.technician_name && ['scheduled', 'in_progress'].includes(after.request_status)) msg += `, technician: ${after.technician_name}`;
+  msg += '.';
+  if (after.request_status === 'completed') msg += ' Please rate the service in your app.';
+  if (after.client_note && after.client_note !== before.client_note) msg += ` Note: ${after.client_note.slice(0, 150)}`;
+  await notifyClient(after.client, 'request', msg, '/portal/requests');
+}
+
 async function alertNewTeam(before, after, actor) {
   const old = new Set(teamOf(before));
   const added = teamOf(after).filter((id) => !old.has(id) && id !== actor?.id);
@@ -517,6 +537,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
     }
     if (req.collectionName === 'quotations' && before.status !== 'accepted' && rows[0].status === 'accepted') await activateLead(rows[0].client);
+    if (req.collectionName === 'rfqs') await tellClientAboutRequest(before, rows[0]).catch(() => {});
     if (req.collectionName === 'invoices' && before.status !== 'sent' && rows[0].status === 'sent') await notifyClient(rows[0].client, 'invoice', `New invoice ${rows[0].invoice_number} is available in your portal.`, '/portal');
     if (req.collectionName === 'project_photos' && !Number(before.shared) && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);

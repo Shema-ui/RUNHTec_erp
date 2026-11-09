@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, Smartphone } from 'lucide-react';
+import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, Smartphone, ClipboardList, Newspaper, KeyRound } from 'lucide-react';
 import { AppDialog } from '@/components/erp/AppInstall';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -32,6 +32,17 @@ export default function ClientLayout({ children }) {
   const [data, setData] = useState(null);
   const [assist, setAssist] = useState(false);
   const [appOpen, setAppOpen] = useState(false);
+  // App sign-in (phone + PIN): asked once after opening the private link.
+  const [signin, setSignin] = useState(null);
+  const [pinOpen, setPinOpen] = useState(false);
+  useEffect(() => {
+    if (!isClient) return;
+    pb.get('/api/client/me').then((r) => {
+      setSignin(r);
+      let asked = false; try { asked = sessionStorage.getItem('runhtec-pin-asked') === '1'; } catch { /* ignore */ }
+      if (!r.has_pin && !asked) { setPinOpen(true); try { sessionStorage.setItem('runhtec-pin-asked', '1'); } catch { /* ignore */ } }
+    }).catch(() => {});
+  }, [isClient]);
 
   const reload = useCallback(() => (clientId ? loadPortal(clientId).then(setData) : Promise.resolve()), [clientId]);
   useEffect(() => { reload(); const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
@@ -40,7 +51,7 @@ export default function ClientLayout({ children }) {
   const keep = preview && clientId ? `?as=${clientId}` : '';
   const name = data?.client?.company_name || data?.client?.trading_name || 'Your projects';
   const wa = whatsappLink(data?.settings, `Hello RUNHTec, this is ${user?.name || ''} (${name}). `);
-  const ctx = useMemo(() => ({ data, reload, preview, clientId, keep, openAssist: () => setAssist(true) }), [data, reload, preview, clientId, keep]);
+  const ctx = useMemo(() => ({ data, reload, preview, clientId, keep, signin, openAssist: () => setAssist(true), openPin: () => setPinOpen(true) }), [data, reload, preview, clientId, keep, signin]);
 
   const leave = () => { navigate(isClient ? '/p/bye' : '/login', { replace: true }); setTimeout(logout, 0); };
   if (!clientId) {
@@ -66,7 +77,7 @@ export default function ClientLayout({ children }) {
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
             <Link to={`/portal${keep}`} className="shrink-0"><BrandMark /></Link>
             <nav className="ml-6 hidden items-center gap-1 md:flex">
-              {[['/portal', 'My projects'], ['/portal/messages', 'Messages']].map(([to, label]) => (
+              {[['/portal', 'Home'], ['/portal/requests', 'Requests'], ['/portal/messages', 'Messages'], ['/portal/news', 'News']].map(([to, label]) => (
                 <NavLink key={to} to={`${to}${keep}`} end className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-white/15' : 'text-white/80 hover:bg-white/10'}`}>
                   {label}{to.endsWith('messages') && unread > 0 && <span className="ml-1.5 rounded-full bg-rose-500 px-1.5 text-[11px] font-bold">{unread}</span>}
                 </NavLink>
@@ -83,21 +94,63 @@ export default function ClientLayout({ children }) {
         </header>
 
         <AppDialog open={appOpen} onClose={() => setAppOpen(false)} />
+        {isClient && <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} current={signin} onDone={(r) => setSignin({ ...(signin || {}), ...r, has_pin: true })} />}
         <main className="mx-auto max-w-6xl px-4 py-5 md:py-8">
           {!data ? <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" /></div> : children}
         </main>
 
         {/* Phone: bottom bar */}
         <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-white md:hidden" aria-label="Portal">
-          {tab('/portal', 'Projects', Home)}
+          {tab('/portal', 'Home', Home)}
+          {tab('/portal/requests', 'Requests', ClipboardList)}
           {tab('/portal/messages', 'Messages', MessageCircle, unread)}
-          <button onClick={() => setAssist(true)} className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-slate-500"><LifeBuoy className="h-5 w-5" />Get help</button>
+          {tab('/portal/news', 'News', Newspaper)}
           {wa && <a href={wa} target="_blank" rel="noreferrer" className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-[#128C7E]"><WhatsAppIcon />WhatsApp</a>}
         </nav>
 
         <AssistDialog open={assist} onClose={() => setAssist(false)} />
       </div>
     </PortalCtx.Provider>
+  );
+}
+
+// App sign-in: the phone number and PIN this person uses in the installed app.
+export function PinDialog({ open, onClose, current, onDone }) {
+  const { toast } = useToast();
+  const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
+  const [pin2, setPin2] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { if (open) { setPhone(current?.phone ? `+${current.phone}` : ''); setPin(''); setPin2(''); setErr(''); } }, [open]);
+  const save = async () => {
+    setErr('');
+    if (!/^\d{4,6}$/.test(pin)) { setErr('Choose a PIN of 4 to 6 digits.'); return; }
+    if (pin !== pin2) { setErr('The two PINs are not the same.'); return; }
+    setBusy(true);
+    try {
+      const r = await pb.post('/api/client/pin', { phone, pin });
+      if (r.token) pb.authStore.save(r.token, r.record);
+      toast({ title: 'App sign-in ready', description: 'Use your phone number and this PIN to sign in to the RUNHTec app.' });
+      onDone?.({ phone: phone.replace(/\D/g, '') }); onClose();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Modal open={open} onClose={onClose} title={current?.has_pin ? 'Change your app PIN' : 'Set up the RUNHTec app'} description="Choose a PIN so you can sign in to the RUNHTec app on your phone with your phone number. No password to remember.">
+      <div className="space-y-4">
+        <Field label="Your phone number"><input className={inputCls} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0788 123 456" /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="New PIN (4–6 digits)"><input className={`${inputCls} tracking-[0.4em]`} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} /></Field>
+          <Field label="Repeat PIN"><input className={`${inputCls} tracking-[0.4em]`} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, ''))} /></Field>
+        </div>
+        {err && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
+        <div className="flex justify-end gap-2">
+          <button className={btnLine} onClick={onClose}>Later</button>
+          <button className={btnPrimary} onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Save PIN</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
