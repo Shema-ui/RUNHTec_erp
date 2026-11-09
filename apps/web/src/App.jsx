@@ -6,6 +6,7 @@ import { RequireAuth, RequireRole, RequireModule, RedirectIfAuthed } from '@/com
 import { Toaster } from '@/components/ui/toaster';
 
 import LoginPage from '@/pages/LoginPage';
+import InstallAppPage from '@/pages/InstallAppPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -72,6 +73,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/app" element={<InstallAppPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Dashboard — every role lands here after login */}

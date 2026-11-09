@@ -120,7 +120,10 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground">
+      <p className="mt-6 text-center text-sm">
+        <Link to="/app" className="font-semibold text-primary hover:underline">Install the RUNHTec app on your phone</Link>
+      </p>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
         Accounts are provisioned by administrators only. No public registration.
       </p>
     </AuthShell>
