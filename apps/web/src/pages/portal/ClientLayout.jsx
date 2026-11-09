@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send } from 'lucide-react';
+import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, Smartphone } from 'lucide-react';
+import { AppDialog } from '@/components/erp/AppInstall';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +31,7 @@ export default function ClientLayout({ children }) {
   const preview = !isClient;
   const [data, setData] = useState(null);
   const [assist, setAssist] = useState(false);
+  const [appOpen, setAppOpen] = useState(false);
 
   const reload = useCallback(() => (clientId ? loadPortal(clientId).then(setData) : Promise.resolve()), [clientId]);
   useEffect(() => { reload(); const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
@@ -74,11 +76,13 @@ export default function ClientLayout({ children }) {
               <button onClick={() => setAssist(true)} className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/25 md:flex"><LifeBuoy className="h-4 w-4" /> Get help</button>
               {wa && <a href={wa} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white md:flex"><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>}
               {isClient && <span className="[&_button]:text-white"><NotificationBell /></span>}
+              {isClient && <button onClick={() => setAppOpen(true)} title="App & notifications" aria-label="App and notifications" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><Smartphone className="h-5 w-5" /></button>}
               <button onClick={leave} title={isClient ? 'Leave the portal' : 'Sign out'} aria-label="Leave the portal" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><LogOut className="h-5 w-5" /></button>
             </div>
           </div>
         </header>
 
+        <AppDialog open={appOpen} onClose={() => setAppOpen(false)} />
         <main className="mx-auto max-w-6xl px-4 py-5 md:py-8">
           {!data ? <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" /></div> : children}
         </main>

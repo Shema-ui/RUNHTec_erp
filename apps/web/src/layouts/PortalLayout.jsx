@@ -16,8 +16,9 @@ import NotificationBell from '@/components/erp/NotificationBell';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule, needsProfile } from '@/lib/permissions';
 import QuickAccess from '@/components/erp/QuickAccess';
-import { UserRound, Search as SearchIcon, KeyRound } from 'lucide-react';
+import { UserRound, Search as SearchIcon, KeyRound, Smartphone } from 'lucide-react';
 import ChangePasswordDialog from '@/components/erp/ChangePasswordDialog';
+import { AppDialog } from '@/components/erp/AppInstall';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -118,6 +119,13 @@ export default function PortalLayout({ children, title, subtitle }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
+  const [appOpen, setAppOpen] = useState(false);
+  // The Dashboard's "Get the RUNHTec app" banner opens the same window.
+  useEffect(() => {
+    const open = () => setAppOpen(true);
+    window.addEventListener('runhtec:open-app', open);
+    return () => window.removeEventListener('runhtec:open-app', open);
+  }, []);
 
   const initials = (user?.name || user?.email || 'U')
     .split(' ')
@@ -238,6 +246,10 @@ export default function PortalLayout({ children, title, subtitle }) {
                   <UserRound className="mr-2 h-4 w-4" />
                   My profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAppOpen(true)}>
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  App &amp; notifications
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setPwOpen(true)}>
                   <KeyRound className="mr-2 h-4 w-4" />
                   Change password
@@ -255,6 +267,7 @@ export default function PortalLayout({ children, title, subtitle }) {
           {children}
         </main>
         <ChangePasswordDialog open={pwOpen} onClose={() => setPwOpen(false)} />
+        <AppDialog open={appOpen} onClose={() => setAppOpen(false)} />
       </div>
     </div>
   );

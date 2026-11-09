@@ -13,6 +13,8 @@ import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule } from '@/lib/permissions';
 import TechnicianDashboard from '@/components/erp/TechnicianDashboard';
+import { InstallBanner } from '@/components/erp/AppInstall';
+import { openAppDialog } from '@/lib/pwa';
 import pb from '@/lib/pocketbaseClient';
 import { formatMoney, formatMoneyShort, DEFAULT_CURRENCY } from '@/lib/money';
 import { fmtDate, todayISO } from '@/components/erp/kit';
@@ -321,6 +323,8 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      <InstallBanner onOpen={openAppDialog} />
 
       {isTech ? <TechnicianDashboard user={user} /> : !r ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

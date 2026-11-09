@@ -169,6 +169,23 @@ async function runMigrations() {
     for (const inv of orphans) await ensureQuoteForInvoice(inv, conn);
     if (orphans.length) console.log(`[migrate] linked ${orphans.length} invoice(s) to quotations`);
 
+    // Phone/desktop notifications (web push): each device that turned them on,
+    // and the server's own key pair (created automatically, see webpush.js).
+    await conn.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id VARCHAR(20) PRIMARY KEY,
+      user VARCHAR(20) NOT NULL,
+      endpoint VARCHAR(1000) NOT NULL,
+      p256dh VARCHAR(200) NOT NULL,
+      auth VARCHAR(100) NOT NULL,
+      user_agent VARCHAR(300) DEFAULT '',
+      created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_push_user (user)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await conn.query(`CREATE TABLE IF NOT EXISTS app_secrets (
+      name VARCHAR(60) PRIMARY KEY,
+      value TEXT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
     // Leads who already accepted a quotation or have a project are clients now.
     const [act] = await conn.query(`UPDATE clients SET status = 'active' WHERE status = 'lead' AND (
       id IN (SELECT client FROM quotations WHERE status = 'accepted' AND client IS NOT NULL)
