@@ -105,7 +105,8 @@ export default function InstallAppPage() {
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="font-semibold text-slate-900">After installing</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-            <li>Sign in, then open your name (top right) → <b>App &amp; notifications</b> → <b>Turn on notifications</b>.</li>
+            <li><b>Clients:</b> sign in with your phone number and PIN. New to RUNHTec? <Link to="/join" className="font-semibold text-[#003DA5]">Create your account</Link>.</li>
+            <li>Turn on notifications: tap the phone icon at the top (clients) or your name → <b>App &amp; notifications</b> (staff).</li>
             <li>The app updates itself. You never need to reinstall it.</li>
           </ul>
         </div>

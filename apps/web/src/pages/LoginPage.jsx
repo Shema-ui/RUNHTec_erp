@@ -53,7 +53,7 @@ function ClientSignIn() {
 }
 
 export default function LoginPage() {
-  const [mode, setModeState] = useState(() => { try { return localStorage.getItem(MODE_KEY) || 'staff'; } catch { return 'staff'; } });
+  const [mode, setModeState] = useState(() => { try { return localStorage.getItem(MODE_KEY) || 'client'; } catch { return 'client'; } });
   const setMode = (m) => { setModeState(m); try { localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ } };
   const { login, rememberedEmail } = useAuth();
   const navigate = useNavigate();
