@@ -352,8 +352,8 @@ export default function DashboardPage() {
                       <YAxis tickLine={false} axisLine={false} width={58} tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => formatMoneyShort(v, '').trim()} />
                       <Tooltip content={<MoneyTooltip />} cursor={{ fill: 'rgba(0,61,165,0.06)' }} />
                       <Legend iconType="square" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="invoiced" name="Invoiced" fill={COLORS.blueLight} radius={[4, 4, 0, 0]} maxBarSize={28} />
-                      <Bar dataKey="received" name="Received" fill={COLORS.blue} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="invoiced" name="Invoiced" fill={COLORS.blueLight} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+                      <Bar dataKey="received" name="Received" fill={COLORS.blue} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
