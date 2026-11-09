@@ -286,7 +286,10 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
   const save = async () => {
     setSaving(true);
     try {
-      const saved = await pb.collection('rfqs').update(rfq.id, form);
+      // Setting a visit date on a new request books it: status becomes Scheduled (the client is notified once).
+      const body = { ...form };
+      if (form.scheduled_for && ['', 'new', 'reviewing'].includes(rfq.request_status || '')) body.request_status = 'scheduled';
+      const saved = await pb.collection('rfqs').update(rfq.id, body);
       toast({ title: 'Request updated' });
       onSaved(saved); onClose();
     } catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
@@ -308,7 +311,7 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
             <Field label="Technician"><input className={inputCls} value={form.technician_name || ''} onChange={(e) => setForm((p) => ({ ...p, technician_name: e.target.value }))} placeholder="e.g. Eric Habimana" /></Field>
           </div>
           <div className="mt-4"><Field label="Note to the client (optional)"><textarea className={textareaCls} rows={2} value={form.client_note || ''} onChange={(e) => setForm((p) => ({ ...p, client_note: e.target.value }))} placeholder="e.g. Our technician will call 30 minutes before arriving." /></Field></div>
-          <p className="mt-2 text-xs text-blue-800">Tip: also set the status to “Scheduled” so the client sees the visit is booked.</p>
+          <p className="mt-2 text-xs text-blue-800">Saving a visit date marks the request “Scheduled” and notifies the client.</p>
         </div>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>
