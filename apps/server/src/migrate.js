@@ -169,6 +169,12 @@ async function runMigrations() {
     for (const inv of orphans) await ensureQuoteForInvoice(inv, conn);
     if (orphans.length) console.log(`[migrate] linked ${orphans.length} invoice(s) to quotations`);
 
+    // Leads who already accepted a quotation or have a project are clients now.
+    const [act] = await conn.query(`UPDATE clients SET status = 'active' WHERE status = 'lead' AND (
+      id IN (SELECT client FROM quotations WHERE status = 'accepted' AND client IS NOT NULL)
+      OR id IN (SELECT client FROM projects WHERE status <> 'cancelled' AND client IS NOT NULL))`);
+    if (act.affectedRows) console.log(`[migrate] ${act.affectedRows} lead(s) marked active`);
+
     // Staff profiles: new accounts must complete their profile before using
     // the ERP. Accounts that already existed are not locked out.
     if (await ensureColumn(conn, 'users', 'profile_completed', 'TINYINT(1) NOT NULL DEFAULT 0')) {

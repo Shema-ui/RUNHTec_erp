@@ -237,7 +237,8 @@ export default function DashboardPage() {
     const awaitingValue = awaiting.reduce((s, q) => s + rwf(q.total, q.currency), 0);
     const staleQuotes = awaiting.filter((q) => dayOf(q.updated || q.created) <= todayISO(-7));
     const year = today.slice(0, 4);
-    const qYear = d.quotes.filter((q) => String(q.created).startsWith(year));
+    // Copies made automatically from invoices were never sent as quotes, so they don't count here.
+    const qYear = d.quotes.filter((q) => !q.source_invoice && String(q.created).startsWith(year));
     const qCount = (s) => qYear.filter((q) => q.status === s).length;
     const quoteMix = [
       { label: 'Accepted', value: qCount('accepted'), color: COLORS.green },
@@ -257,7 +258,8 @@ export default function DashboardPage() {
 
     // Today's to-do
     const openReq = (x) => ['', 'new', 'reviewing', undefined, null].includes(x.request_status);
-    const newEnquiries = d.rfqs.filter((x) => openReq(x));
+    // Requests already quoted or declined are handled, so they're not waiting on anyone.
+    const newEnquiries = d.rfqs.filter((x) => openReq(x) && !['quoted', 'declined'].includes(x.status));
     const maintDue = d.maint.filter((m) => Number(m.active) !== 0 && m.active !== false && m.next_due_date && m.next_due_date <= in7);
     const followDue = d.followups.filter((f) => f.due_date && dayOf(f.due_date) <= today);
 

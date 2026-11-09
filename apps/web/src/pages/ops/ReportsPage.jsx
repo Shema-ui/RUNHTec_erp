@@ -57,8 +57,10 @@ export default function ReportsPage() {
     const open = d.invoices.filter((i) => ['sent', 'overdue'].includes(i.status));
     const outstanding = open.reduce((s, i) => s + Math.max(0, Number(i.total || 0) - (paidByInv[i.id] || 0)), 0);
     const overdue = open.filter((i) => i.status === 'overdue' || (i.due_date && i.due_date < ymd()));
-    const decided = d.quotes.filter((q) => ['accepted', 'declined', 'expired'].includes(q.status));
-    const won = d.quotes.filter((q) => q.status === 'accepted');
+    // Win rate counts real quotations only (not the copies made from invoices).
+    const realQuotes = d.quotes.filter((q) => !q.source_invoice);
+    const decided = realQuotes.filter((q) => ['accepted', 'declined', 'expired'].includes(q.status));
+    const won = realQuotes.filter((q) => q.status === 'accepted');
     const winRate = decided.length ? Math.round((won.length / decided.length) * 100) : 0;
     const pipeline = d.quotes.filter((q) => q.status === 'sent').reduce((s, q) => s + Number(q.total || 0), 0);
     const owedContractors = d.assignments.filter((a) => a.status !== 'cancelled').reduce((s, a) => s + Math.max(0, Number(a.agreed_amount || 0) - Number(a.amount_paid || 0)), 0);

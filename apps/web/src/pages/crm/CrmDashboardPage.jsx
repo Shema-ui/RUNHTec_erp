@@ -13,7 +13,7 @@ import {
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { PIPELINE_STAGES, CLIENT_STATUSES, formatCurrency } from '@/lib/crm';
-import { loadDeals } from '@/lib/deals';
+import { loadDeals, isOpenDeal } from '@/lib/deals';
 import { todayISO } from '@/components/erp/kit';
 
 const FOLLOWUP_TYPE_ICONS = {
@@ -84,7 +84,8 @@ export default function CrmDashboardPage() {
           won,
           lost,
           pipelineValue,
-          totalOpps: oppsR.length,
+          // Only deals still being worked on — won and lost ones are counted separately.
+          totalOpps: oppsR.filter(isOpenDeal).length,
           maintenance: maintR.totalItems,
           projects: projR.totalItems,
           quotesSent: quoteR.totalItems,
@@ -124,14 +125,14 @@ export default function CrmDashboardPage() {
     { label: 'Total Clients', value: stats?.total ?? '—', icon: Building2, color: 'bg-blue-100 text-blue-700' },
     { label: 'Active Clients', value: stats?.active ?? '—', icon: CheckCircle2, color: 'bg-emerald-100 text-emerald-700' },
     { label: 'New Leads', value: stats?.leads ?? '—', icon: TrendingUp, color: 'bg-amber-100 text-amber-700' },
-    { label: 'Pipeline Opportunities', value: stats?.totalOpps ?? '—', icon: FolderKanban, color: 'bg-purple-100 text-purple-700' },
+    { label: 'Open Opportunities', value: stats?.totalOpps ?? '—', icon: FolderKanban, color: 'bg-purple-100 text-purple-700' },
     { label: 'Won Opportunities', value: stats?.won ?? '—', icon: CheckCircle2, color: 'bg-green-100 text-green-700' },
     { label: 'Lost Opportunities', value: stats?.lost ?? '—', icon: XCircle, color: 'bg-red-100 text-red-600' },
     { label: 'Upcoming Follow-Ups', value: stats?.followupsDue ?? '—', icon: Bell, color: 'bg-indigo-100 text-indigo-700' },
     { label: 'Active Maintenance Contracts', value: stats?.maintenance ?? '—', icon: Wrench, color: 'bg-orange-100 text-orange-700' },
     { label: 'Projects in Progress', value: stats?.projects ?? '—', icon: FolderKanban, color: 'bg-cyan-100 text-cyan-700' },
     { label: 'Quotations Sent', value: stats?.quotesSent ?? '—', icon: Mail, color: 'bg-pink-100 text-pink-700' },
-    { label: 'Total Pipeline Value', value: stats ? formatCurrency(stats.pipelineValue) : '—', icon: Banknote, color: 'bg-teal-100 text-teal-700' },
+    { label: 'Open Pipeline Value', value: stats ? formatCurrency(stats.pipelineValue) : '—', icon: Banknote, color: 'bg-teal-100 text-teal-700' },
   ];
 
   const PIE_COLORS = ['#f59e0b', '#10b981', '#64748b', '#ef4444'];

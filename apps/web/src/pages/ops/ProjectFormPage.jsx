@@ -109,7 +109,7 @@ export default function ProjectFormPage() {
               <Field label="From quotation" hint="Fills client, value and site from the quote">
                 <select className={inputCls} value={form.quotation || ''} onChange={(e) => pickQuote(e.target.value)}>
                   <option value="">None</option>
-                  {quotes.map((qt) => <option key={qt.id} value={qt.id}>{qt.number} — {qt.bill_to_company || qt.bill_to_name} ({qt.status})</option>)}
+                  {quotes.filter((qt) => qt.status === 'accepted' || qt.id === form.quotation).map((qt) => <option key={qt.id} value={qt.id}>{qt.number} — {qt.bill_to_company || qt.bill_to_name} ({qt.status})</option>)}
                 </select>
               </Field>
               <Field label="Client">

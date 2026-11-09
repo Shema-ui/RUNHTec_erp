@@ -18,6 +18,13 @@ function teamOf(p) {
   if (typeof list === 'string') { try { list = JSON.parse(list); } catch (_) { list = []; } }
   return [...(Array.isArray(list) ? list : []), p?.lead_technician].filter(Boolean);
 }
+// A lead becomes an Active client once they accept a quotation or get a project.
+// (Inactive/suspended clients are left as they are — someone set that on purpose.)
+async function activateLead(clientId) {
+  if (!clientId) return;
+  try { await pool.query("UPDATE clients SET status = 'active' WHERE id = ? AND status = 'lead'", [clientId]); } catch (_) { /* never block the save */ }
+}
+
 async function alertNewTeam(before, after, actor) {
   const old = new Set(teamOf(before));
   const added = teamOf(after).filter((id) => !old.has(id) && id !== actor?.id);
@@ -407,7 +414,8 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       await ensureQuoteForInvoice(rows[0]);
       [rows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [id]);
     }
-    if (req.collectionName === 'projects') await alertNewTeam(null, rows[0], req.user);
+    if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
+    if (req.collectionName === 'quotations' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'client_messages') await notifyClient(rows[0].client, 'message', `New message from ${rows[0].sender_name}: ${String(rows[0].body).slice(0, 120)}`, '/portal/messages');
     if (req.collectionName === 'invoices' && rows[0].status === 'sent') await notifyClient(rows[0].client, 'invoice', `New invoice ${rows[0].invoice_number} is available in your portal.`, '/portal');
@@ -508,6 +516,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       await alertNewTeam(before, rows[0], req.user);
       if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
     }
+    if (req.collectionName === 'quotations' && before.status !== 'accepted' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'invoices' && before.status !== 'sent' && rows[0].status === 'sent') await notifyClient(rows[0].client, 'invoice', `New invoice ${rows[0].invoice_number} is available in your portal.`, '/portal');
     if (req.collectionName === 'project_photos' && !Number(before.shared) && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);

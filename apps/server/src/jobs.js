@@ -30,9 +30,35 @@ async function markOverdueInvoices() {
   }
 }
 
+// Sent quotations whose "valid until" date has passed become "Expired", so
+// they leave the open pipeline and stop showing as waiting for an answer.
+// Sales is told once. (A quote with no validity date never expires by itself.)
+let runningQ = false;
+async function markExpiredQuotes() {
+  if (runningQ) return;
+  runningQ = true;
+  try {
+    const today = todayKigali();
+    const [rows] = await pool.query(
+      "SELECT id, number, bill_to_company FROM quotations WHERE status = 'sent' AND valid_until LIKE '____-__-__' AND valid_until < ?",
+      [today]
+    );
+    if (!rows.length) return;
+    await pool.query(`UPDATE quotations SET status = 'expired' WHERE id IN (${rows.map(() => '?').join(', ')})`, rows.map((r) => r.id));
+    const list = rows.map((r) => `${r.number}${r.bill_to_company ? ` (${r.bill_to_company})` : ''}`).join(', ');
+    await notifyRoles(['sales', 'super_admin', 'admin'], 'quotation',
+      `${rows.length} quotation${rows.length === 1 ? ' has' : 's have'} passed the validity date and ${rows.length === 1 ? 'is' : 'are'} now Expired: ${list}. Re-send with a new date if the client is still interested.`);
+  } catch (err) {
+    console.error('quote expiry job failed:', err.message);
+  } finally {
+    runningQ = false;
+  }
+}
+
 function startJobs() {
   markOverdueInvoices();
-  setInterval(markOverdueInvoices, 30 * 60 * 1000);
+  markExpiredQuotes();
+  setInterval(() => { markOverdueInvoices(); markExpiredQuotes(); }, 30 * 60 * 1000);
 }
 
 // Next free document number like Q-2026-0007 / INV-2026-0012 (highest + 1,
@@ -44,4 +70,4 @@ async function nextNumber(table, column, prefix) {
   return `${prefix}-${year}-${String(max + 1).padStart(4, '0')}`;
 }
 
-module.exports = { startJobs, markOverdueInvoices, nextNumber, todayKigali };
+module.exports = { startJobs, markOverdueInvoices, markExpiredQuotes, nextNumber, todayKigali };

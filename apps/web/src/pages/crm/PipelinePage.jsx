@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, X, Loader2, Check, ChevronLeft, Banknote, Building2, Pencil, Trash2, Link2 } from 'lucide-react';
-import { loadDeals } from '@/lib/deals';
+import { loadDeals, isOpenDeal } from '@/lib/deals';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -139,8 +139,9 @@ export default function PipelinePage() {
     return acc;
   }, {});
 
+  // Same rule as the CRM Dashboard: only deals not yet won or lost.
   const totalValue = opportunities
-    .filter(o => o.stage !== 'lost')
+    .filter(isOpenDeal)
     .reduce((s, o) => s + (o.value || 0), 0);
 
   return (
@@ -160,7 +161,7 @@ export default function PipelinePage() {
         </Link>
         <div className="ml-auto flex items-center gap-4">
           <div className="text-right">
-            <p className="text-[11px] text-muted-foreground">Total Pipeline Value</p>
+            <p className="text-[11px] text-muted-foreground">Open pipeline value · {opportunities.filter(isOpenDeal).length} deals</p>
             <p className="font-display text-base font-extrabold text-foreground">{formatCurrency(totalValue)}</p>
           </div>
           <button

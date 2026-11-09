@@ -191,7 +191,7 @@ export default function QuotationViewPage() {
                 <ReceiptText className="h-4 w-4" /> Open invoice
               </Link>
             )}
-            {canInvoice && !q.source_invoice && (
+            {canInvoice && !q.source_invoice && !['declined', 'expired'].includes(q.status) && (
               <Link
                 to={`/invoices/new?fromQuote=${id}`}
                 className="flex items-center gap-1.5 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
