@@ -98,6 +98,36 @@ function Panel({ title, icon: Icon, action, children, className = '' }) {
   );
 }
 
+function NeedsAttention({ todo }) {
+  return (
+          <Panel title="Needs attention" icon={AlertTriangle}>
+            {todo.every((t) => !t.count) ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                <p className="text-sm font-medium text-foreground">All caught up</p>
+                <p className="text-xs text-muted-foreground">Nothing waiting on you right now.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {todo.filter((t) => t.count).map((t) => {
+                  const Icon = t.icon;
+                  return (
+                    <li key={t.key}>
+                      <Link to={t.to} className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:bg-secondary/60">
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${t.tone}`}><Icon className="h-4 w-4" /></span>
+                        <span className="min-w-0 flex-1 text-sm text-foreground"><span className="font-display text-base font-extrabold">{t.count}</span> {t.text(t.count)}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+
+  );
+}
+
 const SeeAll = ({ to, children = 'See all' }) => (
   <Link to={to} className="inline-flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline">{children}<ChevronRight className="h-3.5 w-3.5" /></Link>
 );
@@ -232,12 +262,12 @@ export default function DashboardPage() {
     const followDue = d.followups.filter((f) => f.due_date && dayOf(f.due_date) <= today);
 
     const todo = [
-      seeRfq && { key: 'rfq', icon: Inbox, tone: 'bg-blue-50 text-blue-700', count: newEnquiries.length, text: 'new website requests to answer', to: '/rfqs' },
-      seeQuotes && { key: 'stale', icon: PhoneCall, tone: 'bg-amber-50 text-amber-700', count: staleQuotes.length, text: 'quotes sent over a week ago — follow up', to: '/quotations' },
-      seeMoney && { key: 'late', icon: AlertTriangle, tone: 'bg-rose-50 text-rose-700', count: lateInv.length, text: 'overdue invoices to chase', to: '/invoices' },
-      seeProjects && { key: 'lateP', icon: CalendarClock, tone: 'bg-rose-50 text-rose-700', count: lateProjects.length, text: 'projects past their due date', to: '/projects' },
-      seeMaint && { key: 'maint', icon: Wrench, tone: 'bg-violet-50 text-violet-700', count: maintDue.length, text: 'maintenance visits due this week', to: '/maintenance' },
-      seeCrm && { key: 'fu', icon: Clock3, tone: 'bg-indigo-50 text-indigo-700', count: followDue.length, text: 'client follow-ups due', to: '/crm' },
+      seeRfq && { key: 'rfq', icon: Inbox, tone: 'bg-blue-50 text-blue-700', count: newEnquiries.length, text: (c) => `new website request${c === 1 ? '' : 's'} to answer`, to: '/rfqs' },
+      seeQuotes && { key: 'stale', icon: PhoneCall, tone: 'bg-amber-50 text-amber-700', count: staleQuotes.length, text: (c) => `quote${c === 1 ? '' : 's'} sent over a week ago — follow up`, to: '/quotations' },
+      seeMoney && { key: 'late', icon: AlertTriangle, tone: 'bg-rose-50 text-rose-700', count: lateInv.length, text: (c) => `overdue invoice${c === 1 ? '' : 's'} to chase`, to: '/invoices' },
+      seeProjects && { key: 'lateP', icon: CalendarClock, tone: 'bg-rose-50 text-rose-700', count: lateProjects.length, text: (c) => `project${c === 1 ? '' : 's'} past the due date`, to: '/projects' },
+      seeMaint && { key: 'maint', icon: Wrench, tone: 'bg-violet-50 text-violet-700', count: maintDue.length, text: (c) => `maintenance visit${c === 1 ? '' : 's'} due this week`, to: '/maintenance' },
+      seeCrm && { key: 'fu', icon: Clock3, tone: 'bg-indigo-50 text-indigo-700', count: followDue.length, text: (c) => `client follow-up${c === 1 ? '' : 's'} due`, to: '/crm' },
     ].filter(Boolean);
 
     return {
@@ -308,6 +338,8 @@ export default function DashboardPage() {
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left (wide) column */}
           <div className="space-y-6 lg:col-span-2">
+          {/* On phones the to-do list comes first */}
+          <div className="lg:hidden"><NeedsAttention todo={r.todo} /></div>
           {/* Cash flow chart */}
           {seeMoney && (
             <Panel title="Invoiced vs received — last 6 months" icon={Banknote} action={<SeeAll to="/reports">Reports</SeeAll>}>
@@ -382,32 +414,7 @@ export default function DashboardPage() {
 
           {/* Right column */}
           <div className="space-y-6">
-          {/* Today's to-do */}
-          <Panel title="Needs attention" icon={AlertTriangle}>
-            {r.todo.every((t) => !t.count) ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-center">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                <p className="text-sm font-medium text-foreground">All caught up</p>
-                <p className="text-xs text-muted-foreground">Nothing waiting on you right now.</p>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {r.todo.filter((t) => t.count).map((t) => {
-                  const Icon = t.icon;
-                  return (
-                    <li key={t.key}>
-                      <Link to={t.to} className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:bg-secondary/60">
-                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${t.tone}`}><Icon className="h-4 w-4" /></span>
-                        <span className="min-w-0 flex-1 text-sm text-foreground"><span className="font-display text-base font-extrabold">{t.count}</span> {t.text}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-
+          <div className="hidden lg:block"><NeedsAttention todo={r.todo} /></div>
           {/* Quote results donut */}
           {seeQuotes && (
             <Panel title={`Quotes this year`} icon={FileText} action={<SeeAll to="/quotations" />}>
