@@ -3,7 +3,7 @@ import React from 'react';
 const LOGO_URL = '/logo.png';
 
 // RUNHTec wordmark / emblem used across auth and portal chrome.
-export default function BrandMark({ collapsed = false, className = '', variant = 'default' }) {
+export default function BrandMark({ collapsed = false, className = '', variant = 'default', title = 'RUNHTec', subtitle = 'Business Portal' }) {
   if (collapsed) {
     // Show just the icon/initials when collapsed
     return (
@@ -15,6 +15,15 @@ export default function BrandMark({ collapsed = false, className = '', variant =
             className="h-8 w-8 object-contain"
           />
         </div>
+      </div>
+    );
+  }
+
+  // On light backgrounds (e.g. the phone sign-in screen): full logo, which carries its own name.
+  if (variant === 'light') {
+    return (
+      <div className={`flex items-center ${className}`}>
+        <img src={LOGO_URL} alt="RUNHTec Contractors Ltd" className="h-14 w-auto object-contain" />
       </div>
     );
   }
@@ -43,11 +52,13 @@ export default function BrandMark({ collapsed = false, className = '', variant =
       </div>
       <div className="leading-tight">
         <div className="font-display text-[14px] font-extrabold tracking-tight text-white">
-          RUNHTec
+          {title}
         </div>
-        <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/60">
-          Business Portal
-        </div>
+        {subtitle && (
+          <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/60">
+            {subtitle}
+          </div>
+        )}
       </div>
     </div>
   );

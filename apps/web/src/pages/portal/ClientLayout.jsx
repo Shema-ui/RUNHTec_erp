@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, Smartphone, ClipboardList, Newspaper, KeyRound } from 'lucide-react';
+import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, BellRing, ClipboardList, Newspaper, KeyRound, UserRound, Download } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { isInstalled } from '@/lib/pwa';
 import { AppDialog } from '@/components/erp/AppInstall';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -53,7 +55,7 @@ export default function ClientLayout({ children }) {
   const wa = whatsappLink(data?.settings, `Hello RUNHTec, this is ${user?.name || ''} (${name}). `);
   const ctx = useMemo(() => ({ data, reload, preview, clientId, keep, signin, openAssist: () => setAssist(true), openPin: () => setPinOpen(true) }), [data, reload, preview, clientId, keep, signin]);
 
-  const leave = () => { navigate(isClient ? '/p/bye' : '/login', { replace: true }); setTimeout(logout, 0); };
+  const leave = () => { logout(); navigate('/login', { replace: true }); };
   if (!clientId) {
     return <div className="flex min-h-[100dvh] items-center justify-center p-6 text-center text-sm text-muted-foreground">Open the portal from a client’s profile (“Preview portal”).</div>;
   }
@@ -75,7 +77,7 @@ export default function ClientLayout({ children }) {
         )}
         <header className="sticky top-0 z-30 bg-[#003DA5] text-white shadow">
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-            <Link to={`/portal${keep}`} className="shrink-0"><BrandMark /></Link>
+            <Link to={`/portal${keep}`} className="shrink-0"><BrandMark title="My RUNHTec" subtitle="" /></Link>
             <nav className="ml-6 hidden items-center gap-1 md:flex">
               {[['/portal', 'Home'], ['/portal/requests', 'Requests'], ['/portal/messages', 'Messages'], ['/portal/news', 'News']].map(([to, label]) => (
                 <NavLink key={to} to={`${to}${keep}`} end className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-white/15' : 'text-white/80 hover:bg-white/10'}`}>
@@ -87,8 +89,29 @@ export default function ClientLayout({ children }) {
               <button onClick={() => setAssist(true)} className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/25 md:flex"><LifeBuoy className="h-4 w-4" /> Get help</button>
               {wa && <a href={wa} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white md:flex"><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>}
               {isClient && <span className="[&_button]:text-white"><NotificationBell /></span>}
-              {isClient && <button onClick={() => setAppOpen(true)} title="App & notifications" aria-label="App and notifications" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><Smartphone className="h-5 w-5" /></button>}
-              <button onClick={leave} title={isClient ? 'Leave the portal' : 'Sign out'} aria-label="Leave the portal" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><LogOut className="h-5 w-5" /></button>
+              {isClient ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button aria-label="My account" className="ml-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-bold hover:bg-white/25">
+                      {(user?.name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || <UserRound className="h-5 w-5" />}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                    <DropdownMenuLabel>
+                      <p className="truncate text-sm">{user?.name || 'My account'}</p>
+                      <p className="truncate text-xs font-normal text-muted-foreground">{name}</p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setAppOpen(true)}><BellRing className="mr-2 h-4 w-4" />Turn on phone alerts</DropdownMenuItem>
+                    {!isInstalled() && <DropdownMenuItem onClick={() => setAppOpen(true)}><Download className="mr-2 h-4 w-4" />Install the app</DropdownMenuItem>}
+                    <DropdownMenuItem onClick={() => setPinOpen(true)}><KeyRound className="mr-2 h-4 w-4" />{signin?.has_pin ? 'Change my PIN' : 'Set up my PIN'}</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { if (window.confirm('Sign out of My RUNHTec? You’ll need your phone number and PIN to sign in again.')) leave(); }} className="text-destructive focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <button onClick={leave} title="Sign out" aria-label="Sign out" className="rounded-lg p-2 text-white/80 hover:bg-white/10"><LogOut className="h-5 w-5" /></button>
+              )}
             </div>
           </div>
         </header>
@@ -131,13 +154,13 @@ export function PinDialog({ open, onClose, current, onDone }) {
     try {
       const r = await pb.post('/api/client/pin', { phone, pin });
       if (r.token) pb.authStore.save(r.token, r.record);
-      toast({ title: 'App sign-in ready', description: 'Use your phone number and this PIN to sign in to the RUNHTec app.' });
+      toast({ title: 'App sign-in ready', description: 'Use your phone number and this PIN to sign in to My RUNHTec.' });
       onDone?.({ phone: phone.replace(/\D/g, '') }); onClose();
     } catch (e) { setErr(e.message); }
     finally { setBusy(false); }
   };
   return (
-    <Modal open={open} onClose={onClose} title={current?.has_pin ? 'Change your app PIN' : 'Set up the RUNHTec app'} description="Choose a PIN so you can sign in to the RUNHTec app on your phone with your phone number. No password to remember.">
+    <Modal open={open} onClose={onClose} title={current?.has_pin ? 'Change your app PIN' : 'Set up the My RUNHTec app'} description="Choose a PIN so you can sign in to My RUNHTec on your phone with your phone number. No password to remember.">
       <div className="space-y-4">
         <Field label="Your phone number"><input className={inputCls} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0788 123 456" /></Field>
         <div className="grid grid-cols-2 gap-3">

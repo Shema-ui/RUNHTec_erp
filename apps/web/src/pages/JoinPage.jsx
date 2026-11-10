@@ -37,7 +37,7 @@ export default function JoinPage() {
   return (
     <AuthShell pageTitle="Create your account">
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Create your RUNHTec account</h1>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Create your My RUNHTec account</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">Request technicians, maintenance and quotations, chat with our team and follow your work, all from your phone.</p>
       </div>
       {error && (

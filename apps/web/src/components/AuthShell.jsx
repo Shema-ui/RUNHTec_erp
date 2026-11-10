@@ -84,7 +84,7 @@ export default function AuthShell({ children, pageTitle }) {
       <div className="flex items-center justify-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <BrandMark />
+            <BrandMark variant="light" />
           </div>
           {children}
         </div>

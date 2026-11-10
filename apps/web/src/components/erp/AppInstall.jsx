@@ -19,7 +19,7 @@ function ManualSteps({ ios }) {
       <li className="flex items-start gap-2"><span className="font-bold">1.</span><span>Open this page in <b>Safari</b>.</span></li>
       <li className="flex items-start gap-2"><span className="font-bold">2.</span><span>Tap the <b>Share</b> button <Share className="inline h-4 w-4 align-text-bottom" /> at the bottom of the screen.</span></li>
       <li className="flex items-start gap-2"><span className="font-bold">3.</span><span>Choose <b>Add to Home Screen</b> <PlusSquare className="inline h-4 w-4 align-text-bottom" />, then <b>Add</b>.</span></li>
-      <li className="flex items-start gap-2"><span className="font-bold">4.</span><span>Open RUNHTec from your home screen.</span></li>
+      <li className="flex items-start gap-2"><span className="font-bold">4.</span><span>Open My RUNHTec from your home screen.</span></li>
     </ol>
   ) : (
     <ol className="space-y-2 text-sm text-foreground">
@@ -58,7 +58,7 @@ export function AppDialog({ open, onClose }) {
           ) : canPrompt ? (
             <>
               <p className="mt-1 text-sm text-muted-foreground">Adds a RUNHTec icon to your home screen or desktop. It opens full screen and stays up to date by itself.</p>
-              <button type="button" onClick={install} className={`${btnPrimary} mt-3`}><Download className="h-4 w-4" /> Install RUNHTec</button>
+              <button type="button" onClick={install} className={`${btnPrimary} mt-3`}><Download className="h-4 w-4" /> Install My RUNHTec</button>
             </>
           ) : (
             <div className="mt-2"><ManualSteps ios={ios} /></div>
@@ -101,7 +101,7 @@ export function InstallBanner({ onOpen }) {
     <div className="mb-6 flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white"><Smartphone className="h-5 w-5" /></span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-foreground">Get the RUNHTec app</p>
+        <p className="text-sm font-semibold text-foreground">Get the My RUNHTec app</p>
         <p className="text-xs text-muted-foreground">Install it on your phone or computer and get notifications as they happen.</p>
       </div>
       <button type="button" onClick={onOpen} className={`${btnPrimary} shrink-0`}>Set up</button>

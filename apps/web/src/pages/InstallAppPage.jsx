@@ -36,11 +36,11 @@ export default function InstallAppPage() {
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 px-4 py-8">
-      <Helmet><title>Get the RUNHTec app</title></Helmet>
+      <Helmet><title>Get My RUNHTec</title></Helmet>
       <div className="mx-auto max-w-md">
         <div className="flex flex-col items-center text-center">
           <img src="/icon-192.png" alt="RUNHTec" className="h-20 w-20 rounded-2xl border border-slate-200 bg-white shadow-sm" />
-          <h1 className="mt-4 font-display text-2xl font-extrabold text-slate-900">Get the RUNHTec app</h1>
+          <h1 className="mt-4 font-display text-2xl font-extrabold text-slate-900">Get the My RUNHTec app</h1>
           <p className="mt-1 text-sm text-slate-600">Free. No app store needed. Installs in under a minute.</p>
         </div>
 
@@ -49,7 +49,7 @@ export default function InstallAppPage() {
             <div className="text-center">
               <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
               <p className="mt-2 font-semibold text-slate-900">The app is installed.</p>
-              <Link to="/dashboard" className="mt-4 inline-flex rounded-lg bg-[#003DA5] px-5 py-2.5 text-sm font-semibold text-white">Open RUNHTec</Link>
+              <Link to="/dashboard" className="mt-4 inline-flex rounded-lg bg-[#003DA5] px-5 py-2.5 text-sm font-semibold text-white">Open My RUNHTec</Link>
             </div>
           ) : d.inApp ? (
             <>
@@ -72,7 +72,7 @@ export default function InstallAppPage() {
                 <Step n={1}>Tap the <b>Share</b> button <Share className="inline h-4 w-4 align-text-bottom text-[#007AFF]" /> {d.iosOther ? 'in the browser bar' : 'at the bottom of Safari (on iPad: top right)'}.<br /><span className="text-sm text-slate-500">Don’t see the bar? Scroll up a little, or tap the address at the bottom.</span></Step>
                 <Step n={2}><b>Scroll down</b> the list that opens and tap <b>Add to Home Screen</b> <PlusSquare className="inline h-4 w-4 align-text-bottom" />.<br /><span className="text-sm text-slate-500">Not in the list? Tap <b>Edit Actions…</b> at the very bottom and add it.</span></Step>
                 <Step n={3}>Make sure <b>Open as Web App</b> is on (if shown), then tap <b>Add</b>.</Step>
-                <Step n={4}>Open <b>RUNHTec</b> from your home screen and sign in.</Step>
+                <Step n={4}>Open <b>My RUNHTec</b> from your home screen and sign in.</Step>
               </ol>
               {d.iosOther && <button type="button" onClick={copy} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800"><Copy className="h-4 w-4" />{copied ? 'Link copied — paste it in Safari' : 'Copy link for Safari'}</button>}
             </>
@@ -80,14 +80,14 @@ export default function InstallAppPage() {
             <>
               <p className="flex items-center gap-2 font-semibold text-slate-900">{d.android ? <Smartphone className="h-5 w-5 text-[#003DA5]" /> : <Monitor className="h-5 w-5 text-[#003DA5]" />}{d.android ? 'Android' : 'Computer'}</p>
               {canPromptInstall() ? (
-                <button type="button" onClick={promptInstall} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] px-5 py-3 text-base font-semibold text-white"><Download className="h-5 w-5" /> Install RUNHTec</button>
+                <button type="button" onClick={promptInstall} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] px-5 py-3 text-base font-semibold text-white"><Download className="h-5 w-5" /> Install My RUNHTec</button>
               ) : (
                 <ol className="mt-4 space-y-3">
                   <Step n={1}>Open this page in <b>Chrome</b>{d.desktop ? ' or Edge' : ''}.</Step>
                   <Step n={2}>{d.android
                     ? <>Tap the menu <MoreVertical className="inline h-4 w-4 align-text-bottom" /> (top right), then <b>Install app</b> or <b>Add to Home screen</b> → <b>Install</b>.</>
                     : <>Click the install icon at the right end of the address bar, or menu → <b>Install RUNHTec</b>.</>}</Step>
-                  <Step n={3}>Open <b>RUNHTec</b> and sign in.</Step>
+                  <Step n={3}>Open <b>My RUNHTec</b> and sign in.</Step>
                 </ol>
               )}
             </>

@@ -109,12 +109,13 @@ async function pushToUsers(userIds, { title = 'RUNHTec', body = '', link = '' } 
     const ids = [...new Set((userIds || []).filter(Boolean))];
     if (!ids.length) return;
     const [subs] = await pool.query(
-      `SELECT s.id, s.endpoint, s.p256dh, s.auth FROM push_subscriptions s JOIN users u ON u.id = s.user
+      `SELECT s.id, s.endpoint, s.p256dh, s.auth, u.role FROM push_subscriptions s JOIN users u ON u.id = s.user
        WHERE u.status = 'active' AND s.user IN (${ids.map(() => '?').join(', ')})`,
       ids
     );
     await Promise.all(subs.map(async (s) => {
-      const r = await sendOne(s, { title, body: String(body).slice(0, 300), link: link || '/' });
+      // Clients see the app's name for them: My RUNHTec.
+      const r = await sendOne(s, { title: s.role === 'client' && title === 'RUNHTec' ? 'My RUNHTec' : title, body: String(body).slice(0, 300), link: link || '/' });
       if (r === 'gone') await pool.query('DELETE FROM push_subscriptions WHERE id = ?', [s.id]).catch(() => {});
     }));
   } catch (err) {

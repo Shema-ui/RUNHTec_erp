@@ -93,7 +93,7 @@ export default function LoginPage() {
     <AuthShell pageTitle="Sign in">
       <div className="mb-6">
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">
-          {mode === 'client' ? 'Welcome to RUNHTec' : 'Sign in to your portal'}
+          {mode === 'client' ? 'Welcome to My RUNHTec' : 'Sign in to your portal'}
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {mode === 'client' ? 'Sign in with your phone number and PIN.' : 'Enter your credentials to access the workspace.'}

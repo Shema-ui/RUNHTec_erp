@@ -49,14 +49,17 @@ function Home() {
           <div className="min-w-0">
             <p className="text-sm text-white/70">{hello}{first ? `, ${first}` : ''}</p>
             <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{name}</h1>
-            <p className="text-sm text-white/70">Your projects with RUNHTec Contractors</p>
+            <p className="text-sm text-white/70">{data.projects.length ? 'Your projects with RUNHTec Contractors' : 'Welcome to My RUNHTec'}</p>
           </div>
         </div>
+        {/* Only when there's something to show (new clients have no projects yet) */}
+        {(active.length > 0 || photosWeek > 0 || money.balance > 0) && (
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="rounded-2xl bg-white/10 p-3"><FolderKanban className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{active.length}</p><p className="text-[11px] text-white/70">Active project{active.length === 1 ? '' : 's'}</p></div>
           <div className="rounded-2xl bg-white/10 p-3"><Camera className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{photosWeek}</p><p className="text-[11px] text-white/70">New photos this week</p></div>
           <div className="rounded-2xl bg-white/10 p-3"><Wallet className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-lg font-bold sm:text-2xl">{formatMoney(money.balance, data.invoices[0]?.currency)}</p><p className="text-[11px] text-white/70">Balance due</p></div>
         </div>
+        )}
       </section>
 
       {/* What the client can do, one tap away */}
@@ -87,7 +90,7 @@ function Home() {
       {signin && !signin.has_pin && (
         <button type="button" onClick={openPin} className="flex w-full items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003DA5] text-white"><KeyRound className="h-5 w-5" /></span>
-          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">Set up your app sign-in</span><span className="block text-xs text-slate-600">Choose a PIN to sign in to the RUNHTec app with your phone number.</span></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">Set up your app sign-in</span><span className="block text-xs text-slate-600">Choose a PIN to sign in to My RUNHTec with your phone number.</span></span>
           <ChevronRight className="h-5 w-5 text-[#003DA5]" />
         </button>
       )}

@@ -1,25 +1,84 @@
 {
   "id": "/",
-  "name": "RUNHTec Business Portal",
-  "short_name": "RUNHTec",
-  "description": "RUNHTec Contractors ERP: quotations, projects, invoices and clients.",
+  "name": "My RUNHTec",
+  "short_name": "My RUNHTec",
+  "description": "My RUNHTec: request technicians, maintenance and quotations, follow your work and chat with RUNHTec Contractors.",
   "start_url": "/dashboard?source=app",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#003DA5",
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "Dashboard", "url": "/dashboard?source=app", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "New quotation", "url": "/quotations/new", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Projects", "url": "/projects", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Notifications", "url": "/notifications", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "Dashboard",
+      "url": "/dashboard?source=app",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "New quotation",
+      "url": "/quotations/new",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "url": "/projects",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "url": "/notifications",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
