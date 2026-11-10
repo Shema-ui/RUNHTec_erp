@@ -14,7 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 // staff member (/staff/<key>). The public sign-in page is for clients.
 export default function StaffLoginPage() {
   const { key } = useParams();
-  const { login, rememberedEmail } = useAuth();
+  const { login, rememberedEmail, user, logout } = useAuth();
+  const otherSession = ['client', 'vendor'].includes(user?.role) ? user : null;
   const navigate = useNavigate();
   const location = useLocation();
   const [valid, setValid] = useState(null); // null = checking
@@ -29,7 +30,9 @@ export default function StaffLoginPage() {
 
   useEffect(() => {
     pb.get(`/api/staff-link/check?key=${encodeURIComponent(key || '')}`)
-      .then(() => setValid(true))
+      // Remembered on this device (also inside the installed app), so a signed-out
+      // staff member comes back to this page instead of the client sign-in.
+      .then(() => { setValid(true); rememberStaffLink(key); })
       .catch(() => { setValid(false); forgetStaffLink(); });
   }, [key]);
 
@@ -66,6 +69,12 @@ export default function StaffLoginPage() {
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Staff sign in</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">RUNHTec Business Portal. Use the email and password your administrator gave you.</p>
           </div>
+          {otherSession && (
+            <div className="mb-5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm text-blue-900">
+              This phone is signed in to My RUNHTec as a {otherSession.role} ({otherSession.name || 'test account'}). Signing in below switches it to your staff account.
+              <button type="button" onClick={() => logout()} className="ml-1 font-semibold underline">Sign that out now</button>
+            </div>
+          )}
           {slow && <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">The system is waking up after a quiet period. This can take up to a minute. Please wait.</div>}
           {error && <div className="mb-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
           <form onSubmit={submit} className="space-y-4">

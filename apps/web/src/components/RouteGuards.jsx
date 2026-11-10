@@ -53,9 +53,12 @@ export function RequireModule({ moduleKey, children }) {
   return children;
 }
 
-export function RedirectIfAuthed({ children }) {
+// staffPage: on the staff sign-in link, someone signed in as a client (or vendor)
+// on this phone is NOT sent away; they can sign in as staff instead.
+export function RedirectIfAuthed({ children, staffPage = false }) {
   const { isAuthed, ready, user } = useAuth();
   if (!ready) return <FullScreenLoader />;
+  if (isAuthed && staffPage && (isClient(user) || isVendor(user))) return children;
   if (isAuthed) return <Navigate to={isVendor(user) ? '/vendor' : isClient(user) ? '/portal' : needsProfile(user) ? '/my-profile' : '/dashboard'} replace />;
   return children;
 }

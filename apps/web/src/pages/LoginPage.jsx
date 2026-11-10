@@ -76,6 +76,37 @@ export default function LoginPage() {
 
       <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />New to RUNHTec?<span className="h-px flex-1 bg-slate-200" /></div>
       <Link to="/join" className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-[#003DA5] text-base font-semibold text-[#003DA5] transition hover:bg-blue-50">Create my free account</Link>
+      <StaffLinkOpener />
     </ClientAuthShell>
+  );
+}
+
+// For RUNHTec staff in the installed app (an iPhone app can't see links opened in
+// Safari): paste the private staff link once, and the app remembers it.
+function StaffLinkOpener() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = async (e) => {
+    e.preventDefault(); setErr('');
+    const m = /\/staff\/([A-Za-z0-9_-]{8,})/.exec(text.trim()) || /^([A-Za-z0-9_-]{16,})$/.exec(text.trim());
+    if (!m) { setErr('Paste the full staff link you received, e.g. https://erp.runhteccontractors.si/staff/…'); return; }
+    setBusy(true);
+    try {
+      await pb.get(`/api/staff-link/check?key=${encodeURIComponent(m[1])}`);
+      navigate(`/staff/${m[1]}`);
+    } catch { setErr('That staff link is not valid. Ask the administrator for the current one.'); }
+    finally { setBusy(false); }
+  };
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className="mt-6 w-full text-center text-xs text-slate-400 hover:text-slate-600">RUNHTec staff? Open your staff link</button>;
+  return (
+    <form onSubmit={go} className="mt-6 space-y-2 rounded-xl border border-slate-200 p-3">
+      <label htmlFor="staff-link" className="text-xs font-semibold text-slate-600">Paste your private staff link</label>
+      <input id="staff-link" value={text} onChange={(e) => setText(e.target.value)} placeholder="https://erp.runhteccontractors.si/staff/…" autoComplete="off" className="h-11 w-full rounded-lg border border-slate-300 px-3 text-base" />
+      {err && <p className="text-xs text-rose-700">{err}</p>}
+      <button type="submit" disabled={busy} className="flex h-10 w-full items-center justify-center rounded-lg bg-slate-800 text-sm font-semibold text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continue to staff sign-in'}</button>
+    </form>
   );
 }

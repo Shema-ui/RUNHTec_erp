@@ -80,7 +80,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/app" element={<InstallAppPage />} />
           <Route path="/join" element={<RedirectIfAuthed><JoinPage /></RedirectIfAuthed>} />
-          <Route path="/staff/:key" element={<RedirectIfAuthed><StaffLoginPage /></RedirectIfAuthed>} />
+          <Route path="/staff/:key" element={<RedirectIfAuthed staffPage><StaffLoginPage /></RedirectIfAuthed>} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
