@@ -174,7 +174,7 @@ export default function LoginPage() {
       </>)}
 
       <p className="mt-6 text-center text-sm">
-        <Link to="/app" className="font-semibold text-primary hover:underline">Install the RUNHTec app on your phone</Link>
+        <Link to="/app" className="font-semibold text-primary hover:underline">Install My RUNHTec on your phone</Link>
       </p>
       <p className="mt-4 text-center text-xs text-muted-foreground">
         {mode === 'client' ? 'Your details stay private and are only used to serve you.' : 'Staff accounts are created by administrators only.'}
