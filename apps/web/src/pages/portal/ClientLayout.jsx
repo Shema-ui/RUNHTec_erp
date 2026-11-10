@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, BellRing, ClipboardList, Newspaper, KeyRound, UserRound, Download } from 'lucide-react';
+import { Home, MessageCircle, LifeBuoy, LogOut, Eye, Loader2, Send, BellRing, ClipboardList, Newspaper, KeyRound, UserRound, Download, Languages, Check } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { isInstalled } from '@/lib/pwa';
 import { AppDialog } from '@/components/erp/AppInstall';
@@ -11,6 +11,7 @@ import BrandMark from '@/components/BrandMark';
 import NotificationBell from '@/components/erp/NotificationBell';
 import { Modal, Field, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
 import { loadPortal, whatsappLink, ASSIST_TOPICS } from '@/lib/portal';
+import { useLang, LANGUAGES } from '@/lib/i18n';
 
 const PortalCtx = createContext(null);
 export const usePortal = () => useContext(PortalCtx);
@@ -29,6 +30,7 @@ export default function ClientLayout({ children }) {
   const location = useLocation();
   const [params] = useSearchParams();
   const isClient = user?.role === 'client';
+  const { t, lang, setLang } = useLang();
   const clientId = isClient ? user.client : params.get('as');
   const preview = !isClient;
   const [data, setData] = useState(null);
@@ -62,7 +64,7 @@ export default function ClientLayout({ children }) {
 
   const tab = (to, label, Icon, badge) => (
     <NavLink to={`${to}${keep}`} end className={({ isActive }) => `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive ? 'text-[#003DA5]' : 'text-slate-500'}`}>
-      <Icon className="h-5 w-5" />{label}
+      <Icon className="h-5 w-5" />{t(label)}
       {badge > 0 && <span className="absolute right-1/4 top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{badge}</span>}
     </NavLink>
   );
@@ -79,34 +81,39 @@ export default function ClientLayout({ children }) {
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
             <Link to={`/portal${keep}`} className="shrink-0"><BrandMark title="My RUNHTec" subtitle="" /></Link>
             <nav className="ml-6 hidden items-center gap-1 md:flex">
-              {[['/portal', 'Home'], ['/portal/requests', 'Requests'], ['/portal/messages', 'Messages'], ['/portal/news', 'News']].map(([to, label]) => (
+              {[['/portal', 'Home'], ['/portal/requests', 'Requests'], ['/portal/messages', 'Messages'], ['/portal/news', 'News'], ['/portal/equipment', 'Equipment']].map(([to, label]) => (
                 <NavLink key={to} to={`${to}${keep}`} end className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-medium ${isActive ? 'bg-white/15' : 'text-white/80 hover:bg-white/10'}`}>
-                  {label}{to.endsWith('messages') && unread > 0 && <span className="ml-1.5 rounded-full bg-rose-500 px-1.5 text-[11px] font-bold">{unread}</span>}
+                  {t(label)}{to.endsWith('messages') && unread > 0 && <span className="ml-1.5 rounded-full bg-rose-500 px-1.5 text-[11px] font-bold">{unread}</span>}
                 </NavLink>
               ))}
             </nav>
             <div className="ml-auto flex items-center gap-1.5">
-              <button onClick={() => setAssist(true)} className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/25 md:flex"><LifeBuoy className="h-4 w-4" /> Get help</button>
+              <button onClick={() => setAssist(true)} className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold hover:bg-white/25 md:flex"><LifeBuoy className="h-4 w-4" /> {t('Get help')}</button>
               {wa && <a href={wa} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-2 text-sm font-semibold text-white md:flex"><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>}
               {isClient && <span className="[&_button]:text-white"><NotificationBell /></span>}
               {isClient ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button aria-label="My account" className="ml-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-bold hover:bg-white/25">
+                    <button aria-label={t('My account')} className="ml-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-sm font-bold hover:bg-white/25">
                       {(user?.name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || <UserRound className="h-5 w-5" />}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60">
                     <DropdownMenuLabel>
-                      <p className="truncate text-sm">{user?.name || 'My account'}</p>
+                      <p className="truncate text-sm">{user?.name || t('My account')}</p>
                       <p className="truncate text-xs font-normal text-muted-foreground">{name}</p>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setAppOpen(true)}><BellRing className="mr-2 h-4 w-4" />Turn on phone alerts</DropdownMenuItem>
-                    {!isInstalled() && <DropdownMenuItem onClick={() => setAppOpen(true)}><Download className="mr-2 h-4 w-4" />Install the app</DropdownMenuItem>}
-                    <DropdownMenuItem onClick={() => setPinOpen(true)}><KeyRound className="mr-2 h-4 w-4" />{signin?.has_pin ? 'Change my PIN' : 'Set up my PIN'}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setAppOpen(true)}><BellRing className="mr-2 h-4 w-4" />{t('Turn on phone alerts')}</DropdownMenuItem>
+                    {!isInstalled() && <DropdownMenuItem onClick={() => setAppOpen(true)}><Download className="mr-2 h-4 w-4" />{t('Install the app')}</DropdownMenuItem>}
+                    <DropdownMenuItem onClick={() => setPinOpen(true)}><KeyRound className="mr-2 h-4 w-4" />{t(signin?.has_pin ? 'Change my PIN' : 'Set up my PIN')}</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { if (window.confirm('Sign out of My RUNHTec? You’ll need your phone number and PIN to sign in again.')) leave(); }} className="text-destructive focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
+                    <DropdownMenuLabel className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Languages className="h-4 w-4" />{t('Language')}</DropdownMenuLabel>
+                    {LANGUAGES.map((l) => (
+                      <DropdownMenuItem key={l.code} onClick={() => setLang(l.code)}><span className="mr-2 inline-flex w-4">{lang === l.code && <Check className="h-4 w-4 text-[#003DA5]" />}</span>{l.label}</DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { if (window.confirm(t('Sign out of My RUNHTec? You’ll need your phone number and PIN to sign in again.'))) leave(); }} className="text-destructive focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />{t('Sign out')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (

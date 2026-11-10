@@ -14,7 +14,8 @@ const { storeFile } = require('../files');
 const { createLimiter } = require('../rateLimit');
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024, files: 4 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 6 * 1024 * 1024, files: 5 } });
+const AUDIO = /^audio\/(webm|ogg|mp4|mpeg|aac|x-m4a|m4a|wav|x-wav)(;.*)?$/i;
 
 const loginIpLimit = createLimiter({ windowMs: 15 * 60 * 1000, max: 20 });
 const loginPhoneLimit = createLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
@@ -177,22 +178,43 @@ const KINDS = {
   quote: { label: 'New quotation', type: 'quote_request' },
 };
 const URGENCY = ['normal', 'urgent', 'emergency'];
-const REQUEST_FIELDS = 'id, service_type, kind, urgency, address, description, attachments, request_type, request_status, status, preferred_time, scheduled_for, technician_name, client_note, project, created, updated';
+const REQUEST_FIELDS = 'id, service_type, kind, urgency, address, description, attachments, request_type, request_status, status, preferred_time, scheduled_for, technician_name, client_note, project, on_the_way_at, reschedule_request, reschedule_requested_at, latitude, longitude, voice_note, site, created, updated';
 
-// POST /api/client/requests (multipart: kind, description, urgency, address, preferred_time, project, photos[])
-router.post('/requests', requireAuth, clientOnly, upload.array('photos', 4), async (req, res) => {
+// A map position sent by a phone: both numbers, inside the valid range, else none.
+function coords(lat, lng) {
+  const a = Number(lat); const b = Number(lng);
+  if (lat === '' || lng === '' || lat == null || lng == null) return [null, null];
+  if (!Number.isFinite(a) || !Number.isFinite(b) || Math.abs(a) > 90 || Math.abs(b) > 180) return [null, null];
+  return [Number(a.toFixed(7)), Number(b.toFixed(7))];
+}
+async function ownSite(siteId, clientId) {
+  if (!siteId) return null;
+  const [rows] = await pool.query('SELECT id, name, address, latitude, longitude FROM client_sites WHERE id = ? AND client = ?', [String(siteId), clientId]);
+  return rows[0] || null;
+}
+
+// POST /api/client/requests (multipart: kind, description, urgency, address, preferred_time, project,
+// site, latitude, longitude, photos[], voice)
+router.post('/requests', requireAuth, clientOnly, upload.fields([{ name: 'photos', maxCount: 4 }, { name: 'voice', maxCount: 1 }]), async (req, res) => {
   const b = req.body || {};
   const kind = KINDS[b.kind] ? b.kind : 'callout';
   const description = String(b.description || '').trim().slice(0, 4000);
-  if (description.length < 5) return res.status(400).json({ message: 'Please describe what you need.' });
+  const voiceFile = (req.files?.voice || [])[0];
+  const hasVoice = Boolean(voiceFile && AUDIO.test(voiceFile.mimetype || ''));
+  if (description.length < 5 && !hasVoice) return res.status(400).json({ message: 'Please describe what you need, or record a voice note.' });
   if (requestLimit.isBlocked(req.user.id)) return res.status(429).json({ message: 'You have sent many requests in a short time. Please wait a little or call us.' });
   requestLimit.hit(req.user.id);
   try {
     const photos = [];
-    for (const f of req.files || []) {
+    for (const f of req.files?.photos || []) {
       if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.mimetype)) continue;
       photos.push(await storeFile(f));
     }
+    const voice = hasVoice ? await storeFile({ ...voiceFile, originalname: voiceFile.originalname || 'voice-note' }) : null;
+    const site = await ownSite(b.site, req.user.client);
+    let [lat, lng] = coords(b.latitude, b.longitude);
+    if (lat === null && site?.latitude != null) { lat = site.latitude; lng = site.longitude; }
+    const address = String(b.address || '').trim().slice(0, 500) || (site ? [site.name, site.address].filter(Boolean).join(' · ') : '');
     let project = String(b.project || '') || null;
     if (project) {
       const [p] = await pool.query('SELECT id FROM projects WHERE id = ? AND client = ?', [project, req.user.client]);
@@ -203,18 +225,113 @@ router.post('/requests', requireAuth, clientOnly, upload.array('photos', 4), asy
     const urgency = URGENCY.includes(b.urgency) ? b.urgency : 'normal';
     const id = genId();
     await pool.query(
-      `INSERT INTO rfqs (id, name, company, email, phone, service_type, kind, urgency, address, description, attachments, status, source, client, request_type, request_status, preferred_time, project)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'app', ?, ?, 'new', ?, ?)`,
+      `INSERT INTO rfqs (id, name, company, email, phone, service_type, kind, urgency, address, description, attachments, status, source, client, request_type, request_status, preferred_time, project, latitude, longitude, voice_note, site)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'app', ?, ?, 'new', ?, ?, ?, ?, ?, ?)`,
       [id, req.user.name || '', cl[0]?.company_name || '', String(me[0]?.email || '').endsWith('.runhtec.local') ? '' : (me[0]?.email || ''),
-        me[0]?.phone ? `+${me[0].phone}` : '', KINDS[kind].label, kind, urgency, String(b.address || '').trim().slice(0, 500), description,
-        JSON.stringify(photos), req.user.client, KINDS[kind].type, String(b.preferred_time || '').trim().slice(0, 120), project]
+        me[0]?.phone ? `+${me[0].phone}` : '', KINDS[kind].label, kind, urgency, address, description || '(voice note)',
+        JSON.stringify(photos), req.user.client, KINDS[kind].type, String(b.preferred_time || '').trim().slice(0, 120), project,
+        lat, lng, voice, site?.id || null]
     );
     const who = cl[0]?.company_name || req.user.name || 'A client';
     const flag = urgency === 'emergency' ? '🚨 EMERGENCY ' : urgency === 'urgent' ? 'URGENT ' : '';
-    await notifyRoles(TEAM, 'request', `${flag}${KINDS[kind].label} requested by ${who}: ${description.slice(0, 120)}`, '/rfqs');
+    await notifyRoles(TEAM, 'request', `${flag}${KINDS[kind].label} requested by ${who}: ${description ? description.slice(0, 120) : 'voice note'}${voice && description ? ' (+ voice note)' : ''}`, '/rfqs');
     const [rows] = await pool.query(`SELECT ${REQUEST_FIELDS} FROM rfqs WHERE id = ?`, [id]);
     res.json(rows[0]);
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// POST /api/client/requests/:id/reschedule {when, reason} — the client asks for another day.
+router.post('/requests/:id/reschedule', requireAuth, clientOnly, async (req, res) => {
+  const when = String(req.body?.when || '').trim().slice(0, 150);
+  const reason = String(req.body?.reason || '').trim().slice(0, 300);
+  if (when.length < 2) return res.status(400).json({ message: 'Tell us which day or time suits you better.' });
+  try {
+    const [rows] = await pool.query("SELECT id, service_type, request_status FROM rfqs WHERE id = ? AND client = ?", [req.params.id, req.user.client]);
+    const r = rows[0];
+    if (!r) return res.status(404).json({ message: 'Request not found.' });
+    if (!['new', 'reviewing', 'scheduled'].includes(r.request_status || 'new')) return res.status(400).json({ message: 'This visit can no longer be moved in the app. Please call us.' });
+    const text = reason ? `${when} — ${reason}` : when;
+    await pool.query('UPDATE rfqs SET reschedule_request = ?, reschedule_requested_at = UTC_TIMESTAMP() WHERE id = ?', [text.slice(0, 500), r.id]);
+    const [cl] = await pool.query('SELECT company_name FROM clients WHERE id = ?', [req.user.client]);
+    await notifyRoles(TEAM, 'request', `${cl[0]?.company_name || req.user.name} asks to reschedule “${r.service_type}”: ${text.slice(0, 150)}`, '/rfqs');
+    const [out] = await pool.query(`SELECT ${REQUEST_FIELDS} FROM rfqs WHERE id = ?`, [r.id]);
+    res.json(out[0]);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// POST /api/client/requests/:id/on-the-way — staff: the technician has left for the site.
+// The client gets a phone alert. Send {undo:true} to clear it.
+router.post('/requests/:id/on-the-way', requireAuth, async (req, res) => {
+  if (![...STAFF_GRANT, 'lead_technician'].includes(req.user?.role)) return res.status(403).json({ message: 'Not allowed.' });
+  try {
+    const [rows] = await pool.query('SELECT id, client, service_type, technician_name, request_status FROM rfqs WHERE id = ?', [req.params.id]);
+    const r = rows[0];
+    if (!r) return res.status(404).json({ message: 'Request not found.' });
+    if (req.body?.undo) {
+      await pool.query('UPDATE rfqs SET on_the_way_at = NULL WHERE id = ?', [r.id]);
+    } else {
+      const status = ['', 'new', 'reviewing'].includes(r.request_status || '') ? 'scheduled' : r.request_status;
+      await pool.query('UPDATE rfqs SET on_the_way_at = UTC_TIMESTAMP(), request_status = ? WHERE id = ?', [status, r.id]);
+      if (r.client) await notifyClient(r.client, 'request', `Your technician${r.technician_name ? `, ${r.technician_name},` : ''} is on the way for your ${r.service_type || 'request'}.`, '/portal/requests');
+    }
+    const [out] = await pool.query('SELECT * FROM rfqs WHERE id = ?', [r.id]);
+    res.json(out[0]);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ── Quotations: the client accepts or declines in the app ────────────────────
+// POST /api/client/quotes/:id/respond {decision: 'accept'|'decline', name, note}
+router.post('/quotes/:id/respond', requireAuth, clientOnly, async (req, res) => {
+  const decision = req.body?.decision === 'accept' ? 'accept' : req.body?.decision === 'decline' ? 'decline' : '';
+  const name = String(req.body?.name || req.user.name || '').trim().slice(0, 150);
+  const note = String(req.body?.note || '').trim().slice(0, 1000);
+  if (!decision) return res.status(400).json({ message: 'Choose accept or decline.' });
+  if (decision === 'accept' && name.length < 2) return res.status(400).json({ message: 'Type your full name to accept.' });
+  try {
+    const [rows] = await pool.query("SELECT id, number, client, status, valid_until, total, currency, source_invoice FROM quotations WHERE id = ? AND client = ?", [req.params.id, req.user.client]);
+    const q = rows[0];
+    if (!q || q.source_invoice) return res.status(404).json({ message: 'Quotation not found.' });
+    if (q.status !== 'sent') return res.status(409).json({ message: q.status === 'accepted' ? 'This quotation is already accepted.' : 'This quotation can no longer be answered in the app. Please contact us.' });
+    const today = new Date().toISOString().slice(0, 10);
+    const until = String(q.valid_until || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(until) && until < today) return res.status(409).json({ message: 'This quotation has expired. Ask us for an updated one.' });
+    if (decision === 'accept') {
+      await pool.query("UPDATE quotations SET status = 'accepted', signed_at = UTC_TIMESTAMP(), signed_by_name = ?, client_response_note = ?, responded_at = UTC_TIMESTAMP() WHERE id = ?", [name, note, q.id]);
+      await pool.query("UPDATE clients SET status = 'active' WHERE id = ? AND status = 'lead'", [q.client]);
+    } else {
+      await pool.query("UPDATE quotations SET status = 'declined', client_response_note = ?, responded_at = UTC_TIMESTAMP() WHERE id = ?", [note, q.id]);
+    }
+    const [cl] = await pool.query('SELECT company_name FROM clients WHERE id = ?', [q.client]);
+    const who = cl[0]?.company_name || req.user.name;
+    await notifyRoles(TEAM, 'quotation', decision === 'accept'
+      ? `✅ ${who} ACCEPTED quotation ${q.number} in the app (signed by ${name}). Ready to start the project.${note ? ` Note: ${note.slice(0, 120)}` : ''}`
+      : `${who} declined quotation ${q.number} in the app.${note ? ` Reason: ${note.slice(0, 150)}` : ''}`, `/quotations/${q.id}/view`);
+    res.json({ ok: true, status: decision === 'accept' ? 'accepted' : 'declined' });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ── Sites: a client's places (home, office, branch…) ─────────────────────────
+// POST /api/client/sites {name, address, latitude, longitude, contact_name, contact_phone}
+router.post('/sites', requireAuth, clientOnly, async (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim().slice(0, 150);
+  if (name.length < 2) return res.status(400).json({ message: 'Give the site a name, e.g. Home or Main office.' });
+  try {
+    const [cnt] = await pool.query('SELECT COUNT(*) AS n FROM client_sites WHERE client = ?', [req.user.client]);
+    if (Number(cnt[0].n) >= 30) return res.status(400).json({ message: 'You have many sites already. Please ask us to add more.' });
+    const [lat, lng] = coords(b.latitude, b.longitude);
+    const id = genId();
+    await pool.query('INSERT INTO client_sites (id, client, name, address, latitude, longitude, contact_name, contact_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, req.user.client, name, String(b.address || '').trim().slice(0, 500), lat, lng, String(b.contact_name || '').trim().slice(0, 150), String(b.contact_phone || '').trim().slice(0, 40)]);
+    const [rows] = await pool.query('SELECT * FROM client_sites WHERE id = ?', [id]);
+    res.json(rows[0]);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// DELETE /api/client/sites/:id — a site the client added (requests keep their address).
+router.delete('/sites/:id', requireAuth, clientOnly, async (req, res) => {
+  await pool.query('DELETE FROM client_sites WHERE id = ? AND client = ?', [req.params.id, req.user.client]);
+  res.json({ ok: true });
 });
 
 // ── Everything the app shows (one call) ──────────────────────────────────────
@@ -229,6 +346,7 @@ router.get('/overview', requireAuth, async (req, res) => {
       'SELECT id, name, category, brand, model_number, capacity, asset_location, status, installation_date, warranty_expiry, service_interval, next_service_date FROM equipment WHERE client = ? AND status <> \'decommissioned\' ORDER BY name', [c]);
     const [contracts] = await pool.query(
       'SELECT id, service_type, frequency, next_due_date, site, start_date, end_date FROM maintenance_contracts WHERE client = ? AND active = 1 ORDER BY next_due_date', [c]);
+    const [sites] = await pool.query('SELECT id, name, address, latitude, longitude, contact_name, contact_phone FROM client_sites WHERE client = ? ORDER BY name', [c]);
     const [cl] = await pool.query('SELECT services, status FROM clients WHERE id = ?', [c]);
     const hasContract = contracts.length > 0;
     const services = parseList(cl[0]?.services);
@@ -244,6 +362,7 @@ router.get('/overview', requireAuth, async (req, res) => {
       requests: requests.map((r) => ({ ...r, attachments: parseList(r.attachments) })),
       equipment,
       contracts,
+      sites,
       news: news.filter((n) => audienceMatch(n.audience, services, hasContract)),
       toRate,
       ratings,
@@ -369,4 +488,5 @@ module.exports = router;
 module.exports.normalizePhone = normalizePhone;
 module.exports.audienceMatch = audienceMatch;
 module.exports.KINDS = KINDS;
+module.exports.coords = coords;
 module.exports.TERMS_VERSION = TERMS_VERSION;

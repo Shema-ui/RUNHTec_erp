@@ -9,13 +9,16 @@ import { formatMoney } from '@/lib/money';
 import { projectStatusInfo } from '@/lib/projects';
 import ClientLayout, { usePortal, WhatsAppIcon } from './ClientLayout';
 import { moneyFor, whatsappLink, dayLabel, timeLabel } from '@/lib/portal';
+import { useLang } from '@/lib/i18n';
+import { QuotesWaiting } from '@/components/portal/QuoteAnswer';
 
 const n = (v) => Number(v) || 0;
 const initials = (s) => String(s || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
 function Home() {
   const { user } = useAuth();
-  const { data, keep, openAssist, reload, signin, openPin } = usePortal();
+  const { data, keep, openAssist, reload, signin, openPin, preview } = usePortal();
+  const { t } = useLang();
   const [rate, setRate] = React.useState(null);
   const openRequests = data.requests.filter((r) => !['completed', 'closed'].includes(r.request_status));
   const name = data.client?.company_name || data.client?.trading_name || '';
@@ -47,63 +50,64 @@ function Home() {
             ? <img src={pb.files.getURL(data.client, data.client.logo)} alt="" className="h-16 w-16 rounded-2xl bg-white object-contain p-1.5" />
             : <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 font-display text-2xl font-bold">{initials(name)}</span>}
           <div className="min-w-0">
-            <p className="text-sm text-white/70">{hello}{first ? `, ${first}` : ''}</p>
+            <p className="text-sm text-white/70">{t(hello)}{first ? `, ${first}` : ''}</p>
             <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{name}</h1>
-            <p className="text-sm text-white/70">{data.projects.length ? 'Your projects with RUNHTec Contractors' : 'Welcome to My RUNHTec'}</p>
+            <p className="text-sm text-white/70">{t(data.projects.length ? 'Your projects with RUNHTec Contractors' : 'Welcome to My RUNHTec')}</p>
           </div>
         </div>
         {/* Only when there's something to show (new clients have no projects yet) */}
         {(active.length > 0 || photosWeek > 0 || money.balance > 0) && (
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white/10 p-3"><FolderKanban className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{active.length}</p><p className="text-[11px] text-white/70">Active project{active.length === 1 ? '' : 's'}</p></div>
-          <div className="rounded-2xl bg-white/10 p-3"><Camera className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{photosWeek}</p><p className="text-[11px] text-white/70">New photos this week</p></div>
-          <div className="rounded-2xl bg-white/10 p-3"><Wallet className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-lg font-bold sm:text-2xl">{formatMoney(money.balance, data.invoices[0]?.currency)}</p><p className="text-[11px] text-white/70">Balance due</p></div>
+          <div className="rounded-2xl bg-white/10 p-3"><FolderKanban className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{active.length}</p><p className="text-[11px] text-white/70">{t('Active projects')}</p></div>
+          <div className="rounded-2xl bg-white/10 p-3"><Camera className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-2xl font-bold">{photosWeek}</p><p className="text-[11px] text-white/70">{t('New photos this week')}</p></div>
+          <div className="rounded-2xl bg-white/10 p-3"><Wallet className="h-5 w-5 text-white/70" /><p className="mt-1 font-display text-lg font-bold sm:text-2xl">{formatMoney(money.balance, data.invoices[0]?.currency)}</p><p className="text-[11px] text-white/70">{t('Balance due')}</p></div>
         </div>
         )}
       </section>
 
       {/* What the client can do, one tap away */}
       <section>
-        <h2 className="mb-3 font-display text-lg font-bold">How can we help?</h2>
+        <h2 className="mb-3 font-display text-lg font-bold">{t('How can we help?')}</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {REQUEST_KINDS.map((k) => {
             const Icon = k.icon;
             return (
               <Link key={k.key} to={`/portal/requests/new${keep ? `${keep}&` : '?'}kind=${k.key}`} className="flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 shadow-sm transition active:scale-[0.98]">
                 <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${k.tone}`}><Icon className="h-5 w-5" /></span>
-                <span className="text-sm font-semibold leading-tight text-slate-900">{k.label}</span>
-                <span className="text-xs leading-snug text-muted-foreground">{k.hint}</span>
+                <span className="text-sm font-semibold leading-tight text-slate-900">{t(k.label)}</span>
+                <span className="text-xs leading-snug text-muted-foreground">{t(k.hint)}</span>
               </Link>
             );
           })}
         </div>
         <div className="mt-3 grid grid-cols-3 gap-3">
-          <Link to={`/portal/requests${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><ClipboardList className="h-4 w-4 text-[#003DA5]" /> Requests{openRequests.length > 0 && <span className="rounded-full bg-[#003DA5] px-1.5 text-[11px] font-bold text-white">{openRequests.length}</span>}</Link>
-          <Link to={`/portal/equipment${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Cpu className="h-4 w-4 text-[#003DA5]" /> Equipment</Link>
-          <Link to={`/portal/news${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Newspaper className="h-4 w-4 text-[#003DA5]" /> News</Link>
+          <Link to={`/portal/requests${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><ClipboardList className="h-4 w-4 text-[#003DA5]" /> {t('Requests')}{openRequests.length > 0 && <span className="rounded-full bg-[#003DA5] px-1.5 text-[11px] font-bold text-white">{openRequests.length}</span>}</Link>
+          <Link to={`/portal/equipment${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Cpu className="h-4 w-4 text-[#003DA5]" /> {t('Equipment')}</Link>
+          <Link to={`/portal/news${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Newspaper className="h-4 w-4 text-[#003DA5]" /> {t('News')}</Link>
         </div>
       </section>
 
+      <QuotesWaiting quotes={data.quotes} preview={preview} onDone={reload} />
       <ToRate onRate={setRate} />
       <RateDialog item={rate} onClose={() => setRate(null)} onDone={reload} />
 
       {signin && !signin.has_pin && (
         <button type="button" onClick={openPin} className="flex w-full items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003DA5] text-white"><KeyRound className="h-5 w-5" /></span>
-          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">Set up your app sign-in</span><span className="block text-xs text-slate-600">Choose a PIN to sign in to My RUNHTec with your phone number.</span></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">{t('Set up your app sign-in')}</span><span className="block text-xs text-slate-600">{t('Choose a PIN to sign in to My RUNHTec with your phone number.')}</span></span>
           <ChevronRight className="h-5 w-5 text-[#003DA5]" />
         </button>
       )}
 
       {openRequests.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display text-lg font-bold">Open requests</h2>
+          <h2 className="mb-3 font-display text-lg font-bold">{t('Open requests')}</h2>
           <div className="space-y-2">
             {openRequests.slice(0, 3).map((r) => {
               const chip = statusChip(r);
               return (
                 <Link key={r.id} to={`/portal/requests${keep}`} className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{r.service_type}</span><span className="block truncate text-xs text-muted-foreground">{r.scheduled_for ? `Visit ${dayLabel(r.scheduled_for)}${r.technician_name ? ` · ${r.technician_name}` : ''}` : r.description}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{r.service_type}</span><span className="block truncate text-xs text-muted-foreground">{r.scheduled_for ? `${t('Visit: {date}', { date: dayLabel(r.scheduled_for) })}${r.technician_name ? ` · ${r.technician_name}` : ''}` : r.description}</span></span>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${chip.cls}`}>{chip.label}</span>
                 </Link>
               );
@@ -114,7 +118,7 @@ function Home() {
 
       {data.projects.length > 0 && (
       <section>
-        <h2 className="mb-3 font-display text-lg font-bold">Your projects</h2>
+        <h2 className="mb-3 font-display text-lg font-bold">{t('Your projects')}</h2>
         {data.projects.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border bg-white p-6 text-center text-sm text-muted-foreground">Your projects will appear here once work is scheduled.</p>
         ) : (
@@ -156,8 +160,8 @@ function Home() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-display text-base font-bold">Latest updates</h2>
-          {feed.length === 0 ? <p className="text-sm text-muted-foreground">Photos and messages from the team will show here.</p> : (
+          <h2 className="mb-3 font-display text-base font-bold">{t('Latest updates')}</h2>
+          {feed.length === 0 ? <p className="text-sm text-muted-foreground">{t('Photos and messages from the team will show here.')}</p> : (
             <ul className="space-y-3">
               {feed.map((f, i) => f.kind === 'photo' ? (
                 <li key={`p${i}`}>
@@ -179,18 +183,18 @@ function Home() {
         </section>
 
         <section className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-display text-base font-bold">Your RUNHTec contact</h2>
+          <h2 className="mb-3 font-display text-base font-bold">{t('Your RUNHTec contact')}</h2>
           {pm ? (
             <div className="flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#003DA5] font-semibold text-white">{initials(pm.name)}</span>
-              <div className="min-w-0"><p className="font-semibold">{pm.name}</p><p className="text-xs text-muted-foreground">Project manager</p></div>
+              <div className="min-w-0"><p className="font-semibold">{pm.name}</p><p className="text-xs text-muted-foreground">{t('Project manager')}</p></div>
             </div>
-          ) : <p className="text-sm text-muted-foreground">The RUNHTec team</p>}
+          ) : <p className="text-sm text-muted-foreground">{t('The RUNHTec team')}</p>}
           <div className="mt-4 grid grid-cols-2 gap-2">
-            {(pm?.phone || data.settings.company_phone) && <a href={`tel:${pm?.phone || data.settings.company_phone}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Phone className="h-4 w-4" /> Call</a>}
+            {(pm?.phone || data.settings.company_phone) && <a href={`tel:${pm?.phone || data.settings.company_phone}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Phone className="h-4 w-4" /> {t('Call')}</a>}
             {whatsappLink(data.settings) && <a href={whatsappLink(data.settings, `Hello RUNHTec, this is ${name}. `)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-2.5 text-sm font-semibold text-white"><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>}
-            {(pm?.email || data.settings.company_email) && <a href={`mailto:${pm?.email || data.settings.company_email}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Mail className="h-4 w-4" /> Email</a>}
-            <button onClick={openAssist} className="flex items-center justify-center gap-1.5 rounded-xl bg-[#003DA5] py-2.5 text-sm font-semibold text-white"><LifeBuoy className="h-4 w-4" /> Get help</button>
+            {(pm?.email || data.settings.company_email) && <a href={`mailto:${pm?.email || data.settings.company_email}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Mail className="h-4 w-4" /> {t('Email')}</a>}
+            <button onClick={openAssist} className="flex items-center justify-center gap-1.5 rounded-xl bg-[#003DA5] py-2.5 text-sm font-semibold text-white"><LifeBuoy className="h-4 w-4" /> {t('Get help')}</button>
           </div>
         </section>
       </div>

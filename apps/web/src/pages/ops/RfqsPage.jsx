@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight, Pencil, Loader2, Save, Sun } from 'lucide-react';
+import { FileQuestion, Wrench, MessageSquare, Search, ArrowRight, Pencil, Loader2, Save, Sun, Truck, MapPin, CalendarClock, Mic, Building2 } from 'lucide-react';
 import { Modal, Field, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -53,7 +53,7 @@ export default function RfqsPage() {
 
   const loadRfqs = async () => {
     try {
-      const result = await pb.collection('rfqs').getList(1, 200, { sort: '-created', expand: 'client' });
+      const result = await pb.collection('rfqs').getList(1, 200, { sort: '-created', expand: 'client,site' });
       setRfqs(result.items || []);
     } catch (error) {
       console.error('RFQs load error', error);
@@ -96,6 +96,18 @@ export default function RfqsPage() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  // The technician has left for the site: the client gets a phone alert.
+  const onTheWay = async (rfq, undo = false) => {
+    setBusyId(rfq.id);
+    try {
+      const saved = await pb.post(`/api/client/requests/${rfq.id}/on-the-way`, undo ? { undo: true } : {});
+      setRfqs((prev) => prev.map((item) => (item.id === rfq.id ? { ...item, ...saved, expand: item.expand } : item)));
+      toast({ title: undo ? 'Cleared' : 'Client notified', description: undo ? '' : 'The client got an alert that the technician is on the way.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Could not update', description: error?.message || 'Please try again.' });
+    } finally { setBusyId(null); }
   };
 
   const convertToQuotation = async (rfq) => {
@@ -199,18 +211,31 @@ export default function RfqsPage() {
                         {['urgent', 'emergency'].includes(String(rfq.urgency).toLowerCase()) && (
                           <span className="rounded-full bg-rose-600 px-2.5 py-1 text-xs font-bold uppercase text-white">{rfq.urgency}</span>
                         )}
+                        {rfq.on_the_way_at && !['completed', 'closed'].includes(reqStatus) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white"><Truck className="h-3.5 w-3.5" /> On the way</span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {rfq.name} • {rfq.email}
                         {clientName ? ` • Linked client: ${clientName}` : ' • Not yet linked to a client record'}
                       </p>
-                      <p className="mt-2 text-sm text-foreground">{rfq.description}</p>
+                      {rfq.description && rfq.description !== '(voice note)' && <p className="mt-2 text-sm text-foreground">{rfq.description}</p>}
+                      {rfq.reschedule_request && !['completed', 'closed'].includes(reqStatus) && (
+                        <p className="mt-2 flex items-start gap-2 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900"><CalendarClock className="mt-0.5 h-4 w-4 shrink-0" /><span><b>Client asks to reschedule:</b> {rfq.reschedule_request}. Set the new date in “Schedule / edit”.</span></p>
+                      )}
+                      {rfq.voice_note && (
+                        <div className="mt-2 max-w-sm"><p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Mic className="h-3.5 w-3.5" /> Voice note from the client</p><audio controls preload="none" src={pb.files.getURL(null, rfq.voice_note)} className="h-10 w-full" /></div>
+                      )}
                       <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
                         <span>Service: {rfq.service_type || '—'}</span>
                         {rfq.urgency && <span>Urgency: {rfq.urgency}</span>}
                         <span>Received: {rfq.created ? new Date(rfq.created).toLocaleDateString() : '—'}</span>
                         {rfq.phone && <a href={`tel:${rfq.phone}`} className="font-medium text-primary">{rfq.phone}</a>}
+                        {rfq.expand?.site?.name && <span className="inline-flex items-center gap-1"><Building2 className="h-3.5 w-3.5" />{rfq.expand.site.name}</span>}
                         {rfq.address && <span>Site: {rfq.address}</span>}
+                        {rfq.latitude != null && rfq.longitude != null && rfq.latitude !== '' && (
+                          <a href={`https://www.google.com/maps?q=${rfq.latitude},${rfq.longitude}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary"><MapPin className="h-3.5 w-3.5" /> Open in Maps</a>
+                        )}
                         {rfq.preferred_time && <span>Prefers: {rfq.preferred_time}</span>}
                       </div>
                       {(rfq.scheduled_for || rfq.technician_name) && (
@@ -255,6 +280,11 @@ export default function RfqsPage() {
                         <Sun className="h-4 w-4" /> Build solar quote
                       </button>
                     )}
+                    {tab === 'service_request' && rfq.client && ['new', 'reviewing', 'scheduled', 'in_progress'].includes(reqStatus) && (
+                      rfq.on_the_way_at
+                        ? <button onClick={() => onTheWay(rfq, true)} disabled={busyId === rfq.id} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary">Clear “on the way”</button>
+                        : <button onClick={() => onTheWay(rfq)} disabled={busyId === rfq.id} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"><Truck className="h-4 w-4" /> Technician on the way</button>
+                    )}
                     <button onClick={() => setEditing(rfq)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"><Pencil className="h-4 w-4" /> {tab === 'service_request' ? 'Schedule / edit' : 'Edit details'}</button>
                     <SuperDelete collection="rfqs" id={rfq.id} text="Delete" label={`request from ${rfq.company || rfq.name || 'website'}`} after={() => setRfqs((prev) => prev.filter((x) => x.id !== rfq.id))} />
                   </div>
@@ -289,6 +319,8 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
       // Setting a visit date on a new request books it: status becomes Scheduled (the client is notified once).
       const body = { ...form };
       if (form.scheduled_for && ['', 'new', 'reviewing'].includes(rfq.request_status || '')) body.request_status = 'scheduled';
+      // A new date answers the client's reschedule ask.
+      if (rfq.reschedule_request && form.scheduled_for !== (rfq.scheduled_for || '')) body.reschedule_request = '';
       const saved = await pb.collection('rfqs').update(rfq.id, body);
       toast({ title: 'Request updated' });
       onSaved(saved); onClose();
@@ -306,6 +338,7 @@ function RfqEditDialog({ rfq, onClose, onSaved }) {
         <Field label="What they need"><textarea className={textareaCls} rows={4} value={form.description || ''} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></Field>
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
           <p className="mb-3 text-sm font-semibold text-blue-900">Plan the visit <span className="font-normal text-blue-800">· the client sees this in their app</span></p>
+          {rfq.reschedule_request && <p className="mb-3 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-900">Client asks: {rfq.reschedule_request}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Visit date"><input type="date" className={inputCls} value={form.scheduled_for || ''} onChange={(e) => setForm((p) => ({ ...p, scheduled_for: e.target.value }))} /></Field>
             <Field label="Technician"><input className={inputCls} value={form.technician_name || ''} onChange={(e) => setForm((p) => ({ ...p, technician_name: e.target.value }))} placeholder="e.g. Eric Habimana" /></Field>

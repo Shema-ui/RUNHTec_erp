@@ -81,16 +81,23 @@ const collections = {
   },
   rfqs: {
     table: 'rfqs',
-    fields: ['id', 'name', 'company', 'email', 'phone', 'service_type', 'urgency', 'budget', 'address', 'description', 'attachments', 'status', 'source', 'client', 'request_type', 'request_status', 'kind', 'preferred_time', 'scheduled_for', 'technician_name', 'client_note', 'project', 'created', 'updated'],
-    relations: { client: 'clients' },
+    fields: ['id', 'name', 'company', 'email', 'phone', 'service_type', 'urgency', 'budget', 'address', 'description', 'attachments', 'status', 'source', 'client', 'request_type', 'request_status', 'kind', 'preferred_time', 'scheduled_for', 'technician_name', 'client_note', 'project', 'on_the_way_at', 'reschedule_request', 'reschedule_requested_at', 'latitude', 'longitude', 'voice_note', 'site', 'created', 'updated'],
+    relations: { client: 'clients', site: 'client_sites' },
     fileFields: [], // `attachments` is a multi-file JSON array of file ids, handled separately from single fileFields
     // Project managers schedule service visits too.
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: (u) => any(u, ['sales', 'project_manager']), delete: SALES_WRITE },
     watchedFields: ['status', 'request_status', 'scheduled_for', 'technician_name'],
   },
+  // A client's sites (home, office, branch…). Clients add their own in the app.
+  client_sites: {
+    table: 'client_sites',
+    fields: ['id', 'client', 'name', 'address', 'latitude', 'longitude', 'contact_name', 'contact_phone', 'notes', 'created', 'updated'],
+    relations: { client: 'clients' },
+    rules: { list: AUTHED, view: AUTHED, create: (u) => any(u, ['sales', 'project_manager']), update: (u) => any(u, ['sales', 'project_manager']), delete: (u) => any(u, ['sales', 'project_manager']) },
+  },
   quotations: {
     table: 'quotations',
-    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'created', 'updated'],
+    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],

@@ -201,7 +201,33 @@ async function runMigrations() {
       ['technician_name', "VARCHAR(200) DEFAULT ''"],
       ['client_note', "VARCHAR(1000) DEFAULT ''"],
       ['project', 'VARCHAR(20) DEFAULT NULL'],
+      // Technician on the way, reschedule asks, location, voice note, site.
+      ['on_the_way_at', 'DATETIME NULL'],
+      ['reschedule_request', "VARCHAR(500) DEFAULT ''"],
+      ['reschedule_requested_at', 'DATETIME NULL'],
+      ['latitude', 'DECIMAL(10,7) NULL'],
+      ['longitude', 'DECIMAL(10,7) NULL'],
+      ['voice_note', 'VARCHAR(20) DEFAULT NULL'],
+      ['site', 'VARCHAR(20) DEFAULT NULL'],
     ]) await ensureColumn(conn, 'rfqs', col, def);
+    // The client's answer to a quotation from the app.
+    await ensureColumn(conn, 'quotations', 'client_response_note', "VARCHAR(1000) DEFAULT ''");
+    await ensureColumn(conn, 'quotations', 'responded_at', 'DATETIME NULL');
+    // A client can have several sites (home, office, branch…).
+    await conn.query(`CREATE TABLE IF NOT EXISTS client_sites (
+      id VARCHAR(20) PRIMARY KEY,
+      client VARCHAR(20) NOT NULL,
+      name VARCHAR(150) NOT NULL DEFAULT '',
+      address VARCHAR(500) DEFAULT '',
+      latitude DECIMAL(10,7) NULL,
+      longitude DECIMAL(10,7) NULL,
+      contact_name VARCHAR(150) DEFAULT '',
+      contact_phone VARCHAR(40) DEFAULT '',
+      notes VARCHAR(1000) DEFAULT '',
+      created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_sites_client (client)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
     await conn.query(`CREATE TABLE IF NOT EXISTS announcements (
       id VARCHAR(20) PRIMARY KEY,
       title VARCHAR(150) NOT NULL DEFAULT '',

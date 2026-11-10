@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbaseClient';
+import { locale } from '@/lib/i18n';
 
 const n = (v) => Number(v) || 0;
 const q = (v) => String(v || '').replace(/['"\\]/g, '');
@@ -37,6 +38,7 @@ export async function loadPortal(clientId) {
     requests: app.requests || [],
     equipment: app.equipment || [],
     contracts: app.contracts || [],
+    sites: app.sites || [],
     news: app.news || [],
     toRate: app.toRate || [],
     docs: docs.filter((d) => Number(d.share_with_client) === 1 && (d.client === clientId || ids.has(d.project))),
@@ -71,9 +73,9 @@ export const ASSIST_TOPICS = ['Question', 'Fault / something not working', 'Site
 export const dayLabel = (v) => {
   if (!v) return '';
   const d = new Date(String(v).length <= 10 ? `${v}T12:00:00` : String(v).replace(' ', 'T') + (String(v).includes('Z') ? '' : 'Z'));
-  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 };
 export const timeLabel = (v) => {
   const d = new Date(String(v).replace(' ', 'T') + (String(v).includes('Z') ? '' : 'Z'));
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };

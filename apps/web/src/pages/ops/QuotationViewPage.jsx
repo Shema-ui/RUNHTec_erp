@@ -11,6 +11,8 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 import { toBase64Image, savePdf } from '@/lib/pdfExport';
+import { QuoteAnswerDialog, answerable } from '@/components/portal/QuoteAnswer';
+import { useLang } from '@/lib/i18n';
 
 const DEFAULT_LOGO_URL = '/logo.png';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
@@ -49,6 +51,8 @@ export default function QuotationViewPage() {
   const [busy, setBusy] = useState(false);
   const [logoEmbed, setLogoEmbed] = useState(null);
   const [linkedProject, setLinkedProject] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const { t } = useLang();
   const { user } = useAuth();
   const isClientView = user?.role === 'client';
   const showCosts = canSeeCosts(user);
@@ -170,6 +174,12 @@ export default function QuotationViewPage() {
           >
             {statusLabel}
           </span>
+          {isClientView && answerable(q) && (
+            <span className="flex gap-2">
+              <button onClick={() => setAnswer('decline')} className="rounded-lg border border-rose-300 px-3 py-1.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">{t('Decline')}</button>
+              <button onClick={() => setAnswer('accept')} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">{t('Accept')}</button>
+            </span>
+          )}
           {!isClientView && (<select
             className="rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-medium"
             value={q.status || 'draft'}
@@ -242,6 +252,15 @@ export default function QuotationViewPage() {
           </div>
         </div>
       </div>
+
+      {q.responded_at && (
+        <div className={`no-print mx-auto mt-3 max-w-5xl rounded-xl px-4 py-3 text-sm ${q.status === 'accepted' ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'}`}>
+          <b>{q.status === 'accepted' ? `Accepted in the app${q.signed_by_name ? ` by ${q.signed_by_name}` : ''}` : 'Declined in the app'}</b>
+          {' · '}{new Date(String(q.responded_at).replace(' ', 'T') + (String(q.responded_at).includes('Z') ? '' : 'Z')).toLocaleString()}
+          {q.client_response_note && <p className="mt-1">“{q.client_response_note}”</p>}
+        </div>
+      )}
+      <QuoteAnswerDialog quote={answer ? q : null} decision={answer} onClose={() => setAnswer('')} onDone={() => pb.collection('quotations').getOne(id).then(setQuote).catch(() => {})} />
 
       {/* A4 Quotation */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
