@@ -5,7 +5,14 @@ const { getKeys, saveSubscription, removeSubscription, pushToUsers } = require('
 const { createLimiter } = require('../rateLimit');
 
 const router = express.Router();
-const limit = createLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+const limiter = createLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+// Express middleware: at most 30 of these calls per person (or connection) per 15 minutes.
+function limit(req, res, next) {
+  const key = req.user?.id || req.ip;
+  if (limiter.isBlocked(key)) return res.status(429).json({ message: 'Too many tries. Please wait a few minutes.' });
+  limiter.hit(key);
+  next();
+}
 
 // GET /api/push/key — the server's public key, needed by the browser to subscribe.
 router.get('/key', async (req, res) => {
@@ -13,7 +20,7 @@ router.get('/key', async (req, res) => {
 });
 
 // POST /api/push/subscribe { subscription } — this device wants notifications.
-router.post('/subscribe', limit, requireAuth, async (req, res) => {
+router.post('/subscribe', requireAuth, limit, async (req, res) => {
   if (req.user.role === 'vendor') return res.status(403).json({ message: 'Not available here.' });
   try {
     await saveSubscription(req.user.id, req.body?.subscription, req.get('user-agent'));
@@ -27,7 +34,7 @@ router.post('/unsubscribe', requireAuth, async (req, res) => {
 });
 
 // POST /api/push/test — sends a test notification to the person's own devices.
-router.post('/test', limit, requireAuth, async (req, res) => {
+router.post('/test', requireAuth, limit, async (req, res) => {
   await pushToUsers([req.user.id], { title: 'RUNHTec', body: 'Notifications are working on this device.', link: '/dashboard' });
   res.json({ ok: true });
 });
