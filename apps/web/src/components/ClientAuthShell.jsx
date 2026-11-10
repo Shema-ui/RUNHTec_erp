@@ -51,7 +51,7 @@ export default function ClientAuthShell({ pageTitle, children }) {
           <p className="relative mt-5 font-display text-2xl font-extrabold">My RUNHTec</p>
           <p className="relative mt-1 text-sm text-blue-100">Your building services, one tap away.</p>
         </div>
-        <div className="-mt-10 flex flex-1 flex-col px-4 pb-8 lg:mt-0 lg:w-full lg:max-w-md lg:flex-none lg:px-0">
+        <div className="relative z-10 -mt-10 flex flex-1 flex-col px-4 pb-8 lg:mt-0 lg:w-full lg:max-w-md lg:flex-none lg:px-0">
           <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 sm:p-8">
             {children}
           </div>
