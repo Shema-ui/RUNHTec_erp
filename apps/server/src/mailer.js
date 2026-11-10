@@ -14,21 +14,38 @@ function emailEnabled() {
   return Boolean(FROM() && (process.env.BREVO_API_KEY || process.env.RESEND_API_KEY));
 }
 
-async function sendEmail({ to, subject, text, html }) {
-  if (!emailEnabled() || !to) return false;
+// to / cc: one address or a list. attachments: [{ name, content (base64) }].
+// replyTo: where replies go (defaults to MAIL_FROM).
+async function sendEmail({ to, cc, subject, text, html, attachments, replyTo }) {
+  const list = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => String(x).trim()).filter(Boolean);
+  const toList = list(to); const ccList = list(cc);
+  if (!emailEnabled() || !toList.length) return false;
+  const files = (attachments || []).filter((a) => a && a.name && a.content);
+  const htmlBody = html || `<pre style="font-family:inherit">${String(text).replace(/</g, '&lt;')}</pre>`;
   try {
     let res;
     if (process.env.BREVO_API_KEY) {
       res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ sender: { email: FROM(), name: FROM_NAME() }, to: [{ email: to }], subject, textContent: text, htmlContent: html || `<pre style="font-family:inherit">${String(text).replace(/</g, '&lt;')}</pre>` }),
+        body: JSON.stringify({
+          sender: { email: FROM(), name: FROM_NAME() },
+          to: toList.map((email) => ({ email })),
+          ...(ccList.length ? { cc: ccList.map((email) => ({ email })) } : {}),
+          replyTo: { email: replyTo || FROM() },
+          subject, textContent: text, htmlContent: htmlBody,
+          ...(files.length ? { attachment: files.map((a) => ({ name: a.name, content: a.content })) } : {}),
+        }),
       });
     } else {
       res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ from: `${FROM_NAME()} <${FROM()}>`, to: [to], subject, text, html }),
+        body: JSON.stringify({
+          from: `${FROM_NAME()} <${FROM()}>`, to: toList, ...(ccList.length ? { cc: ccList } : {}),
+          reply_to: replyTo || FROM(), subject, text, html: htmlBody,
+          ...(files.length ? { attachments: files.map((a) => ({ filename: a.name, content: a.content })) } : {}),
+        }),
       });
     }
     if (!res.ok) { console.error('email failed:', res.status, (await res.text()).slice(0, 300)); return false; }

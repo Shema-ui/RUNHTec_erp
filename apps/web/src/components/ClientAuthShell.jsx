@@ -30,7 +30,7 @@ export default function ClientAuthShell({ pageTitle, children }) {
         </div>
         <div className="relative mt-auto max-w-md">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-200">My RUNHTec</p>
-          <h2 className="mt-3 font-display text-4xl font-extrabold leading-tight">Your building services, one tap away.</h2>
+          <h2 className="mt-3 font-display text-4xl font-extrabold leading-tight">Your technical services, one tap away.</h2>
           <ul className="mt-10 space-y-5">
             {BENEFITS.map(({ icon: Icon, t, d }) => (
               <li key={t} className="flex items-start gap-4">
@@ -49,7 +49,7 @@ export default function ClientAuthShell({ pageTitle, children }) {
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/5" />
           <span className="relative inline-flex rounded-2xl bg-white p-2.5 shadow-lg"><img src="/logo.png" alt="RUNHTec Contractors" className="h-11 w-auto" /></span>
           <p className="relative mt-5 font-display text-2xl font-extrabold">My RUNHTec</p>
-          <p className="relative mt-1 text-sm text-blue-100">Your building services, one tap away.</p>
+          <p className="relative mt-1 text-sm text-blue-100">Your technical services, one tap away.</p>
         </div>
         <div className="relative z-10 -mt-10 flex flex-1 flex-col px-4 pb-8 lg:mt-0 lg:w-full lg:max-w-md lg:flex-none lg:px-0">
           <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 sm:p-8">

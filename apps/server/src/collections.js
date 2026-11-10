@@ -97,7 +97,7 @@ const collections = {
   },
   quotations: {
     table: 'quotations',
-    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'created', 'updated'],
+    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'emailed_at', 'emailed_to', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],
@@ -253,7 +253,7 @@ const collections = {
   },
   invoices: {
     table: 'invoices',
-    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'costing', 'created', 'updated'],
+    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'costing', 'emailed_at', 'emailed_to', 'created', 'updated'],
     relations: { client: 'clients', created_by: 'users', quotation: 'quotations', project: 'projects' },
     // Financial data — protected per the RBAC requirements: read AND write
     // restricted to accountant + super_admin, not just write.
@@ -297,7 +297,7 @@ const collections = {
   },
   company_settings: {
     table: 'company_settings',
-    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'vendor_markup', 'exchange_rates', 'solar_kit', 'created', 'updated'],
+    fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'vendor_markup', 'exchange_rates', 'solar_kit', 'quote_email_subject', 'quote_email_body', 'invoice_email_subject', 'invoice_email_body', 'created', 'updated'],
     relations: {},
     fileFields: ['logo', 'signature', 'stamp'],
     rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },

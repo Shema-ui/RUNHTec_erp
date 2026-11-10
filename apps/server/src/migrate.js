@@ -213,6 +213,13 @@ async function runMigrations() {
     // The client's answer to a quotation from the app.
     await ensureColumn(conn, 'quotations', 'client_response_note', "VARCHAR(1000) DEFAULT ''");
     await ensureColumn(conn, 'quotations', 'responded_at', 'DATETIME NULL');
+    // Emailing quotations and invoices from the ERP (routes/docEmail.js).
+    for (const t of ['quotations', 'invoices']) {
+      await ensureColumn(conn, t, 'emailed_at', 'DATETIME NULL');
+      await ensureColumn(conn, t, 'emailed_to', "VARCHAR(500) DEFAULT ''");
+    }
+    for (const c of ['quote_email_subject', 'invoice_email_subject']) await ensureColumn(conn, 'company_settings', c, "VARCHAR(200) DEFAULT ''");
+    for (const c of ['quote_email_body', 'invoice_email_body']) await ensureColumn(conn, 'company_settings', c, 'TEXT NULL');
     // A client can have several sites (home, office, branch…).
     await conn.query(`CREATE TABLE IF NOT EXISTS client_sites (
       id VARCHAR(20) PRIMARY KEY,

@@ -199,7 +199,7 @@ export default function QuotationFormPage() {
         saved = await pb.collection('quotations').create(payload);
       }
       toast({ title: isEdit ? 'Quotation updated' : 'Quotation created', description: saved.number });
-      navigate(`/quotations/${saved.id}/view`);
+      navigate(`/quotations/${saved.id}/view${status === 'sent' && form.status !== 'sent' ? '?send=1' : ''}`);
     } catch (e) {
       toast({ title: 'Error saving quotation', description: e.message, variant: 'destructive' });
     } finally {

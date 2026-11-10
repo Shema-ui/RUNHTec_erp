@@ -60,7 +60,10 @@ async function main() {
     origin: allowedOrigins.length ? allowedOrigins : true,
     credentials: true,
   }));
-  app.use(express.json({ limit: '2mb' }));
+  // Emailing a quotation/invoice carries its PDF, so that one route accepts more.
+  const smallJson = express.json({ limit: '2mb' });
+  const pdfJson = express.json({ limit: '12mb' });
+  app.use((req, res, next) => (req.path === '/api/doc-email/send' ? pdfJson : smallJson)(req, res, next));
   app.use(attachUser);
 
   app.get('/api/health', (req, res) => res.json({ message: 'API is healthy.', code: 200 }));
@@ -78,6 +81,7 @@ async function main() {
   app.use('/api/solar-kit', solarKitRoutes);
   app.use('/api/push', pushRoutes);
   app.use('/api/client', clientAppRoutes);
+  app.use('/api/doc-email', require('./routes/docEmail'));
   app.use('/api/staff-link', staffLinkRoutes);
 
   app.use((req, res) => res.status(404).json({ message: 'Not found.' }));

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight, ReceiptText, FolderKanban } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessModule } from '@/lib/permissions';
@@ -10,7 +10,8 @@ import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
-import { toBase64Image, savePdf } from '@/lib/pdfExport';
+import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
+import { EmailDocDialog, EmailDocButton, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
 import { QuoteAnswerDialog, answerable } from '@/components/portal/QuoteAnswer';
 import { useLang } from '@/lib/i18n';
 
@@ -58,6 +59,10 @@ export default function QuotationViewPage() {
   const showCosts = canSeeCosts(user);
   const canInvoice = canAccessModule(user, 'invoices');
   const canProject = ['super_admin', 'admin', 'project_manager', 'sales'].includes(user?.role);
+  const canEmail = ['super_admin', 'admin', 'sales'].includes(user?.role);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const autoTried = React.useRef(false);
 
   useEffect(() => {
     pb.collection('projects').getList(1, 1, { filter: `quotation = '${id}'` })
@@ -104,12 +109,41 @@ export default function QuotationViewPage() {
     }
   };
 
+  // The client copy as a PDF (base64), for emailing.
+  const makePdf = async () => {
+    if (!String(logoEmbed).startsWith('data:image')) {
+      setLogoEmbed((await toBase64Image(logoUrl)) || logoUrl);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return pdfBase64(document.getElementById('quote-print'));
+  };
+  const reloadQuote = () => pb.collection('quotations').getOne(id).then(setQuote).catch(() => {});
+
+  // Marked Sent → emailed to the client automatically when they have an email.
+  const sendAutomatically = async () => {
+    try {
+      const res = await autoEmail({ type: 'quotation', id, makePdf });
+      autoEmailToast(toast, res, 'Quotation');
+      if (res.sent) reloadQuote();
+    } catch (e) { toast({ title: 'Quotation not emailed', description: e.message, variant: 'destructive' }); }
+  };
+
   const handleStatusChange = async (status) => {
     try {
+      const before = quote?.status;
       const updated = await pb.collection('quotations').update(id, { status });
       setQuote(updated);
+      if (status === 'sent' && before !== 'sent' && canEmail && !updated.source_invoice) sendAutomatically();
     } catch (e) { alert(e.message); }
   };
+
+  // Arrived from "Save & send" on the form.
+  useEffect(() => {
+    if (loading || !quote || autoTried.current || params.get('send') !== '1') return;
+    autoTried.current = true;
+    setParams((p) => { p.delete('send'); return p; }, { replace: true });
+    if (canEmail && quote.status === 'sent' && !quote.source_invoice) setTimeout(sendAutomatically, 600);
+  }, [loading, quote]);
 
   const convertToProject = async () => {
     setBusy(true);
@@ -227,6 +261,7 @@ export default function QuotationViewPage() {
                 Convert to project
               </button>
             )}
+            {canEmail && !q.source_invoice && <EmailDocButton onClick={() => setEmailOpen(true)} />}
             <Link
               to={`/quotations/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -253,6 +288,8 @@ export default function QuotationViewPage() {
         </div>
       </div>
 
+      <EmailedNote doc={q} />
+      {canEmail && <EmailDocDialog open={emailOpen} onClose={() => setEmailOpen(false)} type="quotation" id={id} number={q.number} makePdf={makePdf} onSent={reloadQuote} />}
       {q.responded_at && (
         <div className={`no-print mx-auto mt-3 max-w-5xl rounded-xl px-4 py-3 text-sm ${q.status === 'accepted' ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'}`}>
           <b>{q.status === 'accepted' ? `Accepted in the app${q.signed_by_name ? ` by ${q.signed_by_name}` : ''}` : 'Declined in the app'}</b>

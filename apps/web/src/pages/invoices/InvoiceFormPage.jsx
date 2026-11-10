@@ -258,7 +258,7 @@ export default function InvoiceFormPage() {
         saved = await pb.collection('invoices').create(payload);
       }
       toast({ title: isEdit ? 'Invoice updated' : 'Invoice created', description: saved.invoice_number });
-      navigate(`/invoices/${saved.id}/view`);
+      navigate(`/invoices/${saved.id}/view${status === 'sent' && form.status !== 'sent' ? '?send=1' : ''}`);
     } catch (e) {
       toast({ title: 'Error saving invoice', description: e.message, variant: 'destructive' });
     } finally {

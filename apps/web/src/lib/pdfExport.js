@@ -107,3 +107,11 @@ export async function savePdf(el, filename) {
   const pdf = await picturePdf(el, jsPDF);
   pdf.save(filename);
 }
+
+/** The same PDF as savePdf, returned as base64 (for emailing it). */
+export async function pdfBase64(el) {
+  const { default: jsPDF } = await import('jspdf');
+  await waitForImages(el);
+  const pdf = await picturePdf(el, jsPDF);
+  return String(pdf.output('datauristring')).split(',')[1] || '';
+}

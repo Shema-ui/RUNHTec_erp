@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +9,9 @@ import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
-import { toBase64Image, savePdf } from '@/lib/pdfExport';
+import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
+import { EmailDocDialog, EmailDocButton, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
+import { useToast } from '@/hooks/use-toast';
 
 // Fallback logo used only when no logo has been uploaded in Settings.
 const DEFAULT_LOGO_URL = '/logo.png';
@@ -54,6 +56,11 @@ export default function InvoiceViewPage() {
   const { user } = useAuth();
   const isClientView = user?.role === 'client';
   const showCosts = canSeeCosts(user);
+  const { toast } = useToast();
+  const canEmail = ['super_admin', 'admin', 'accountant'].includes(user?.role);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const autoTried = useRef(false);
 
   useEffect(() => {
     Promise.all([
@@ -116,12 +123,46 @@ export default function InvoiceViewPage() {
     }
   };
 
+  // The client copy as a PDF (base64), for emailing.
+  const makePdf = async () => {
+    if (!String(embeds.logo).startsWith('data:image')) {
+      const [logo, signature, stamp] = await Promise.all([
+        toBase64Image(logoUrl),
+        showSignature ? toBase64Image(signatureUrl) : Promise.resolve(null),
+        showStamp ? toBase64Image(stampUrl) : Promise.resolve(null),
+      ]);
+      setEmbeds({ logo: logo || logoUrl, signature: signature || signatureUrl, stamp: stamp || stampUrl });
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return pdfBase64(document.getElementById('invoice-print'));
+  };
+  const reloadInvoice = () => pb.collection('invoices').getOne(id).then(setInvoice).catch(() => {});
+
+  // Marked Sent → emailed to the client automatically when they have an email.
+  const sendAutomatically = async () => {
+    try {
+      const res = await autoEmail({ type: 'invoice', id, makePdf });
+      autoEmailToast(toast, res, 'Invoice');
+      if (res.sent) reloadInvoice();
+    } catch (e) { toast({ title: 'Invoice not emailed', description: e.message, variant: 'destructive' }); }
+  };
+
   const handleStatusChange = async (status) => {
     try {
+      const before = invoice?.status;
       const updated = await pb.collection('invoices').update(id, { status });
       setInvoice(updated);
+      if (status === 'sent' && before !== 'sent' && canEmail) sendAutomatically();
     } catch (e) { alert(e.message); }
   };
+
+  // Arrived from "Save & send" on the form.
+  useEffect(() => {
+    if (loading || !invoice || autoTried.current || params.get('send') !== '1') return;
+    autoTried.current = true;
+    setParams((p) => { p.delete('send'); return p; }, { replace: true });
+    if (canEmail && invoice.status === 'sent') setTimeout(sendAutomatically, 900);
+  }, [loading, invoice]);
 
   if (loading) {
     return (
@@ -177,6 +218,7 @@ export default function InvoiceViewPage() {
           </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             {!isClientView && (<>
+            {canEmail && <EmailDocButton onClick={() => setEmailOpen(true)} />}
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -202,6 +244,9 @@ export default function InvoiceViewPage() {
           </div>
         </div>
       </div>
+
+      <EmailedNote doc={inv} />
+      {canEmail && <EmailDocDialog open={emailOpen} onClose={() => setEmailOpen(false)} type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} />}
 
       {/* A4 Invoice */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">

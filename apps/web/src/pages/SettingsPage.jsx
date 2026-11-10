@@ -23,25 +23,74 @@ function Field({ label, hint, children, className = '' }) {
   );
 }
 
-// Email for password-reset links (free Brevo account, set on Render).
+// Email: on/off check, test button, and the standard wording that goes with
+// every quotation and invoice emailed to a client.
+const TEMPLATE_FIELDS = [
+  ['quote_email_subject', 'quote_email_body', 'quotation', 'Quotation email'],
+  ['invoice_email_subject', 'invoice_email_body', 'invoice', 'Invoice email'],
+];
 function EmailCard() {
   const { toast } = useToast();
   const [on, setOn] = useState(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { pb.get('/api/config').then((c) => setOn(Boolean(c.email))).catch(() => setOn(false)); }, []);
+  const [cfg, setCfg] = useState(null);
+  const [defaults, setDefaults] = useState(null);
+  const [tpl, setTpl] = useState({});
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    pb.get('/api/config').then((c) => setOn(Boolean(c.email))).catch(() => setOn(false));
+    Promise.all([
+      pb.collection('company_settings').getList(1, 1).then((r) => r.items[0] || null).catch(() => null),
+      pb.get('/api/doc-email/defaults').catch(() => null),
+    ]).then(([c, d]) => {
+      setCfg(c); setDefaults(d);
+      const v = {};
+      TEMPLATE_FIELDS.forEach(([sf, bf, type]) => { v[sf] = c?.[sf] || d?.[type]?.subject || ''; v[bf] = c?.[bf] || d?.[type]?.body || ''; });
+      setTpl(v);
+    });
+  }, []);
   const test = async () => {
     setBusy(true);
     try { const r = await pb.post('/api/me/test-email'); toast({ title: 'Test email sent', description: `Check the inbox of ${r.to} (and the spam folder).` }); }
     catch (e) { toast({ title: 'Email not working yet', description: e.message, variant: 'destructive' }); }
     finally { setBusy(false); }
   };
+  const save = async () => {
+    if (!cfg?.id) { toast({ title: 'Save the company settings first', variant: 'destructive' }); return; }
+    setSaving(true);
+    try { await pb.collection('company_settings').update(cfg.id, tpl); toast({ title: 'Email wording saved' }); }
+    catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
+    finally { setSaving(false); }
+  };
+  const reset = (type, sf, bf) => setTpl((p) => ({ ...p, [sf]: defaults?.[type]?.subject || '', [bf]: defaults?.[type]?.body || '' }));
   return (
-    <SectionCard icon={Mail} title="Email (password resets)" description="Staff who forget their password get a reset link by email. Uses a free Brevo account, set up on Render. Notifications stay inside the system.">
+    <SectionCard icon={Mail} title="Email" description="Quotations and invoices are emailed from the company address with the PDF attached. A document is emailed automatically when it is marked Sent and the client has an email in the system. Staff also get password-reset links by email.">
       <div className="flex flex-wrap items-center gap-3">
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${on ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{on === null ? 'Checking…' : on ? 'Email is on' : 'Email is off: reset links only appear in the Render logs'}</span>
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${on ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{on === null ? 'Checking…' : on ? 'Email is on' : 'Email is off: nothing is emailed yet'}</span>
         <button type="button" onClick={test} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send me a test email
         </button>
+      </div>
+      <div className="mt-6 space-y-6">
+        <p className="rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+          Every email starts with <b>“Dear RUNHTec Customer,”</b> (added automatically if removed). Words in curly brackets are filled in for each document:
+          {' '}<code>{'{number}'}</code> <code>{'{total}'}</code> <code>{'{valid_until}'}</code> <code>{'{due_date}'}</code> <code>{'{company_phone}'}</code> <code>{'{company_email}'}</code> <code>{'{app_link}'}</code>
+        </p>
+        {TEMPLATE_FIELDS.map(([sf, bf, type, label]) => (
+          <div key={type} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold">{label}</h4>
+              <button type="button" onClick={() => reset(type, sf, bf)} className="text-xs font-medium text-primary hover:underline">Restore the standard wording</button>
+            </div>
+            <input className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={tpl[sf] || ''} onChange={(e) => setTpl((p) => ({ ...p, [sf]: e.target.value }))} aria-label={`${label} subject`} />
+            <textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm leading-relaxed" rows={13} value={tpl[bf] || ''} onChange={(e) => setTpl((p) => ({ ...p, [bf]: e.target.value }))} aria-label={`${label} message`} />
+          </div>
+        ))}
+        <div className="flex justify-end">
+          <button type="button" onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save email wording
+          </button>
+        </div>
       </div>
     </SectionCard>
   );
