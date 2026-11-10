@@ -29,7 +29,7 @@ export default function ClientAppCard({ client }) {
     catch (e) { toast({ title: 'Could not reset', description: e.message, variant: 'destructive' }); }
     finally { setBusy(''); }
   };
-  const withPhone = (logins || []).filter((l) => l.phone);
+  const withPhone = (Array.isArray(logins) ? logins : []).filter((l) => l.phone);
   const avg = ratings.length ? (ratings.reduce((s, r) => s + Number(r.rating), 0) / ratings.length).toFixed(1) : null;
 
   return (

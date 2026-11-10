@@ -107,7 +107,7 @@ function Home() {
               const chip = statusChip(r);
               return (
                 <Link key={r.id} to={`/portal/requests${keep}`} className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{r.service_type}</span><span className="block truncate text-xs text-muted-foreground">{r.scheduled_for ? `${t('Visit: {date}', { date: dayLabel(r.scheduled_for) })}${r.technician_name ? ` · ${r.technician_name}` : ''}` : r.description}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{t(r.service_type)}</span><span className="block truncate text-xs text-muted-foreground">{r.scheduled_for ? `${t('Visit: {date}', { date: dayLabel(r.scheduled_for) })}${r.technician_name ? ` · ${r.technician_name}` : ''}` : r.description}</span></span>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${chip.cls}`}>{chip.label}</span>
                 </Link>
               );
