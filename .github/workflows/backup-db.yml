@@ -57,9 +57,11 @@ jobs:
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           umask 077
           printf '[client]\npassword=%s\n' "$DB_PASSWORD" > ~/.my.cnf
+          # (No --single-transaction: TiDB does not support the SAVEPOINT it uses.
+          #  The backup runs at night when nobody is working.)
           mysqldump --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" \
             --ssl-mode=VERIFY_IDENTITY --ssl-ca=/etc/ssl/certs/ca-certificates.crt \
-            --single-transaction --skip-lock-tables --no-tablespaces --column-statistics=0 \
+            --skip-lock-tables --no-tablespaces --column-statistics=0 \
             --set-gtid-purged=OFF --hex-blob --skip-triggers \
             --databases "$DB_NAME" > backup.sql
           rm -f ~/.my.cnf
