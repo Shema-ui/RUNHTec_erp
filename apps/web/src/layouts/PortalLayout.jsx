@@ -19,6 +19,7 @@ import QuickAccess from '@/components/erp/QuickAccess';
 import { UserRound, Search as SearchIcon, KeyRound, Smartphone } from 'lucide-react';
 import ChangePasswordDialog from '@/components/erp/ChangePasswordDialog';
 import { AppDialog } from '@/components/erp/AppInstall';
+import { staffSignInPath } from '@/lib/staffLink';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
 import {
   DropdownMenu,
@@ -136,7 +137,7 @@ export default function PortalLayout({ children, title, subtitle }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login', { replace: true });
+    navigate(staffSignInPath(), { replace: true });
   };
 
   return (

@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessModule, needsProfile, isClient, isVendor } from '@/lib/permissions';
+import { staffSignInPath } from '@/lib/staffLink';
 
 // Pages a client login may open: the portal, and the quote/invoice documents it links to.
 const CLIENT_PATHS = [/^\/portal(\/|$)/, /^\/quotations\/[^/]+\/view$/, /^\/invoices\/[^/]+\/view$/];
@@ -21,7 +22,9 @@ export function RequireAuth({ children }) {
   if (!ready) return <FullScreenLoader />;
   // A vendor whose sign-in ended goes back to their link, not the staff login.
   if (!isAuthed && /^\/vendor\/?$/.test(location.pathname)) return <Navigate to="/v/expired" replace />;
-  if (!isAuthed) return <Navigate to="/login" replace state={{ from: location }} />;
+  // Signed out: client pages go to the client sign-in; staff pages go back to this
+  // device's staff link if it has one (otherwise the client page, which reveals nothing).
+  if (!isAuthed) return <Navigate to={/^\/portal(\/|$)/.test(location.pathname) ? '/login' : staffSignInPath()} replace state={{ from: location }} />;
   if (isVendor(user)) return /^\/vendor\/?$/.test(location.pathname) ? children : <Navigate to="/vendor" replace />;
   if (isClient(user)) return CLIENT_PATHS.some((re) => re.test(location.pathname)) ? children : <Navigate to="/portal" replace />;
   // First thing a new staff member sees: their profile. Everything else opens once it's done.

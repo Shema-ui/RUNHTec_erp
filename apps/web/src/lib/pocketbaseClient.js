@@ -143,8 +143,9 @@ function collection(name) {
     // Auth methods — only meaningful for the `users` collection, matching
     // how the PocketBase SDK scopes them, but defined generically since
     // that's how the existing pages call them (`pb.collection('users').authWithPassword(...)`).
-    async authWithPassword(identity, password) {
-      const res = await request('/api/collections/users/auth-with-password', { method: 'POST', body: { identity, password } });
+    // staffKey: the secret part of the private staff sign-in link (/staff/<key>).
+    async authWithPassword(identity, password, staffKey) {
+      const res = await request('/api/collections/users/auth-with-password', { method: 'POST', body: { identity, password, staff_key: staffKey || '' } });
       authStore.save(res.token, res.record);
       return res;
     },

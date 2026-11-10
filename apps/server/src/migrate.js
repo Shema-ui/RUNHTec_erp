@@ -190,6 +190,9 @@ async function runMigrations() {
     // announcements, ratings and reminders.
     await ensureColumn(conn, 'users', 'pin_hash', 'VARCHAR(100) DEFAULT NULL');
     await ensureColumn(conn, 'users', 'signup_source', "VARCHAR(10) DEFAULT ''");
+    // When a client accepted the Terms of Use & Privacy Notice, and which version.
+    await ensureColumn(conn, 'users', 'terms_accepted_at', 'DATETIME NULL');
+    await ensureColumn(conn, 'users', 'terms_version', "VARCHAR(20) DEFAULT ''");
     await ensureEnumValue(conn, 'rfqs', 'source', 'app', "ENUM('website','manual','app') NOT NULL DEFAULT 'manual'");
     for (const [col, def] of [
       ['kind', "VARCHAR(30) DEFAULT ''"],

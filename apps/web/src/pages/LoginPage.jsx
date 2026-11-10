@@ -1,184 +1,81 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Phone, HelpCircle } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import AuthShell from '@/components/AuthShell';
-import { useAuth } from '@/context/AuthContext';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import ClientAuthShell, { PhoneField } from '@/components/ClientAuthShell';
 
-const MODE_KEY = 'runhtec-login-mode';
+// The public sign-in page: clients only, with their phone number and PIN.
+// (Staff sign in through their private staff link, /staff/<key>.)
+const HELP_PHONE = '+250793229790';
+const HELP_PHONE_LABEL = '+250 793 229 790';
 
-// Clients sign in with their phone number and PIN (no email, no password).
-function ClientSignIn() {
+export default function LoginPage() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState(() => { try { return localStorage.getItem('runhtec-client-phone') || ''; } catch { return ''; } });
   const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    setError(''); setLoading(true);
-    try {
-      const res = await pb.post('/api/client/login', { phone, pin });
-      try { localStorage.setItem('runhtec-client-phone', phone); } catch { /* ignore */ }
-      pb.authStore.save(res.token, res.record);
-      navigate('/portal', { replace: true });
-    } catch (err) { setError(err.message || 'Could not sign in.'); setLoading(false); }
-  };
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      {error && (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span>
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone number</Label>
-        <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0788 123 456" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="pin">PIN</Label>
-        <Input id="pin" type="password" inputMode="numeric" autoComplete="current-password" required maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••" className="tracking-[0.4em]" />
-      </div>
-      <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign in'}
-      </Button>
-      <p className="text-center text-sm text-muted-foreground">New to RUNHTec? <Link to="/join" className="font-semibold text-primary hover:underline">Create your account</Link></p>
-      <p className="text-center text-xs text-muted-foreground">Forgot your PIN? Open the private link we sent you, or call RUNHTec to reset it.</p>
-    </form>
-  );
-}
-
-export default function LoginPage() {
-  const [mode, setModeState] = useState(() => { try { return localStorage.getItem(MODE_KEY) || 'client'; } catch { return 'client'; } });
-  const setMode = (m) => { setModeState(m); try { localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ } };
-  const { login, rememberedEmail } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [email, setEmail] = useState(rememberedEmail());
-  const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(Boolean(rememberedEmail()));
   const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
-  // If the server is still waking up after a few seconds, say so (instead of looking frozen).
+  const [help, setHelp] = useState(false);
   useEffect(() => { if (!loading) { setSlow(false); return undefined; } const t = setTimeout(() => setSlow(true), 4000); return () => clearTimeout(t); }, [loading]);
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!/^\d{4,6}$/.test(pin)) { setError('Your PIN is 4 to 6 digits.'); return; }
     setLoading(true);
     try {
-      const auth = await login(email.trim(), password, remember);
-      const to = auth?.record?.role === 'client' ? '/portal' : auth?.record?.role === 'vendor' ? '/vendor' : (location.state?.from?.pathname || '/dashboard');
-      navigate(to, { replace: true });
-    } catch (err) {
-      if (err?.status === 400) {
-        setError('Invalid email or password. Please try again.');
-      } else if (err?.status === 403) {
-        setError('This account is suspended. Contact your administrator.');
-      } else {
-        setError('Unable to sign in right now. Please try again shortly.');
-      }
-      setLoading(false);
-    }
+      const res = await pb.post('/api/client/login', { phone, pin });
+      try { localStorage.setItem('runhtec-client-phone', phone); } catch { /* ignore */ }
+      pb.authStore.save(res.token, res.record);
+      navigate('/portal', { replace: true });
+    } catch (err) { setError(err.message || 'Could not sign in. Please try again.'); setLoading(false); }
   };
 
   return (
-    <AuthShell pageTitle="Sign in">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">
-          {mode === 'client' ? 'Welcome to My RUNHTec' : 'Sign in to your portal'}
-        </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          {mode === 'client' ? 'Sign in with your phone number and PIN.' : 'Enter your credentials to access the workspace.'}
-        </p>
-      </div>
-      <div className="mb-6 grid grid-cols-2 rounded-xl bg-secondary p-1" role="tablist" aria-label="Who is signing in">
-        {[['client', 'I’m a client'], ['staff', 'RUNHTec staff']].map(([m, label]) => (
-          <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
-            className={`rounded-lg py-2 text-sm font-semibold transition ${mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>{label}</button>
-        ))}
-      </div>
-      {mode === 'client' ? <ClientSignIn /> : (<>
+    <ClientAuthShell pageTitle="Sign in">
+      <h1 className="font-display text-2xl font-extrabold tracking-tight text-slate-900">Welcome back 👋</h1>
+      <p className="mt-1 text-[15px] text-slate-600">Sign in with your phone number and PIN.</p>
 
-      {slow && (
-        <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
-          The system is waking up after a quiet period. This can take up to a minute the first time. Please wait, you don’t need to click again.
-        </div>
-      )}
-      {error && (
-        <div className="mb-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <div className="mt-5 flex items-start gap-2 rounded-xl bg-rose-50 px-3.5 py-3 text-sm text-rose-700"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
+      {slow && <div className="mt-5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm text-amber-900">Waking the system up. The first sign-in of the day can take up to a minute, please wait.</div>}
 
-      <form onSubmit={submit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@runhteccontractors.si"
-          />
+      <form onSubmit={submit} className="mt-6 space-y-5">
+        <div>
+          <label htmlFor="phone" className="mb-1.5 block text-sm font-semibold text-slate-800">Phone number</label>
+          <PhoneField id="phone" value={phone} onChange={setPhone} />
         </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
-              Forgot password?
-            </Link>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="pin" className="text-sm font-semibold text-slate-800">PIN</label>
+            <button type="button" onClick={() => setHelp((h) => !h)} className="text-sm font-semibold text-[#003DA5]">Forgot PIN?</button>
           </div>
           <div className="relative">
-            <Input
-              id="password"
-              type={show ? 'text' : 'password'}
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShow((s) => !s)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-              tabIndex={-1}
-            >
-              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            <input id="pin" type={show ? 'text' : 'password'} inputMode="numeric" autoComplete="current-password" required maxLength={6} value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="4–6 digits"
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 pr-12 text-lg tracking-[0.35em] text-slate-900 outline-none placeholder:text-base placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#003DA5] focus:ring-2 focus:ring-[#003DA5]/20" />
+            <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide PIN' : 'Show PIN'} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500">{show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
           </div>
         </div>
-
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-          <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
-          Remember me on this device
-        </label>
-
-        <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign in'}
-        </Button>
+        {help && (
+          <div className="rounded-xl bg-blue-50 p-4 text-sm text-slate-700">
+            <p className="flex items-center gap-2 font-semibold text-slate-900"><HelpCircle className="h-4 w-4 text-[#003DA5]" /> Forgot your PIN?</p>
+            <p className="mt-1">No problem. Call or WhatsApp us and we’ll reset it. Then open the private link we send you to choose a new PIN.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <a href={`tel:${HELP_PHONE}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white py-2 font-semibold text-slate-800"><Phone className="h-4 w-4" /> Call</a>
+              <a href={`https://wa.me/${HELP_PHONE.replace('+', '')}?text=${encodeURIComponent('Hello RUNHTec, I forgot my My RUNHTec PIN. My phone number is ')}`} target="_blank" rel="noreferrer" className="flex items-center justify-center rounded-lg bg-[#25D366] py-2 font-semibold text-white">WhatsApp</a>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">{HELP_PHONE_LABEL}</p>
+          </div>
+        )}
+        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Sign in <ArrowRight className="h-5 w-5" /></>}
+        </button>
       </form>
-      </>)}
 
-      <p className="mt-6 text-center text-sm">
-        <Link to="/app" className="font-semibold text-primary hover:underline">Install My RUNHTec on your phone</Link>
-      </p>
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        {mode === 'client' ? 'Your details stay private and are only used to serve you.' : 'Staff accounts are created by administrators only.'}
-      </p>
-    </AuthShell>
+      <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />New to RUNHTec?<span className="h-px flex-1 bg-slate-200" /></div>
+      <Link to="/join" className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-[#003DA5] text-base font-semibold text-[#003DA5] transition hover:bg-blue-50">Create my free account</Link>
+    </ClientAuthShell>
   );
 }

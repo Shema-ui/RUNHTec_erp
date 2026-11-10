@@ -1,3 +1,4 @@
+import { staffSignInPath } from '@/lib/staffLink';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, MailCheck } from 'lucide-react';
@@ -36,7 +37,7 @@ export default function ForgotPasswordPage() {
             Ask your administrator to reset it for you. They can do it in <span className="font-medium text-foreground">User Management → ⋯ → Reset password</span> and give you a new temporary password.
           </p>
           <Button asChild variant="outline" className="mt-8 w-full">
-            <Link to="/login"><ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in</Link>
+            <Link to={staffSignInPath()}><ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in</Link>
           </Button>
         </div>
       ) : sent ? (
@@ -52,7 +53,7 @@ export default function ForgotPasswordPage() {
             we have sent instructions to reset the password. The link expires shortly for security.
           </p>
           <Button asChild variant="outline" className="mt-8 w-full">
-            <Link to="/login">
+            <Link to={staffSignInPath()}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to sign in
             </Link>
           </Button>
@@ -84,7 +85,7 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
           <Link
-            to="/login"
+            to={staffSignInPath()}
             className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Back to sign in

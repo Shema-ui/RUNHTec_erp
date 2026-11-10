@@ -28,6 +28,7 @@ const vendorRoutes = require('./routes/vendor');
 const solarKitRoutes = require('./routes/solarKit');
 const pushRoutes = require('./routes/push');
 const clientAppRoutes = require('./routes/clientApp');
+const staffLinkRoutes = require('./routes/staffLink');
 
 const PORT = process.env.PORT || 8090;
 
@@ -40,6 +41,8 @@ async function main() {
   await runMigrations();
   await bootstrapAdmin();
   require('./jobs').startJobs();
+  // Recovery: the private staff sign-in link is printed here (Render → Logs).
+  try { const { getStaffKey, staffLink } = require('./staffKey'); console.log(`[staff-link] Staff sign-in: ${staffLink(await getStaffKey())}`); } catch (e) { console.error('staff link:', e.message); }
 
   const app = express();
   // Behind a hosting platform's proxy (Render, Hostinger): trust the first
@@ -75,6 +78,7 @@ async function main() {
   app.use('/api/solar-kit', solarKitRoutes);
   app.use('/api/push', pushRoutes);
   app.use('/api/client', clientAppRoutes);
+  app.use('/api/staff-link', staffLinkRoutes);
 
   app.use((req, res) => res.status(404).json({ message: 'Not found.' }));
   // eslint-disable-next-line no-unused-vars

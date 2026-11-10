@@ -30,8 +30,8 @@ export function AuthProvider({ children }) {
     return () => unsub();
   }, []);
 
-  const login = useCallback(async (email, password, remember) => {
-    const auth = await pb.collection('users').authWithPassword(email, password);
+  const login = useCallback(async (email, password, remember, staffKey) => {
+    const auth = await pb.collection('users').authWithPassword(email, password, staffKey);
     if (remember) localStorage.setItem(REMEMBER_KEY, email);
     else localStorage.removeItem(REMEMBER_KEY);
     logActivity('Signed in', `${auth.record.email} authenticated`);

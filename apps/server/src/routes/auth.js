@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const pool = require('../db');
 const { signToken, sanitizeUser, requireAuth, bcrypt, MIN_PASSWORD_LENGTH } = require('../auth');
 const { createLimiter } = require('../rateLimit');
+const { isStaffKey } = require('../staffKey');
 
 const router = express.Router();
 const { sendEmail } = require('../mailer');
@@ -29,6 +30,11 @@ router.post('/users/auth-with-password', async (req, res) => {
   const accountKey = identity.trim().toLowerCase();
   if (loginByIp.isBlocked(ipKey)) return tooMany(res, loginByIp.retryAfterSeconds(ipKey));
   if (loginByAccount.isBlocked(accountKey)) return tooMany(res, loginByAccount.retryAfterSeconds(accountKey));
+  // Staff sign in only through the private staff link (the public page is for clients).
+  if (!(await isStaffKey(req.body?.staff_key))) {
+    loginByIp.hit(ipKey);
+    return res.status(404).json({ message: 'This sign-in link is not valid. Ask your administrator for the staff link.' });
+  }
 
   const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [identity.trim()]);
   const user = rows[0];

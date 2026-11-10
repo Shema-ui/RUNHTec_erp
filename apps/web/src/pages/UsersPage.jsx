@@ -1,3 +1,4 @@
+import StaffLinkCard from '@/components/erp/StaffLinkCard';
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import {
@@ -133,6 +134,7 @@ export default function UsersPage() {
         <meta name="description" content="Create, suspend, reset and manage RUNHTec portal user accounts and roles. Super Administrator only." />
       </Helmet>
 
+      <StaffLinkCard />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

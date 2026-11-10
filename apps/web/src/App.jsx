@@ -8,6 +8,8 @@ import { Toaster } from '@/components/ui/toaster';
 import LoginPage from '@/pages/LoginPage';
 import InstallAppPage from '@/pages/InstallAppPage';
 import JoinPage from '@/pages/JoinPage';
+import StaffLoginPage from '@/pages/StaffLoginPage';
+import TermsPage from '@/pages/TermsPage';
 import { PortalRequestsPage, PortalNewRequestPage, PortalNewsPage, PortalEquipmentPage } from '@/pages/portal/ClientAppPages';
 import AnnouncementsPage from '@/pages/crm/AnnouncementsPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
@@ -78,6 +80,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/app" element={<InstallAppPage />} />
           <Route path="/join" element={<RedirectIfAuthed><JoinPage /></RedirectIfAuthed>} />
+          <Route path="/staff/:key" element={<RedirectIfAuthed><StaffLoginPage /></RedirectIfAuthed>} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Dashboard — every role lands here after login */}

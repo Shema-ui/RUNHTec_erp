@@ -22,6 +22,9 @@ const signupLimit = createLimiter({ windowMs: 60 * 60 * 1000, max: 5 });
 const requestLimit = createLimiter({ windowMs: 60 * 60 * 1000, max: 10 });
 
 const STAFF_GRANT = ['super_admin', 'admin', 'sales', 'project_manager'];
+// Change this when the Terms of Use & Privacy Notice change (web: src/pages/TermsPage.jsx).
+const TERMS_VERSION = '2026-11-10';
+const accepted = (b) => b?.accept_terms === true || b?.accept_terms === 'true';
 const TEAM = ['super_admin', 'admin', 'sales', 'project_manager'];
 
 // ── Phone numbers ────────────────────────────────────────────────────────────
@@ -74,6 +77,7 @@ router.post('/signup', async (req, res) => {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'That email address doesn’t look right.' });
   if (!validPin(b.pin)) return res.status(400).json({ message: 'Choose a PIN of 4 to 6 digits.' });
   if (WEAK.has(String(b.pin))) return res.status(400).json({ message: 'That PIN is too easy to guess. Please choose another.' });
+  if (!accepted(b)) return res.status(400).json({ message: 'Please accept the Terms of Use and Privacy Notice to create your account.' });
   signupLimit.hit(req.ip);
   try {
     if (await phoneTaken(phone)) return res.status(409).json({ message: 'This phone number already has an account. Sign in instead, or ask RUNHTec to reset your PIN.' });
@@ -91,8 +95,8 @@ router.post('/signup', async (req, res) => {
     const pw = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
     const pinHash = await bcrypt.hash(String(b.pin), 10);
     await pool.query(
-      "INSERT INTO users (id, email, password_hash, name, phone, role, status, client, profile_completed, can_upload_documents, pin_hash, signup_source) VALUES (?, ?, ?, ?, ?, 'client', 'active', ?, 1, 0, ?, 'app')",
-      [userId, `app-${userId}@clients.runhtec.local`, pw, name, phone, clientId, pinHash]
+      "INSERT INTO users (id, email, password_hash, name, phone, role, status, client, profile_completed, can_upload_documents, pin_hash, signup_source, terms_accepted_at, terms_version) VALUES (?, ?, ?, ?, ?, 'client', 'active', ?, 1, 0, ?, 'app', UTC_TIMESTAMP(), ?)",
+      [userId, `app-${userId}@clients.runhtec.local`, pw, name, phone, clientId, pinHash, TERMS_VERSION]
     );
     await notifyRoles(TEAM, 'client', `New client signed up in the app: ${name}${company ? ` (${company})` : ''}, +${phone}${location ? `, ${location}` : ''}.`, `/crm/clients/${clientId}`);
     res.json(await issue(userId));
@@ -124,8 +128,8 @@ router.post('/login', async (req, res) => {
 
 // GET /api/client/me — app sign-in status for the person signed in.
 router.get('/me', requireAuth, clientOnly, async (req, res) => {
-  const [rows] = await pool.query('SELECT phone, pin_hash FROM users WHERE id = ?', [req.user.id]);
-  res.json({ phone: rows[0]?.phone || '', has_pin: Boolean(rows[0]?.pin_hash) });
+  const [rows] = await pool.query('SELECT phone, pin_hash, terms_accepted_at FROM users WHERE id = ?', [req.user.id]);
+  res.json({ phone: rows[0]?.phone || '', has_pin: Boolean(rows[0]?.pin_hash), terms_accepted: Boolean(rows[0]?.terms_accepted_at) });
 });
 
 // POST /api/client/pin {phone, pin} — set up or change app sign-in.
@@ -140,10 +144,11 @@ router.post('/pin', requireAuth, clientOnly, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
     const me = rows[0];
+    if (!me.terms_accepted_at && !accepted(req.body)) return res.status(400).json({ message: 'Please accept the Terms of Use and Privacy Notice first.' });
     const pinHash = await bcrypt.hash(pin, 10);
     if (!me.phone || me.phone === phone) {
       if (await phoneTaken(phone, me.id)) return res.status(409).json({ message: 'This phone number is already used by another account.' });
-      await pool.query('UPDATE users SET phone = ?, pin_hash = ? WHERE id = ?', [phone, pinHash, me.id]);
+      await pool.query('UPDATE users SET phone = ?, pin_hash = ?, terms_accepted_at = COALESCE(terms_accepted_at, UTC_TIMESTAMP()), terms_version = IF(terms_version = \'\' OR terms_version IS NULL, ?, terms_version) WHERE id = ?', [phone, pinHash, TERMS_VERSION, me.id]);
       return res.json({ ok: true });
     }
     // A different person on the same client account.
@@ -151,13 +156,13 @@ router.post('/pin', requireAuth, clientOnly, async (req, res) => {
     if (existing[0] && existing[0].client !== me.client) return res.status(409).json({ message: 'This phone number is already used by another account.' });
     let id = existing[0]?.id;
     if (id) {
-      await pool.query("UPDATE users SET pin_hash = ?, status = 'active' WHERE id = ?", [pinHash, id]);
+      await pool.query("UPDATE users SET pin_hash = ?, status = 'active', terms_accepted_at = COALESCE(terms_accepted_at, UTC_TIMESTAMP()), terms_version = ? WHERE id = ?", [pinHash, TERMS_VERSION, id]);
     } else {
       id = genId();
       const pw = await bcrypt.hash(crypto.randomBytes(24).toString('hex'), 10);
       await pool.query(
-        "INSERT INTO users (id, email, password_hash, name, phone, role, status, client, profile_completed, can_upload_documents, pin_hash, signup_source) VALUES (?, ?, ?, ?, ?, 'client', 'active', ?, 1, 0, ?, 'link')",
-        [id, `app-${id}@clients.runhtec.local`, pw, me.name, phone, me.client, pinHash]
+        "INSERT INTO users (id, email, password_hash, name, phone, role, status, client, profile_completed, can_upload_documents, pin_hash, signup_source, terms_accepted_at, terms_version) VALUES (?, ?, ?, ?, ?, 'client', 'active', ?, 1, 0, ?, 'link', UTC_TIMESTAMP(), ?)",
+        [id, `app-${id}@clients.runhtec.local`, pw, me.name, phone, me.client, pinHash, TERMS_VERSION]
       );
     }
     res.json({ ok: true, ...(await issue(id)) });
@@ -364,3 +369,4 @@ module.exports = router;
 module.exports.normalizePhone = normalizePhone;
 module.exports.audienceMatch = audienceMatch;
 module.exports.KINDS = KINDS;
+module.exports.TERMS_VERSION = TERMS_VERSION;

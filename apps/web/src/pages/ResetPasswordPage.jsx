@@ -1,3 +1,4 @@
+import { staffSignInPath } from '@/lib/staffLink';
 import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -62,7 +63,7 @@ export default function ResetPasswordPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             Your password has been changed successfully. You can now sign in with your new password.
           </p>
-          <Button className="mt-8 w-full" onClick={() => navigate('/login', { replace: true })}>
+          <Button className="mt-8 w-full" onClick={() => navigate(staffSignInPath(), { replace: true })}>
             Continue to sign in
           </Button>
         </div>
@@ -93,7 +94,7 @@ export default function ResetPasswordPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Update password'}
             </Button>
           </form>
-          <Link to="/login" className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link to={staffSignInPath()} className="mt-6 flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to sign in
           </Link>
         </>

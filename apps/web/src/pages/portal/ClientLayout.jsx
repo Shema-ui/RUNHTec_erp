@@ -117,7 +117,7 @@ export default function ClientLayout({ children }) {
         </header>
 
         <AppDialog open={appOpen} onClose={() => setAppOpen(false)} />
-        {isClient && <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} current={signin} onDone={(r) => setSignin({ ...(signin || {}), ...r, has_pin: true })} />}
+        {isClient && <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} current={signin} onDone={(r) => setSignin({ ...(signin || {}), ...r, has_pin: true, terms_accepted: true })} />}
         <main className="mx-auto max-w-6xl px-4 py-5 md:py-8">
           {!data ? <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" /></div> : children}
         </main>
@@ -145,14 +145,17 @@ export function PinDialog({ open, onClose, current, onDone }) {
   const [pin2, setPin2] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  useEffect(() => { if (open) { setPhone(current?.phone ? `+${current.phone}` : ''); setPin(''); setPin2(''); setErr(''); } }, [open]);
+  const [agree, setAgree] = useState(false);
+  const needTerms = !current?.terms_accepted;
+  useEffect(() => { if (open) { setPhone(current?.phone ? `+${current.phone}` : ''); setPin(''); setPin2(''); setErr(''); setAgree(false); } }, [open]);
   const save = async () => {
     setErr('');
     if (!/^\d{4,6}$/.test(pin)) { setErr('Choose a PIN of 4 to 6 digits.'); return; }
     if (pin !== pin2) { setErr('The two PINs are not the same.'); return; }
+    if (needTerms && !agree) { setErr('Please accept the Terms of Use and Privacy Notice.'); return; }
     setBusy(true);
     try {
-      const r = await pb.post('/api/client/pin', { phone, pin });
+      const r = await pb.post('/api/client/pin', { phone, pin, accept_terms: needTerms ? agree : undefined });
       if (r.token) pb.authStore.save(r.token, r.record);
       toast({ title: 'App sign-in ready', description: 'Use your phone number and this PIN to sign in to My RUNHTec.' });
       onDone?.({ phone: phone.replace(/\D/g, '') }); onClose();
@@ -167,6 +170,12 @@ export function PinDialog({ open, onClose, current, onDone }) {
           <Field label="New PIN (4–6 digits)"><input className={`${inputCls} tracking-[0.4em]`} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} /></Field>
           <Field label="Repeat PIN"><input className={`${inputCls} tracking-[0.4em]`} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g, ''))} /></Field>
         </div>
+        {needTerms && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-300 p-3 text-sm leading-relaxed">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#003DA5]" />
+            <span>I agree to the <Link to="/terms" className="font-semibold text-[#003DA5] underline underline-offset-2">Terms of Use and Privacy Notice</Link>, and to RUNHTec using my details to provide its services.</span>
+          </label>
+        )}
         {err && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Later</button>
