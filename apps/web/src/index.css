@@ -91,3 +91,19 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+/* Phones: iPhone zooms into any text box whose text is smaller than 16px when
+   you tap it, and the page stays zoomed. Typing boxes are 16px on small
+   screens so that never happens (pinch-zoom still works). */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+/* Keep the text size steady when the phone is turned sideways. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
