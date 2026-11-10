@@ -43,7 +43,11 @@ router.get('/backup', requireAuth, async (req, res) => {
     const out = { app: 'RUNHTec ERP', created: new Date().toISOString(), tables: {} };
     for (const [name, def] of Object.entries(collections)) {
       const [rows] = await pool.query(`SELECT * FROM \`${def.table}\``);
-      out.tables[name] = rows.map(({ password_hash, reset_token_hash, reset_token_expires, portal_token_hash, ...r }) => r);
+      out.tables[name] = rows.map(({ password_hash, reset_token_hash, reset_token_expires, portal_token_hash, pin_hash, ...r }) => r);
+    }
+    // Client app tables that aren't in the collection list.
+    for (const t of ['announcements', 'ratings']) {
+      try { const [rows] = await pool.query(`SELECT * FROM \`${t}\``); out.tables[t] = rows; } catch (_) { /* not created yet */ }
     }
     const stamp = new Date().toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/json');
@@ -52,6 +56,17 @@ router.get('/backup', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// POST /api/me/test-email — Super Admin: send a test email to yourself, to check
+// that email (password resets) is set up on Render.
+router.post('/test-email', requireAuth, async (req, res) => {
+  if (req.user.role !== 'super_admin') return res.status(403).json({ message: 'Not allowed.' });
+  const { emailEnabled, sendEmail } = require('../mailer');
+  if (!emailEnabled()) return res.status(400).json({ message: 'Email is not set up yet. Add BREVO_API_KEY and MAIL_FROM on Render (Environment), then try again.' });
+  const ok = await sendEmail({ to: req.user.email, subject: 'RUNHTec ERP: test email', text: `Hello,\n\nThis is a test from the RUNHTec ERP. Email is working, so password-reset links will reach your staff.\n\nRUNHTec Contractors` });
+  if (!ok) return res.status(502).json({ message: 'The email service refused the message. Check the Render logs (search "email failed") — usually MAIL_FROM is not verified in Brevo.' });
+  res.json({ ok: true, to: req.user.email });
 });
 
 // POST /api/me/password {current, password} — change your own password.

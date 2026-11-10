@@ -63,12 +63,13 @@ Content-Type: application/json
 | `CORS_ORIGINS` | Comma-separated sites allowed to call the API |
 | `APP_URL` | Frontend address, used in links |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | First Super Administrator, created once |
+| `BREVO_API_KEY`, `MAIL_FROM`, `MAIL_FROM_NAME` | Free email for password resets (optional) |
 
-## Known gaps before heavy production use
+## Email and backups
 
-- **Password reset emails are not wired up** — `routes/auth.js` logs the reset link to the server log. Render's free plan also blocks outbound email ports, so this needs an HTTP email API (e.g. a transactional email service) when it's added.
-- **Backups:** uploaded files are stored in the database. Export the database regularly from TiDB Cloud.
-- **Do a full click-through** of every module after the first deploy.
+- **Password-reset emails** use a free Brevo account: set `BREVO_API_KEY` and `MAIL_FROM` on Render, then press **Settings → Email → Send me a test email**. Without them, reset links only appear in the Render log.
+- **Backups:** a weekly encrypted backup of the whole database (records and uploaded files) runs on GitHub. Setup and restore steps are in [BACKUPS.md](BACKUPS.md).
+- **Uploaded files** are only served to people allowed to see the record they belong to (`apps/server/src/fileAccess.js`).
 
 ## Verification checklist
 

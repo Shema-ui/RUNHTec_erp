@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck, Sun } from 'lucide-react';
+import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck, Sun, Mail } from 'lucide-react';
 import { CURRENCIES } from '@/lib/money';
 import { resetVendorOffers } from '@/lib/vendorPricing';
 import { SOLAR_KIT_DEFAULTS, EXTRA_PER, solarKitFrom } from '@/lib/solarKit';
@@ -20,6 +20,30 @@ function Field({ label, hint, children, className = '' }) {
       {hint && <p className="mb-1.5 text-[11px] text-muted-foreground/70">{hint}</p>}
       {children}
     </div>
+  );
+}
+
+// Email for password-reset links (free Brevo account, set on Render).
+function EmailCard() {
+  const { toast } = useToast();
+  const [on, setOn] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { pb.get('/api/config').then((c) => setOn(Boolean(c.email))).catch(() => setOn(false)); }, []);
+  const test = async () => {
+    setBusy(true);
+    try { const r = await pb.post('/api/me/test-email'); toast({ title: 'Test email sent', description: `Check the inbox of ${r.to} (and the spam folder).` }); }
+    catch (e) { toast({ title: 'Email not working yet', description: e.message, variant: 'destructive' }); }
+    finally { setBusy(false); }
+  };
+  return (
+    <SectionCard icon={Mail} title="Email (password resets)" description="Staff who forget their password get a reset link by email. Uses a free Brevo account, set up on Render. Notifications stay inside the system.">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${on ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{on === null ? 'Checking…' : on ? 'Email is on' : 'Email is off: reset links only appear in the Render logs'}</span>
+        <button type="button" onClick={test} disabled={busy} className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send me a test email
+        </button>
+      </div>
+    </SectionCard>
   );
 }
 
@@ -629,10 +653,12 @@ export default function SettingsPage() {
                 className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-60" disabled={backingUp}>
                 {backingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <DatabaseBackup className="h-4 w-4" />} Download full backup
               </button>
-              <p className="text-xs text-muted-foreground">Do this once a week. Uploaded files (photos, IDs, PDFs) stay on the server and are not inside this file.</p>
+              <p className="text-xs text-muted-foreground">A quick copy of the records you can open in any text editor. The full weekly backup (with photos and documents) runs automatically on GitHub — see BACKUPS.md in the code.</p>
             </div>
           </SectionCard>
         )}
+
+        {isSuperAdmin && <EmailCard />}
 
         {isSuperAdmin && (
           <div className="flex justify-end pb-4">

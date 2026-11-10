@@ -1,6 +1,7 @@
 const express = require('express');
 const { getFile } = require('../files');
 const { userFromToken } = require('../auth');
+const { canOpenFile } = require('../fileAccess');
 
 const router = express.Router();
 
@@ -9,6 +10,9 @@ const router = express.Router();
 router.get('/:id', async (req, res) => {
   const user = req.user || await userFromToken(String(req.query.token || ''));
   if (!user) return res.status(401).json({ message: 'Please sign in to the ERP to open this file.' });
+  // Only people allowed to see the record this file belongs to (see fileAccess.js).
+  // "Not found" rather than "not allowed", so file ids can't be probed.
+  if (!(await canOpenFile(user, req.params.id))) return res.status(404).json({ message: 'File not found.' });
   const file = await getFile(req.params.id);
   if (!file) return res.status(404).json({ message: 'File not found.' });
   // Only common image types and PDFs are shown in the browser; anything else
