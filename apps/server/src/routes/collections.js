@@ -11,6 +11,7 @@ const { ensureQuoteForInvoice, syncQuoteFromInvoice, removeQuoteForInvoice } = r
 const { markOverdueInvoices, nextNumber } = require('../jobs');
 const { notifyUsers, notifyClient, notifyRoles } = require('../notify');
 const clientScope = require('../clientScope');
+const { linkDocumentClient } = require('../clientAuto');
 
 // People newly put on a project (technicians on site or lead) get an alert.
 function teamOf(p) {
@@ -455,6 +456,10 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     await pool.query(`INSERT INTO \`${def.table}\` (${columns.map((c) => `\`${c}\``).join(', ')}) VALUES (${placeholders})`, values);
 
     let [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
+    // A client typed on a quotation/invoice (not picked from the CRM) is added to the CRM.
+    if (['quotations', 'invoices'].includes(req.collectionName) && !rows[0].client && await linkDocumentClient(def.table, rows[0])) {
+      [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [id]);
+    }
     // A new invoice without a quotation also gets one, so it shows on the Quotations page.
     if (req.collectionName === 'invoices' && !rows[0].quotation) {
       await ensureQuoteForInvoice(rows[0]);
@@ -561,7 +566,10 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     values.push(req.params.id);
     await pool.query(`UPDATE \`${def.table}\` SET ${setClauses.join(', ')} WHERE id = ?`, values);
 
-    const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
+    let [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
+    if (['quotations', 'invoices'].includes(req.collectionName) && !rows[0].client && await linkDocumentClient(def.table, rows[0])) {
+      [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
+    }
     if (req.collectionName === 'invoices') await syncQuoteFromInvoice(rows[0]);
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);

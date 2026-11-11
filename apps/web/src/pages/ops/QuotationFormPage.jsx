@@ -9,6 +9,7 @@ import { nextDocNumber } from '@/lib/numbering';
 import CostingPanel from '@/components/erp/CostingPanel';
 import CatalogItemInput from '@/components/erp/CatalogItemInput';
 import ItemCards, { TotalsInputs } from '@/components/erp/ItemCards';
+import NewClientDialog from '@/components/crm/NewClientDialog';
 import { canSeeCosts, emptyCosting, normalizeCosting, loadCostSettings } from '@/lib/costing';
 import { useAuth } from '@/context/AuthContext';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -135,15 +136,26 @@ export default function QuotationFormPage() {
 
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  const selectClient = (client) => {
+  const [newClient, setNewClient] = useState(false);
+  // Picking a CRM client fills in its main contact too.
+  const selectClient = (client, contact = null) => {
     setField('client', client.id);
     setField('bill_to_company', client.company_name);
-    setField('bill_to_name', '');
-    setField('bill_to_address', [client.street, client.city, client.province, client.country].filter(Boolean).join(', '));
-    setField('bill_to_email', '');
-    setField('bill_to_phone', '');
+    setField('bill_to_name', contact?.name || '');
+    setField('bill_to_address', contact?.address || [client.street, client.city, client.province, client.country].filter(Boolean).join(', '));
+    setField('bill_to_email', contact?.email || '');
+    setField('bill_to_phone', contact?.phone || '');
     setShowClientDrop(false);
     setClientSearch(client.company_name);
+    if (!contact) {
+      pb.collection('client_contacts').getList(1, 1, { filter: `client = '${client.id}'`, sort: '-is_primary,created' })
+        .then((r) => { const c = r.items[0]; if (!c) return; setForm((p) => (p.client !== client.id ? p : { ...p, bill_to_name: p.bill_to_name || c.full_name || '', bill_to_email: p.bill_to_email || c.email || '', bill_to_phone: p.bill_to_phone || c.mobile || c.whatsapp || '' })); })
+        .catch(() => {});
+    }
+  };
+  const onClientAdded = (client, typed) => {
+    setClients((list) => (list.some((c) => c.id === client.id) ? list : [client, ...list]));
+    selectClient(client, { name: typed.name, email: typed.email, phone: typed.phone, address: typed.address });
   };
 
   const updateItem = (idx, k, v) => {
@@ -184,6 +196,7 @@ export default function QuotationFormPage() {
     setSaving(true);
     const payload = {
       ...form,
+      bill_to_company: form.bill_to_company || (!form.client ? clientSearch.trim() : ''),
       status: status || form.status,
       items,
       subtotal,
@@ -304,6 +317,17 @@ export default function QuotationFormPage() {
                   onChange={e => { setClientSearch(e.target.value); setShowClientDrop(true); }}
                 />
               </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                {form.client
+                  ? <span className="font-medium text-emerald-700">✓ Linked to the CRM</span>
+                  : (form.bill_to_company || form.bill_to_name || clientSearch.trim()) && <span className="text-muted-foreground">Not in the CRM yet: it will be added when you save.</span>}
+                <button type="button" onClick={() => setNewClient(true)} className="font-semibold text-primary hover:underline">+ New client</button>
+              </div>
+              {showClientDrop && clientSearch.trim().length > 1 && filteredClients.length === 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                  <button type="button" onMouseDown={() => setNewClient(true)} className="block w-full px-3 py-2.5 text-left text-sm font-semibold text-primary hover:bg-secondary">+ Add “{clientSearch.trim()}” as a new client</button>
+                </div>
+              )}
               {showClientDrop && filteredClients.length > 0 && (
                 <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-white shadow-lg">
                   {filteredClients.slice(0, 20).map(c => (
@@ -516,6 +540,7 @@ export default function QuotationFormPage() {
           </button>
         </div>
       </div>
+      <NewClientDialog open={newClient} onClose={() => setNewClient(false)} initialName={clientSearch.trim() || form.bill_to_company} onCreated={onClientAdded} />
     </PortalLayout>
   );
 }
