@@ -8,6 +8,7 @@ import pb from '@/lib/pocketbaseClient';
 import { nextDocNumber } from '@/lib/numbering';
 import CostingPanel from '@/components/erp/CostingPanel';
 import CatalogItemInput from '@/components/erp/CatalogItemInput';
+import ItemCards, { TotalsInputs } from '@/components/erp/ItemCards';
 import { canSeeCosts, emptyCosting, normalizeCosting, loadCostSettings } from '@/lib/costing';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -421,7 +422,8 @@ export default function InvoiceFormPage() {
         {/* Items Table */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h3 className="font-display mb-4 text-sm font-bold text-foreground">Invoice Items</h3>
-          <div className="overflow-x-auto">
+          <ItemCards items={items} updateItem={updateItem} removeItem={removeItem} pickCatalogItem={pickCatalogItem} addItem={addItem} showCosts={showCosts} currency={form.currency} fmt={fmt} />
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -507,12 +509,13 @@ export default function InvoiceFormPage() {
           </div>
           <button
             onClick={addItem}
-            className="mt-3 flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            className="mt-3 hidden items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary md:flex"
           >
             <Plus className="h-4 w-4" /> Add Line Item
           </button>
 
           {/* Totals */}
+          <div className="mt-5"><TotalsInputs discount={form.discount_amount} taxRate={form.tax_rate} onDiscount={(v) => setField('discount_amount', v)} onTax={(v) => setField('tax_rate', v)} /></div>
           <div className="mt-5 flex justify-end">
             <div className="w-full max-w-sm space-y-2">
               <div className="flex justify-between text-sm">
@@ -524,10 +527,10 @@ export default function InvoiceFormPage() {
                   VAT /Tax (
                   <input
                     type="number" min="0" max="100" step="0.1"
-                    className="mx-1 w-12 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-center"
+                    className="mx-1 hidden w-12 rounded border border-border bg-background px-1.5 py-0.5 text-xs text-center md:inline-block"
                     value={form.tax_rate}
                     onChange={e => setField('tax_rate', e.target.value)}
-                  />
+                  /><span className="md:hidden">{form.tax_rate}</span>
                   %)
                 </span>
                 <span className="font-medium">{fmt(taxAmount, form.currency)}</span>
@@ -536,10 +539,11 @@ export default function InvoiceFormPage() {
                 <span className="text-muted-foreground">Discount</span>
                 <input
                   type="number" min="0" step="0.01"
-                  className="w-32 rounded border border-border bg-background px-2 py-0.5 text-right text-sm"
+                  className="hidden w-32 rounded border border-border bg-background px-2 py-0.5 text-right text-sm md:block"
                   value={form.discount_amount}
                   onChange={e => setField('discount_amount', e.target.value)}
                 />
+                <span className="font-medium md:hidden">{fmt(Number(form.discount_amount) || 0, form.currency)}</span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                 <span>Total</span>

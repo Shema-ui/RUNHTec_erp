@@ -74,7 +74,10 @@ export default function ProjectDetailPage() {
       const saved = await pb.collection('projects').update(p.id, patch);
       setP((old) => ({ ...saved, expand: old.expand }));
       if (msg) toast({ title: msg });
-    } catch (e) { toast({ title: 'Could not update', description: e.message, variant: 'destructive' }); }
+    } catch (e) {
+      toast({ title: 'Could not update', description: e.message, variant: 'destructive' });
+      loadProject(); // undo the change shown on screen
+    }
   };
 
   const saveTasks = (next) => {
@@ -95,6 +98,8 @@ export default function ProjectDetailPage() {
   // Technicians and lead technicians don't see the job's price or contractor fees.
   const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
   const canWork = canEdit || isLeadHere;
+  // Ticking tasks: managers, and technicians on the project's team (the server checks the team).
+  const canTick = canWork || isTechRole;
   const onSite = Array.isArray(p.assigned_technicians) && p.assigned_technicians.includes(user?.id);
   const canPhoto = canWork || onSite;
 
@@ -140,9 +145,10 @@ export default function ProjectDetailPage() {
             {tasks.length === 0 && <p className="mb-3 text-sm text-muted-foreground">No tasks yet. Add the main steps — progress updates as you tick them off.</p>}
             <ul className="divide-y divide-border">
               {tasks.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-2">
-                  <input type="checkbox" checked={!!t.done} disabled={!canWork && user?.role !== 'technician'} aria-label={`Mark ${t.title} done`}
-                    onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done, done_at: !x.done ? new Date().toISOString() : null } : x)))} className="h-4 w-4" />
+                <li key={t.id} className="flex items-center gap-3 py-2.5">
+                  <input type="checkbox" checked={!!t.done} disabled={!canTick} aria-label={`Mark ${t.title} done`}
+                    onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done, done_at: !x.done ? new Date().toISOString() : null, done_by: !x.done ? (user?.name || user?.email || '') : '' } : x)))}
+                    className="h-6 w-6 shrink-0 cursor-pointer accent-[#003DA5] disabled:cursor-not-allowed" />
                   {editTask?.id === t.id ? (
                     <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (editTask.title.trim()) saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, title: editTask.title.trim() } : x))); setEditTask(null); }}>
                       <input autoFocus className={inputCls} value={editTask.title} onChange={(e) => setEditTask({ ...editTask, title: e.target.value })} aria-label="Task name" />
@@ -150,13 +156,17 @@ export default function ProjectDetailPage() {
                       <button type="button" className={btnLine} onClick={() => setEditTask(null)}>Cancel</button>
                     </form>
                   ) : (
-                    <span className={`flex-1 text-sm ${t.done ? 'text-muted-foreground line-through' : ''}`}>{t.title}</span>
+                    <span className="min-w-0 flex-1 text-sm">
+                      <span className={t.done ? 'text-muted-foreground line-through' : ''}>{t.title}</span>
+                      {t.done && (t.done_by || t.done_at) && <span className="block text-xs text-muted-foreground">Done{t.done_by ? ` by ${t.done_by}` : ''}{t.done_at ? ` · ${new Date(t.done_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}</span>}
+                    </span>
                   )}
                   {canWork && editTask?.id !== t.id && <button aria-label={`Rename ${t.title}`} onClick={() => setEditTask({ id: t.id, title: t.title })} className="text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>}
                   {canWork && <button aria-label="Delete task" onClick={() => saveTasks(tasks.filter((x) => x.id !== t.id))} className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
                 </li>
               ))}
             </ul>
+            {!canTick && tasks.length > 0 && <p className="mt-2 text-xs text-muted-foreground">The project manager and the team working on this project tick the tasks.</p>}
             {canWork && (
               <form onSubmit={addTask} className="mt-3 flex gap-2">
                 <input className={inputCls} value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="e.g. Site survey, Material delivery, Installation, Testing & commissioning, Handover" />

@@ -139,6 +139,32 @@ const OPEN_BEFORE_PROFILE = new Set(['staff_profiles', 'staff_documents', 'compa
 const LEAD_PROJECT_FIELDS = ['tasks', 'progress', 'status', 'completed_date', 'notes'];
 const PM_ROLES = ['super_admin', 'admin', 'project_manager'];
 
+// Someone working on this project on site: in its crew list, its lead
+// technician, or engaged on it through HR (Engagements) with an ERP login.
+async function onProjectTeam(user, project) {
+  if (!user || !project) return false;
+  if (teamOf(project).includes(user.id)) return true;
+  try {
+    const [rows] = await pool.query("SELECT a.id FROM project_assignments a JOIN contractors c ON c.id = a.contractor WHERE a.project = ? AND c.user = ? AND a.status NOT IN ('cancelled','declined') LIMIT 1", [project.id, user.id]);
+    return Boolean(rows[0]);
+  } catch (_) { return false; }
+}
+
+// A crew member may only tick tasks done / not done (not add, rename or delete
+// them). Progress is worked out here from the ticks.
+function siteTaskUpdate(before, body, user) {
+  const old = Array.isArray(before.tasks) ? before.tasks : [];
+  const sent = new Map((Array.isArray(body.tasks) ? body.tasks : []).map((t) => [t && t.id, t]));
+  const stamp = new Date().toISOString();
+  const tasks = old.map((t) => {
+    const n = sent.get(t.id);
+    if (!n || Boolean(n.done) === Boolean(t.done)) return t;
+    return n.done ? { ...t, done: true, done_at: stamp, done_by: user.name || user.email || '' } : { ...t, done: false, done_at: null, done_by: '' };
+  });
+  const done = tasks.filter((t) => t.done).length;
+  return { tasks, progress: tasks.length ? Math.round((done / tasks.length) * 100) : Number(before.progress) || 0 };
+}
+
 // A contractor who also has an ERP login is put on the project's
 // "Technicians on site" automatically when engaged (and alerted).
 async function putContractorOnSite(assignment, actor) {
@@ -457,10 +483,15 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (!existingRows[0]) return res.status(404).json({ message: 'Not found.' });
     const before = deserializeRow(existingRows[0]);
 
-    if (!def.rules.update(req.user, before)) return res.status(403).json({ message: 'Not allowed to update this record.' });
+    // Technicians: on a project they work on, they may tick its tasks (and nothing else).
+    const techOnProject = req.collectionName === 'projects' && ['technician', 'lead_technician'].includes(req.user.role) && before.lead_technician !== req.user.id;
+    if (techOnProject) {
+      if (!(await onProjectTeam(req.user, before))) return res.status(403).json({ message: 'Only the people working on this project can tick its tasks. Ask the project manager to add you to the project team.' });
+    } else if (!def.rules.update(req.user, before)) return res.status(403).json({ message: 'Not allowed to update this record.' });
     if (req.user.role === 'client' && !(req.collectionName === 'notifications' && before.user === req.user.id)) return res.status(403).json({ message: 'Not allowed.' });
 
-    const body = extractBody(req, def);
+    let body = extractBody(req, def);
+    if (techOnProject) body = body.tasks !== undefined ? siteTaskUpdate(before, body, req.user) : {};
     dropCostInput(req.collectionName, body, req.user, before);
     if (req.collectionName === 'users' && body.role === 'super_admin' && before.role !== 'super_admin') {
       return res.status(400).json({ message: 'There is only one Super Administrator. Give this person the Administrator role instead.' });
@@ -535,6 +566,13 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);
       if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
+      // Every task ticked: tell the project manager it's ready to close and hand over.
+      const allDone = (p) => { let t = p?.tasks; if (typeof t === 'string') { try { t = JSON.parse(t); } catch (_) { t = []; } } return Array.isArray(t) && t.length > 0 && t.every((x) => x && x.done); };
+      if (!allDone(before) && allDone(rows[0]) && rows[0].status !== 'done') {
+        const msg = `All tasks on “${rows[0].title}” are ticked done (by ${req.user.name || req.user.email}). Check the work, then mark the project Done so the client can confirm the handover.`;
+        if (rows[0].project_manager && rows[0].project_manager !== req.user.id) await notifyUsers([rows[0].project_manager], 'project', msg, `/projects/${rows[0].id}`).catch(() => {});
+        else if (!rows[0].project_manager) await notifyRoles(['super_admin', 'admin', 'project_manager'], 'project', msg, `/projects/${rows[0].id}`).catch(() => {});
+      }
     }
     if (req.collectionName === 'quotations' && before.status !== 'accepted' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'rfqs') await tellClientAboutRequest(before, rows[0]).catch(() => {});
