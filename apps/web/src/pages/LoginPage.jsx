@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Phone, HelpCircle } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import ClientAuthShell, { PhoneField } from '@/components/ClientAuthShell';
+import WaitNotice from '@/components/WaitNotice';
 
 // The public sign-in page: clients only, with their phone number and PIN.
 // (Staff sign in through their private staff link, /staff/<key>.)
@@ -39,7 +40,6 @@ export default function LoginPage() {
       <p className="mt-1 text-[15px] text-slate-600">Sign in with your phone number and PIN.</p>
 
       {error && <div className="mt-5 flex items-start gap-2 rounded-xl bg-rose-50 px-3.5 py-3 text-sm text-rose-700"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
-      {slow && <div className="mt-5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm text-amber-900">Waking the system up. The first sign-in of the day can take up to a minute, please wait.</div>}
 
       <form onSubmit={submit} className="mt-6 space-y-5">
         <div>
@@ -70,8 +70,9 @@ export default function LoginPage() {
           </div>
         )}
         <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Sign in <ArrowRight className="h-5 w-5" /></>}
+          {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Signing in…</> : <>Sign in <ArrowRight className="h-5 w-5" /></>}
         </button>
+        <WaitNotice active={loading} />
       </form>
 
       <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />New to RUNHTec?<span className="h-px flex-1 bg-slate-200" /></div>

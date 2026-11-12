@@ -8,10 +8,14 @@ import { staffSignInPath } from '@/lib/staffLink';
 const CLIENT_PATHS = [/^\/portal(\/|$)/, /^\/quotations\/[^/]+\/view$/, /^\/invoices\/[^/]+\/view$/];
 import { Loader2 } from 'lucide-react';
 
+// Shown while the app opens. After a few seconds it explains the wait.
 function FullScreenLoader() {
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => { const t = setTimeout(() => setSlow(true), 3000); return () => clearTimeout(t); }, []);
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 bg-background px-6 text-center">
       <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      {slow && <p className="max-w-xs text-sm text-muted-foreground">Starting up… This can take up to a minute the first time today. Please be patient.</p>}
     </div>
   );
 }

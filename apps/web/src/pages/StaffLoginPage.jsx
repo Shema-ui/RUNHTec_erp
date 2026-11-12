@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import AuthShell from '@/components/AuthShell';
+import WaitNotice from '@/components/WaitNotice';
 import { useAuth } from '@/context/AuthContext';
 import { rememberStaffLink, forgetStaffLink } from '@/lib/staffLink';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ export default function StaffLoginPage() {
       {valid === null ? (
         <div className="flex flex-col items-center gap-3 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          {slow ? 'Waking the system up, this can take up to a minute…' : 'Checking your link…'}
+          {slow ? 'Starting up… this can take up to a minute. Please be patient.' : 'Checking your link…'}
         </div>
       ) : valid === false ? (
         <div className="py-6 text-center">
@@ -75,7 +76,6 @@ export default function StaffLoginPage() {
               <button type="button" onClick={() => logout()} className="ml-1 font-semibold underline">Sign that out now</button>
             </div>
           )}
-          {slow && <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">The system is waking up after a quiet period. This can take up to a minute. Please wait.</div>}
           {error && <div className="mb-5 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
@@ -96,7 +96,8 @@ export default function StaffLoginPage() {
               <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
               Remember me on this device
             </label>
-            <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign in'}</Button>
+            <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={loading}>{loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in…</> : 'Sign in'}</Button>
+            <WaitNotice active={loading} />
           </form>
           <p className="mt-6 text-center text-xs text-muted-foreground">Keep this link private. It is only for RUNHTec staff.</p>
         </>

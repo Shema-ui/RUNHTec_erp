@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, Check, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import ClientAuthShell, { PhoneField } from '@/components/ClientAuthShell';
+import WaitNotice from '@/components/WaitNotice';
 import { Modal } from '@/components/erp/kit';
 import { TermsContent } from '@/pages/TermsPage';
 
@@ -55,7 +56,6 @@ export default function JoinPage() {
       <p className="mt-1 text-[15px] text-slate-600">Free, and it takes less than a minute.</p>
 
       {error && <div className="mt-5 flex items-start gap-2 rounded-xl bg-rose-50 px-3.5 py-3 text-sm text-rose-700"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
-      {slow && <div className="mt-5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm text-amber-900">Waking the system up. This can take up to a minute, please wait.</div>}
 
       <form onSubmit={submit} className="mt-6 space-y-6">
         <fieldset className="space-y-4">
@@ -92,8 +92,9 @@ export default function JoinPage() {
         </label>
 
         <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Create my account <ArrowRight className="h-5 w-5" /></>}
+          {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating your account…</> : <>Create my account <ArrowRight className="h-5 w-5" /></>}
         </button>
+        <WaitNotice active={loading} title="Creating your account…" />
         <p className="text-center text-sm text-slate-600">Already have an account? <Link to="/login" className="font-semibold text-[#003DA5]">Sign in</Link></p>
       </form>
 
