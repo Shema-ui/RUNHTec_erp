@@ -1,0 +1,10 @@
+## Pages
+- [Activity Logs | RUNHTec Business Portal](/activitylog): Security audit trail of user actions across the RUNHTec Business Portal. Super Administrator only.
+- [Client Messages | RUNHTec Business Portal](/clientmessages): No description available
+- [Dashboard | RUNHTec Business Portal](/dashboard): No description available
+- [My profile | RUNHTec Business Portal](/myprofile): No description available
+- [Search | RUNHTec Business Portal](/search): No description available
+- [Settings | RUNHTec Business Portal](/settings): Manage company information, payment details, and invoice branding for RUNHTec Business Portal.
+- [Staff profile | RUNHTec Business Portal](/staffprofile): No description available
+- [Terms & Privacy | My RUNHTec](/terms): No description available
+- [User Management | RUNHTec Business Portal](/users): Create, suspend, reset and manage RUNHTec portal user accounts and roles. Super Administrator only.

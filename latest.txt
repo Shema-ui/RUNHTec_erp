@@ -1,0 +1,30 @@
+commit: 29bc525
+build: success
+server: success
+----- build (last 200 lines) -----
+
+> web@0.0.0 build
+> node tools/generate-llms.js || true && vite build --outDir ../../dist/apps/web
+
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/catalog: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/crm: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/hr: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/invoices: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/ops: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/portal: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/vendor: EISDIR: illegal operation on a directory, read
+❌ Error processing /home/runner/work/RUNHTec_erp/RUNHTec_erp/apps/web/src/pages/vendors: EISDIR: illegal operation on a directory, read
+[36mvite v8.2.0 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 3008 modules transformed.
+rendering chunks...
+computing gzip size...
+../../dist/apps/web/index.html                           8.33 kB │ gzip:   3.08 kB
+../../dist/apps/web/assets/index-DAwtHYdA.css          106.84 kB │ gzip:  18.57 kB
+../../dist/apps/web/assets/purify.es-BBW4PmiO.js        26.87 kB │ gzip:  10.45 kB
+../../dist/apps/web/assets/index.es-tq8ldEBv.js        151.32 kB │ gzip:  48.88 kB
+../../dist/apps/web/assets/html2canvas-B0Bk8NZr.js     199.49 kB │ gzip:  46.77 kB
+../../dist/apps/web/assets/jspdf.es.min-C-Y-USzj.js    399.17 kB │ gzip: 129.62 kB
+../../dist/apps/web/assets/index-aXBAtpgF.js         1,795.63 kB │ gzip: 481.64 kB
+
+[32m✓ built in 2.02s[39m
+----- server -----
