@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RUNHTec Contractors · Services and app</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 210mm; height: 297mm; font-family: Arial, Helvetica, sans-serif; color: #1d2733; background: #fff; }
+  .page { width: 210mm; height: 297mm; padding: 12mm 14mm 14mm; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #003DA5; padding-bottom: 6mm; }
+  header img { height: 26mm; }
+  .tag { text-align: right; font-size: 10.5pt; color: #5b6b85; line-height: 1.5; }
+  h1 { font-size: 23pt; color: #0B1B3D; margin-top: 5mm; line-height: 1.15; }
+  .lead { font-size: 12.5pt; color: #3c4a5e; margin-top: 3mm; line-height: 1.45; }
+  h2 { font-size: 13pt; color: #003DA5; text-transform: uppercase; letter-spacing: .6px; margin-top: 5mm; margin-bottom: 2.5mm; }
+  .services { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .svc { border: 1px solid #d5dce6; border-left: 4px solid #003DA5; padding: 3mm 4mm; }
+  .svc b { display: block; font-size: 12.5pt; color: #0B1B3D; }
+  .svc span { font-size: 10.5pt; color: #4a5669; line-height: 1.4; }
+  .svc.wide { grid-column: span 2; }
+  .split { display: grid; grid-template-columns: 1.25fr 1fr; gap: 6mm; align-items: start; }
+  ul { list-style: none; }
+  li { font-size: 11.5pt; line-height: 1.4; padding: 1.1mm 0 1.1mm 6mm; position: relative; color: #1d2733; }
+  li:before { content: ""; position: absolute; left: 0; top: 3.2mm; width: 2.2mm; height: 2.2mm; background: #E4141B; }
+  .qrbox { border: 1px solid #d5dce6; padding: 4mm; text-align: center; }
+  .qrbox img { width: 36mm; height: 36mm; display: block; margin: 0 auto; }
+  .qrbox b { display: block; font-size: 12pt; color: #0B1B3D; margin-top: 3mm; }
+  .qrbox small { font-size: 10pt; color: #4a5669; line-height: 1.4; display: block; margin-top: 1.5mm; }
+  .steps { margin-top: 2.5mm; font-size: 11pt; line-height: 1.5; color: #1d2733; }
+  .steps div { margin-bottom: 1.5mm; }
+  .steps b { color: #003DA5; }
+  .contact { margin-top: 6mm; background: #0B1B3D; color: #fff; padding: 5mm 6mm; display: flex; justify-content: space-between; align-items: center; }
+  .contact .big { font-size: 15pt; font-weight: bold; }
+  .contact .small { font-size: 10.5pt; color: #cfdaf0; margin-top: 1mm; line-height: 1.5; }
+  .contact .right { text-align: right; font-size: 11.5pt; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <img src="logo.png" alt="RUNHTec Contractors">
+    <div class="tag">RUNHTec Contractors Ltd<br>Kigali, Rwanda<br>contact@runhteccontractors.si</div>
+  </header>
+
+  <h1>Electrical, HVAC, solar, generators and maintenance</h1>
+  <p class="lead">We install, repair and look after the systems your building depends on. You get one team, one contact and a clear record of every job.</p>
+
+  <h2>What we do</h2>
+  <div class="services">
+    <div class="svc"><b>Electrical</b><span>Wiring, distribution boards, lighting, fault finding and safety checks.</span></div>
+    <div class="svc"><b>HVAC</b><span>Air conditioning and ventilation: installation, servicing and repairs.</span></div>
+    <div class="svc"><b>Solar</b><span>Solar power systems for homes, offices and sites, with installation and maintenance.</span></div>
+    <div class="svc"><b>Generators</b><span>Backup power: installation, servicing and emergency call-outs.</span></div>
+    <div class="svc wide"><b>Maintenance</b><span>Planned service visits for your equipment, so problems are found before they stop your work.</span></div>
+  </div>
+
+  <h2>Our app: My RUNHTec</h2>
+  <div class="split">
+    <ul>
+      <li>Request a technician in a few taps, with photos and a voice note.</li>
+      <li>See when the technician is coming and follow the job.</li>
+      <li>Accept quotations and see your invoices in one place.</li>
+      <li>Message our team and get reminders for your equipment's next service.</li>
+      <li>One account for every site you manage.</li>
+    </ul>
+    <div class="qrbox">
+      <img src="app-qr.png" alt="QR code to install My RUNHTec">
+      <b>Scan to install</b>
+      <small>Free. No app store needed.<br>erp.runhteccontractors.si/app</small>
+    </div>
+  </div>
+  <div class="steps">
+    <div><b>1.</b> Scan the code with your phone camera.</div>
+    <div><b>2.</b> Sign in with your phone number and a PIN. New clients tap <b>Create your account</b>.</div>
+  </div>
+
+  <div class="contact">
+    <div>
+      <div class="big">Call or message us</div>
+      <div class="small">Ask for a quotation, a site visit or a maintenance plan.</div>
+    </div>
+    <div class="right">+250 793 229 790<br>contact@runhteccontractors.si</div>
+  </div>
+
+</div>
+</body>
+</html>
