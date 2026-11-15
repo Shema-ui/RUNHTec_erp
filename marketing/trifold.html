@@ -9,33 +9,38 @@
   body { font-family: Arial, Helvetica, sans-serif; color: #1d2733; }
   .sheet { width: 297mm; height: 210mm; display: grid; grid-template-columns: 1fr 1fr 1fr; page-break-after: always; overflow: hidden; }
   .sheet:last-child { page-break-after: auto; }
-  .panel { padding: 11mm 9mm; position: relative; display: flex; flex-direction: column; }
+  .panel { padding: 10mm 8.5mm; position: relative; display: flex; flex-direction: column; overflow: hidden; }
   .panel + .panel { border-left: 1px dashed #b9c4d3; }
   .navy { background: #0B1B3D; color: #fff; }
   .blue { background: #003DA5; color: #fff; }
-  img.logo { height: 22mm; background: #fff; border-radius: 10px; padding: 3mm 4mm; width: fit-content; }
-  h1 { font-size: 22pt; line-height: 1.15; margin-top: 7mm; }
-  h2 { font-size: 13pt; color: #003DA5; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3.5mm; }
-  p { font-size: 11pt; line-height: 1.45; }
-  .svc { border-left: 3px solid #003DA5; padding: 2.2mm 0 2.2mm 3mm; margin-bottom: 2.5mm; }
-  .svc b { display: block; font-size: 12pt; color: #0B1B3D; }
-  .svc span { font-size: 10.5pt; color: #4a5669; line-height: 1.4; }
+  .soft { background: #f3f6fb; }
+  img.logo { height: 20mm; background: #fff; border-radius: 9px; padding: 2.5mm 3.5mm; width: fit-content; }
+  h1 { font-size: 20pt; line-height: 1.15; margin-top: 6mm; }
+  h2 { font-size: 12.5pt; color: #003DA5; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3mm; }
+  h2.w { color: #fff; }
+  p { font-size: 10.5pt; line-height: 1.42; }
+  .svc { display: flex; gap: 2.5mm; align-items: baseline; padding: 1.4mm 0; border-bottom: 1px solid #e1e7f0; }
+  .svc:last-child { border-bottom: none; }
+  .svc b { font-size: 11pt; color: #0B1B3D; min-width: 33mm; }
+  .svc span { font-size: 10pt; color: #4a5669; line-height: 1.35; }
+  .svc.key { background: #eaf1fc; margin: 0 -2mm; padding: 1.8mm 2mm; border-left: 3px solid #E4141B; }
   ul { list-style: none; }
-  li { font-size: 11pt; line-height: 1.42; padding: 1.8mm 0 1.8mm 5mm; position: relative; }
-  li:before { content: ""; position: absolute; left: 0; top: 3.6mm; width: 2mm; height: 2mm; background: #E4141B; }
-  .shots { display: flex; gap: 4mm; margin-top: 5mm; }
-  .shots img { width: 37mm; border-radius: 4mm; border: 1px solid #d5dce6; box-shadow: 0 2mm 4mm rgba(11,27,61,.18); }
-  .qr { background: #fff; padding: 3mm; width: 44mm; margin: 4mm auto 0; }
+  li { font-size: 10.5pt; line-height: 1.38; padding: 1.2mm 0 1.2mm 5mm; position: relative; }
+  li:before { content: ""; position: absolute; left: 0; top: 2.9mm; width: 2mm; height: 2mm; background: #E4141B; }
+  .navy li:before, .blue li:before { background: #fff; }
+  .photo { width: 100%; height: 36mm; object-fit: cover; border-radius: 3mm; display: block; }
+  .cap { font-size: 9pt; color: #5b6b85; margin-top: 1mm; line-height: 1.3; }
+  .strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2mm; margin-top: 6mm; }
+  .strip img { width: 100%; height: 30mm; object-fit: cover; border-radius: 2.5mm; }
+  .qr { background: #fff; padding: 2.5mm; width: 40mm; margin: 3mm auto 0; }
   .qr img { width: 100%; display: block; }
-  .big { font-size: 17pt; font-weight: bold; margin-top: 3mm; line-height: 1.2; }
-  .small { font-size: 10.5pt; line-height: 1.5; opacity: .92; }
-  .step { display: flex; gap: 3mm; margin-bottom: 3.5mm; align-items: flex-start; }
-  .num { flex: none; width: 8mm; height: 8mm; border-radius: 50%; background: #003DA5; color: #fff; font-weight: bold; font-size: 11pt; display: flex; align-items: center; justify-content: center; }
-  .num.rd { background: #E4141B; }
-  .num.wh { background: #fff; color: #003DA5; }
-  .step p { margin: 0; font-size: 11pt; }
-  .foot { margin-top: auto; font-size: 10pt; color: #5b6b85; line-height: 1.5; }
-  .contact-line { font-size: 13pt; font-weight: bold; margin-top: 3mm; line-height: 1.5; }
+  .step { display: flex; gap: 2.5mm; margin-bottom: 2.5mm; align-items: flex-start; }
+  .num { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: #fff; color: #003DA5; font-weight: bold; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
+  .num.rd { background: #E4141B; color: #fff; }
+  .step p { margin: 0; font-size: 10.5pt; }
+  .foot { margin-top: auto; font-size: 9.5pt; line-height: 1.45; }
+  .contact-line { font-size: 13pt; font-weight: bold; margin-top: 2.5mm; line-height: 1.4; }
+  .tag { display: inline-block; font-size: 9pt; font-weight: bold; background: #E4141B; color: #fff; padding: 1mm 2.5mm; border-radius: 1.5mm; margin-top: 2mm; }
 </style>
 </head>
 <body>
@@ -43,60 +48,93 @@
 <!-- SIDE A: outside. Left = flap (app), middle = back (contact), right = front cover -->
 <section class="sheet">
   <div class="panel navy">
-    <h2 style="color:#fff;">Get the My RUNHTec app</h2>
-    <p class="small">Request a technician, follow the job, accept quotations. Free, no app store.</p>
+    <h2 class="w">Get the My RUNHTec app</h2>
+    <ul>
+      <li>Request a technician, with photos and a voice note.</li>
+      <li>See when they are coming and follow the job.</li>
+      <li>Accept quotations and see every invoice.</li>
+      <li>Reminders for your next service visit.</li>
+    </ul>
     <div class="qr"><img src="app-qr.png" alt="QR code to install My RUNHTec"></div>
-    <p class="small" style="text-align:center;margin-top:2.5mm;">Scan with your phone camera<br>erp.runhteccontractors.si/app</p>
-    <div class="foot" style="color:#cfdaf0;">Sign in with your phone number and a PIN. New clients tap <b>Create your account</b>.</div>
+    <p style="text-align:center;font-size:10pt;margin-top:2mm;">Scan with your phone camera<br>Free. No app store needed.</p>
+    <div class="foot" style="color:#cfdaf0;">New here? Tap <b>Create your account</b> and sign in with your phone number and a PIN.</div>
   </div>
 
-  <div class="panel" style="background:#f3f6fb;">
+  <div class="panel soft">
     <h2>Call or message us</h2>
-    <p>Ask for a quotation, a site visit or a maintenance plan.</p>
+    <p>Tell us what you need and we will reply with a clear plan and price.</p>
     <p class="contact-line">+250 793 229 790</p>
-    <p class="contact-line" style="font-size:12pt;">contact@runhteccontractors.si</p>
+    <p class="contact-line" style="font-size:11.5pt;">contact@runhteccontractors.si</p>
+    <p style="margin-top:4mm;"><b>We can help with:</b></p>
+    <ul>
+      <li>A quotation for new work</li>
+      <li>A site visit and survey</li>
+      <li>A maintenance contract</li>
+      <li>A fire detection check</li>
+    </ul>
     <div class="foot">RUNHTec Contractors Ltd<br>Kigali, Rwanda</div>
   </div>
 
   <div class="panel navy">
     <img class="logo" src="logo.png" alt="RUNHTec Contractors">
-    <h1>Electrical, HVAC, solar, generators and maintenance.</h1>
-    <p class="small" style="margin-top:5mm;">One team, one contact, and a clear record of every job.</p>
-    <div class="foot" style="color:#cfdaf0;margin-top:auto;">Electrical · HVAC · Solar · Generators · Maintenance</div>
+    <h1>Electrical, HVAC, solar, generators, fire detection and maintenance.</h1>
+    <p style="margin-top:3mm;">One team for every system in your building.</p>
+    <div class="strip">
+      <img src="photo-solar.png" alt="Solar inverters and batteries">
+      <img src="photo-generator.png" alt="Generator set">
+      <img src="photo-aircon.png" alt="Ceiling air conditioning unit">
+    </div>
+    <div class="foot" style="color:#cfdaf0;">Maintenance plans for businesses, schools, hotels and homes.</div>
   </div>
 </section>
 
-<!-- SIDE B: inside. Three panels: services, app, how to work with us -->
+<!-- SIDE B: inside. Services | Maintenance | Why sign a contract -->
 <section class="sheet">
   <div class="panel">
     <h2>What we do</h2>
-    <div class="svc"><b>Electrical</b><span>Wiring, distribution boards, lighting, fault finding and safety checks.</span></div>
-    <div class="svc"><b>HVAC</b><span>Air conditioning and ventilation: installation, servicing and repairs.</span></div>
-    <div class="svc"><b>Solar</b><span>Solar power for homes, offices and sites, with installation and maintenance.</span></div>
-    <div class="svc"><b>Generators</b><span>Backup power: installation, servicing and emergency call-outs.</span></div>
-    <div class="svc"><b>Maintenance</b><span>Planned service visits, so problems are found before they stop your work.</span></div>
+    <div class="svc"><b>Electrical</b><span>Wiring, distribution and control panels, lighting, fault finding, safety checks.</span></div>
+    <div class="svc"><b>HVAC</b><span>Air conditioning and ventilation, cold rooms: install, service, repair.</span></div>
+    <div class="svc"><b>Solar</b><span>Solar power and battery systems, installed and maintained.</span></div>
+    <div class="svc"><b>Generators</b><span>Backup power: installation, servicing, emergency call-outs.</span></div>
+    <div class="svc key"><b>Fire detection</b><span>Detection and alarm systems: installation, testing, inspection and repairs.</span></div>
+    <div class="svc"><b>Maintenance</b><span>Planned service plans for every system (see next panel).</span></div>
+    <div class="foot">
+      <img src="photo-panel.png" alt="Electrical control panel" style="width:100%;height:30mm;object-fit:cover;border-radius:2.5mm;display:block;">
+      <div class="cap">Electrical distribution and control panels, wired and tested by our team.</div>
+    </div>
   </div>
 
-  <div class="panel" style="background:#f3f6fb;">
-    <h2>Our app: My RUNHTec</h2>
+  <div class="panel soft">
+    <h2>Maintenance: our focus</h2>
+    <p>Most breakdowns are preventable. A planned service plan finds the fault before it stops your business.</p>
     <ul>
-      <li>Request a technician in a few taps, with photos and a voice note.</li>
-      <li>See when the technician is coming and follow the job.</li>
-      <li>Accept quotations and see your invoices in one place.</li>
-      <li>Message our team and get reminders for your equipment's next service.</li>
-      <li>One account for every site you manage.</li>
+      <li>Planned visits on fixed dates, set in your contract.</li>
+      <li>A written service report after every visit.</li>
+      <li>Your equipment list, with service dates, in the app.</li>
+      <li>A reminder before each visit.</li>
+      <li>Priority attention for contract clients.</li>
+      <li>Air conditioning, generators, solar, electrical and fire systems on one plan.</li>
     </ul>
-    <div class="shots"><img src="shot-request.png" alt="Requesting a technician in the app"><img src="shot-track.png" alt="Tracking a technician in the app"></div>
-    <div class="foot">Free to install. No app store needed.</div>
+    <img class="photo" src="photo-aircon.png" alt="Ceiling air conditioning unit" style="margin-top:3mm;height:30mm;">
+    <div class="cap">Air conditioning: cleaning, checks and repairs on a set schedule.</div>
   </div>
 
   <div class="panel blue">
-    <h2 style="color:#fff;">How to work with us</h2>
-    <div class="step"><span class="num wh">1</span><p>Tell us what you need, by phone, email or in the app.</p></div>
-    <div class="step"><span class="num wh">2</span><p>We visit the site and send a quotation.</p></div>
-    <div class="step"><span class="num rd">3</span><p>You accept it in the app, or by message.</p></div>
-    <div class="step"><span class="num rd">4</span><p>We do the work and send the invoice. Pay as agreed.</p></div>
-    <div class="foot" style="color:#dfe8fb;">Questions? Call <b>+250 793 229 790</b></div>
+    <h2 class="w">Why sign a contract with us</h2>
+    <ul>
+      <li>One contact for electrical, HVAC, solar, generators and fire systems.</li>
+      <li>No surprise call-outs: visits are planned and agreed in advance.</li>
+      <li>Every quotation is approved in the app before any work starts.</li>
+      <li>A full history for every site and every piece of equipment.</li>
+      <li>Fire detection checks recorded, ready for inspection.</li>
+      <li>Clear invoices, with the same details on every job.</li>
+    </ul>
+    <h2 class="w" style="margin-top:4mm;">How to start</h2>
+    <div class="step"><span class="num">1</span><p>Tell us your sites and systems.</p></div>
+    <div class="step"><span class="num">2</span><p>We survey and send a quotation.</p></div>
+    <div class="step"><span class="num rd">3</span><p>You accept it in the app.</p></div>
+    <div class="step"><span class="num rd">4</span><p>We start the plan and keep the records.</p></div>
+    <div class="foot">Questions? Call <b>+250 793 229 790</b></div>
   </div>
 </section>
 
