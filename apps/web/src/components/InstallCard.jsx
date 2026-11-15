@@ -20,10 +20,19 @@ export default function InstallCard() {
   const [d] = useState(detect);
   const [, setTick] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
   useEffect(() => onPwaChange(() => setTick((t) => t + 1)), []);
 
-  // Only phones, and only until the app is installed.
-  if (!d.phone || isInstalled()) return null;
+  // Phones always; computers only when Chrome/Edge offers the one-tap install.
+  // Hidden once the app is installed.
+  if (isInstalled() || (!d.phone && !canPromptInstall())) return null;
+
+  // One tap: Chrome's own "Add to Home screen / Install" prompt. If Chrome hasn't offered
+  // it yet, the button shows the exact menu steps instead.
+  const tapInstall = async () => {
+    if (canPromptInstall()) { await promptInstall(); return; }
+    setShowSteps(true);
+  };
 
   const copy = async () => { try { await navigator.clipboard.writeText(APP_URL); setCopied(true); } catch { /* ignore */ } };
 
@@ -38,15 +47,18 @@ export default function InstallCard() {
             You opened this inside another app, which can’t install apps. Tap <b>⋯</b> or <b>⋮</b>, then <b>Open in {d.ios ? 'Safari' : 'Chrome'}</b>.
           </p>
         </>
-      ) : d.android && canPromptInstall() ? (
-        <button type="button" onClick={promptInstall} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm">
-          <Download className="h-5 w-5" /> Install My RUNHTec
-        </button>
-      ) : d.android ? (
-        <ol className="mt-3 space-y-2 text-sm text-slate-800">
-          <li><b>1.</b> Tap the menu <b>⋮</b> at the top right of Chrome.</li>
-          <li><b>2.</b> Tap <b>Install app</b> or <b>Add to Home screen</b>, then <b>Install</b>.</li>
-        </ol>
+      ) : d.android || canPromptInstall() ? (
+        <>
+          <button type="button" onClick={tapInstall} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm">
+            <Download className="h-5 w-5" /> Install My RUNHTec
+          </button>
+          {(showSteps || !canPromptInstall()) && (
+            <ol className="mt-3 space-y-2 text-sm text-slate-800">
+              <li><b>1.</b> Tap the menu <b>⋮</b> at the top right of Chrome{d.android ? '' : ' (or the install icon in the address bar)'}.</li>
+              <li><b>2.</b> Tap <b>Install app</b> or <b>Add to Home screen</b>, then <b>Install</b>.</li>
+            </ol>
+          )}
+        </>
       ) : d.iosOther ? (
         <>
           <p className="mt-3 text-sm text-slate-800">On iPhone the app installs from <b>Safari</b>. Copy this link and open it there:</p>
