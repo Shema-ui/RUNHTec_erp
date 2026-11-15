@@ -74,7 +74,7 @@ router.post('/signup', async (req, res) => {
   const location = String(b.location || '').trim().slice(0, 200);
   const phone = normalizePhone(b.phone);
   if (name.length < 2) return res.status(400).json({ message: 'Please enter your full name.' });
-  if (!phone) return res.status(400).json({ message: 'Please enter a valid phone number, e.g. 0788 123 456.' });
+  if (!phone) return res.status(400).json({ message: 'Please enter a valid phone number, with its country code.' });
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ message: 'That email address doesn’t look right.' });
   if (!validPin(b.pin)) return res.status(400).json({ message: 'Choose a PIN of 4 to 6 digits.' });
   if (WEAK.has(String(b.pin))) return res.status(400).json({ message: 'That PIN is too easy to guess. Please choose another.' });
@@ -139,7 +139,7 @@ router.get('/me', requireAuth, clientOnly, async (req, res) => {
 router.post('/pin', requireAuth, clientOnly, async (req, res) => {
   const phone = normalizePhone(req.body?.phone);
   const pin = String(req.body?.pin || '');
-  if (!phone) return res.status(400).json({ message: 'Please enter a valid phone number, e.g. 0788 123 456.' });
+  if (!phone) return res.status(400).json({ message: 'Please enter a valid phone number, with its country code.' });
   if (!validPin(pin)) return res.status(400).json({ message: 'Choose a PIN of 4 to 6 digits.' });
   if (WEAK.has(pin)) return res.status(400).json({ message: 'That PIN is too easy to guess. Please choose another.' });
   try {
