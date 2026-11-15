@@ -31,7 +31,7 @@ If anything needs to change, we will gladly adjust it.
 
 Kind regards,
 RUNHTec Contractors Ltd
-Electrical · HVAC · Solar · Generators · Maintenance
+Electrical · HVAC · Solar · Generators · Fire detection · Maintenance
 {company_phone} · {company_email}`,
   },
   invoice: {
@@ -46,7 +46,7 @@ For any question about this invoice, simply reply to this email or call us on {c
 
 Kind regards,
 RUNHTec Contractors Ltd
-Electrical · HVAC · Solar · Generators · Maintenance
+Electrical · HVAC · Solar · Generators · Fire detection · Maintenance
 {company_phone} · {company_email}`,
   },
 };
