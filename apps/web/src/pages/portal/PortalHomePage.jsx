@@ -11,6 +11,7 @@ import ClientLayout, { usePortal, WhatsAppIcon } from './ClientLayout';
 import { moneyFor, whatsappLink, dayLabel, timeLabel } from '@/lib/portal';
 import { useLang } from '@/lib/i18n';
 import { QuotesWaiting } from '@/components/portal/QuoteAnswer';
+import InstallCard from '@/components/InstallCard';
 
 const n = (v) => Number(v) || 0;
 const initials = (s) => String(s || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -42,6 +43,7 @@ function Home() {
 
   return (
     <div className="space-y-6">
+      <InstallCard />
       <Helmet><title>Your projects | RUNHTec Contractors</title></Helmet>
 
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#003DA5] to-[#0a2a6b] p-6 text-white shadow-lg sm:p-8">
