@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import pb from '@/lib/pocketbaseClient';
 import { forgetDevice } from '@/lib/pwa';
+import { clearSnapshot } from '@/lib/offlinePortal';
 import { logActivity } from '@/lib/activity';
 
 const AuthContext = createContext(null);
@@ -41,6 +42,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     logActivity('Signed out', `${pb.authStore.record?.email || ''} ended session`);
     forgetDevice(pb.authStore.token); // no more notifications for this person on this device
+    clearSnapshot(); // the saved copy of their data leaves with them
     pb.authStore.clear();
   }, []);
 

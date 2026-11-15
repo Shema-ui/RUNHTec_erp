@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Wrench, ClipboardCheck, MessageCircle, BellRing } from 'lucide-react';
+import InstallCard from '@/components/InstallCard';
 
 // The frame around the client sign-in and sign-up pages (My RUNHTec).
 // Phone: a blue band with the logo on top and the form card below.
@@ -53,6 +54,7 @@ export default function ClientAuthShell({ pageTitle, children }) {
         </div>
         <div className="relative z-10 -mt-10 flex flex-1 flex-col px-4 pb-8 lg:mt-0 lg:w-full lg:max-w-md lg:flex-none lg:px-0">
           <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-900/5 sm:p-8">
+            <InstallCard />
             {children}
           </div>
           <p className="mt-6 text-center text-xs text-slate-500">

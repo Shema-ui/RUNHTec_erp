@@ -11,6 +11,7 @@ import BrandMark from '@/components/BrandMark';
 import NotificationBell from '@/components/erp/NotificationBell';
 import { Modal, Field, inputCls, textareaCls, btnPrimary, btnLine } from '@/components/erp/kit';
 import { loadPortal, whatsappLink, ASSIST_TOPICS } from '@/lib/portal';
+import { saveSnapshot, loadSnapshot } from '@/lib/offlinePortal';
 import { useLang, LANGUAGES } from '@/lib/i18n';
 
 const PortalCtx = createContext(null);
@@ -48,8 +49,27 @@ export default function ClientLayout({ children }) {
     }).catch(() => {});
   }, [isClient]);
 
-  const reload = useCallback(() => (clientId ? loadPortal(clientId).then(setData) : Promise.resolve()), [clientId]);
-  useEffect(() => { reload(); const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
+  // When there is no signal, show the copy saved on this phone (and say so).
+  const [savedAt, setSavedAt] = useState(null);
+  const reload = useCallback(() => {
+    if (!clientId) return Promise.resolve();
+    const useSaved = () => {
+      const snap = loadSnapshot(clientId);
+      if (snap) { setData((cur) => cur || snap.data); setSavedAt(snap.savedAt); }
+    };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) { useSaved(); return Promise.resolve(); }
+    return loadPortal(clientId).then((d) => {
+      // Every request failed (no connection): keep showing the saved copy.
+      if (!d.client && loadSnapshot(clientId)) { useSaved(); return; }
+      setData(d); setSavedAt(null); saveSnapshot(clientId, d);
+    }).catch(useSaved);
+  }, [clientId]);
+  useEffect(() => {
+    reload();
+    const t = setInterval(reload, 30000);
+    window.addEventListener('online', reload);
+    return () => { clearInterval(t); window.removeEventListener('online', reload); };
+  }, [reload]);
 
   const unread = (data?.messages || []).filter((m) => m.sender_role === 'staff' && !Number(m.read_by_client)).length;
   const keep = preview && clientId ? `?as=${clientId}` : '';
@@ -72,6 +92,11 @@ export default function ClientLayout({ children }) {
   return (
     <PortalCtx.Provider value={ctx}>
       <div className="min-h-[100dvh] bg-slate-50 pb-20 md:pb-0">
+        {savedAt && (
+          <div className="bg-amber-100 px-4 py-2 text-center text-xs font-medium text-amber-900">
+            You’re offline. Showing your saved copy from {new Date(savedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}. It updates when you’re back online.
+          </div>
+        )}
         {preview && (
           <div className="flex flex-wrap items-center justify-center gap-2 bg-amber-100 px-4 py-2 text-center text-xs font-medium text-amber-900">
             <Eye className="h-4 w-4" /> Preview: this is exactly what {name} sees. <Link className="underline" to={`/crm/clients/${clientId}`}>Back to the client</Link>
