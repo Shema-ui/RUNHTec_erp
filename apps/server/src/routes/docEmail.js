@@ -12,6 +12,7 @@ const { collections } = require('../collections');
 const { emailEnabled, sendEmail } = require('../mailer');
 const { writeAuditEntry } = require('../audit');
 const { createLimiter } = require('../rateLimit');
+const { genId } = require('../idGen');
 
 const router = express.Router();
 const sendLimit = createLimiter({ windowMs: 60 * 60 * 1000, max: 40 });
@@ -69,6 +70,20 @@ async function recipientFor(doc) {
   const [users] = await pool.query("SELECT email FROM users WHERE role = 'client' AND client = ? AND status = 'active'", [doc.client]);
   const u = users.find((x) => realEmail(x.email));
   return u ? u.email.trim().toLowerCase() : '';
+}
+
+// The client's phone for WhatsApp: the one on the document, else the primary contact, else their app login.
+async function phoneFor(doc) {
+  const digits = (v) => String(v || '').replace(/[^\d+]/g, '');
+  if (digits(doc.bill_to_phone).replace(/\D/g, '').length >= 9) return digits(doc.bill_to_phone);
+  if (doc.client) {
+    const [contacts] = await pool.query('SELECT mobile, whatsapp FROM client_contacts WHERE client = ? ORDER BY is_primary DESC, created', [doc.client]);
+    const c = contacts.find((x) => digits(x.whatsapp || x.mobile).replace(/\D/g, '').length >= 9);
+    if (c) return digits(c.whatsapp || c.mobile);
+    const [users] = await pool.query("SELECT phone FROM users WHERE role = 'client' AND client = ? AND status = 'active' AND phone IS NOT NULL AND phone <> ''", [doc.client]);
+    if (users[0]) return digits(users[0].phone);
+  }
+  return '';
 }
 
 const money = (v, cur) => `${cur || 'RWF'} ${Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
@@ -135,6 +150,7 @@ router.get('/prepare', requireAuth, async (req, res) => {
       body: withGreeting(fill(tpl.body, r.doc, type, r.cfg)),
       emailed_at: r.doc.emailed_at || null,
       emailed_to: r.doc.emailed_to || '',
+      phone: await phoneFor(r.doc),
     });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -176,6 +192,28 @@ router.post('/send', requireAuth, async (req, res) => {
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: t.collection, record: { ...doc, status: newStatus }, changes: `${b.auto ? 'Automatically emailed' : 'Emailed'} ${type} ${number} to ${sentTo}` }).catch(() => {});
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [doc.id]);
     res.json({ ok: true, to: sentTo, status: newStatus, emailed_at: rows[0]?.emailed_at });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// POST /api/doc-email/whatsapp-sent {type, id, phone} — the document was shared on WhatsApp.
+// WhatsApp itself is opened by the person (no paid WhatsApp service is used), so the app only records it.
+router.post('/whatsapp-sent', requireAuth, async (req, res) => {
+  const b = req.body || {};
+  const type = String(b.type || '');
+  try {
+    const r = await loadDoc(type, b.id, req.user);
+    if (r.error) return res.status(r.error[0]).json({ message: r.error[1] });
+    const { doc, t, def } = r;
+    const newStatus = doc.status === 'draft' ? 'sent' : doc.status;
+    const to = String(b.phone || '').replace(/[^\d+]/g, '').slice(0, 30);
+    const number = doc[t.number] || type;
+    await pool.query(`UPDATE \`${def.table}\` SET status = ? WHERE id = ?`, [newStatus, doc.id]);
+    if (doc.client) {
+      await pool.query("INSERT INTO client_activities (id, client, type, description, actor_name, created) VALUES (?, ?, 'other', ?, ?, NOW())",
+        [genId(), doc.client, `${type === 'invoice' ? 'Invoice' : 'Quotation'} ${number} sent on WhatsApp${to ? ` to ${to}` : ''}`, req.user.name || 'RUNHTec ERP']).catch(() => {});
+    }
+    await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: t.collection, record: { ...doc, status: newStatus }, changes: `Sent ${type} ${number} on WhatsApp${to ? ` to ${to}` : ''}` }).catch(() => {});
+    res.json({ ok: true, status: newStatus });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

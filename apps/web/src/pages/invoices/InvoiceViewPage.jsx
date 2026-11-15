@@ -10,7 +10,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
-import { EmailDocDialog, EmailDocButton, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
+import { SendDocChooser, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
 import { useToast } from '@/hooks/use-toast';
 
 // Fallback logo used only when no logo has been uploaded in Settings.
@@ -58,7 +58,6 @@ export default function InvoiceViewPage() {
   const showCosts = canSeeCosts(user);
   const { toast } = useToast();
   const canEmail = ['super_admin', 'admin', 'accountant'].includes(user?.role);
-  const [emailOpen, setEmailOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const autoTried = useRef(false);
 
@@ -218,7 +217,7 @@ export default function InvoiceViewPage() {
           </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             {!isClientView && (<>
-            {canEmail && <EmailDocButton onClick={() => setEmailOpen(true)} />}
+            {canEmail && <SendDocChooser type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} />}
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -246,7 +245,6 @@ export default function InvoiceViewPage() {
       </div>
 
       <EmailedNote doc={inv} />
-      {canEmail && <EmailDocDialog open={emailOpen} onClose={() => setEmailOpen(false)} type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} />}
 
       {/* A4 Invoice */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">

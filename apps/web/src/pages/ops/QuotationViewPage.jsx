@@ -11,7 +11,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
-import { EmailDocDialog, EmailDocButton, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
+import { SendDocChooser, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
 import { QuoteAnswerDialog, answerable } from '@/components/portal/QuoteAnswer';
 import { useLang } from '@/lib/i18n';
 
@@ -60,7 +60,6 @@ export default function QuotationViewPage() {
   const canInvoice = canAccessModule(user, 'invoices');
   const canProject = ['super_admin', 'admin', 'project_manager', 'sales'].includes(user?.role);
   const canEmail = ['super_admin', 'admin', 'sales'].includes(user?.role);
-  const [emailOpen, setEmailOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const autoTried = React.useRef(false);
 
@@ -261,7 +260,7 @@ export default function QuotationViewPage() {
                 Convert to project
               </button>
             )}
-            {canEmail && !q.source_invoice && <EmailDocButton onClick={() => setEmailOpen(true)} />}
+            {canEmail && !q.source_invoice && <SendDocChooser type="quotation" id={id} number={q.number} makePdf={makePdf} onSent={reloadQuote} />}
             <Link
               to={`/quotations/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -289,7 +288,6 @@ export default function QuotationViewPage() {
       </div>
 
       <EmailedNote doc={q} />
-      {canEmail && <EmailDocDialog open={emailOpen} onClose={() => setEmailOpen(false)} type="quotation" id={id} number={q.number} makePdf={makePdf} onSent={reloadQuote} />}
       {q.responded_at && (
         <div className={`no-print mx-auto mt-3 max-w-5xl rounded-xl px-4 py-3 text-sm ${q.status === 'accepted' ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'}`}>
           <b>{q.status === 'accepted' ? `Accepted in the app${q.signed_by_name ? ` by ${q.signed_by_name}` : ''}` : 'Declined in the app'}</b>
