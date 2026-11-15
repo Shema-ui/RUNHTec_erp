@@ -37,23 +37,23 @@ export default function InstallCard() {
   const copy = async () => { try { await navigator.clipboard.writeText(APP_URL); setCopied(true); } catch { /* ignore */ } };
 
   return (
-    <section className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-4" aria-labelledby="install-card-title">
-      <h2 id="install-card-title" className="font-display text-base font-extrabold text-slate-900">Get the My RUNHTec app</h2>
-      <p className="mt-0.5 text-sm text-slate-600">Free, no app store. It puts an icon on your phone.</p>
+    <section className="mb-4 rounded-xl border border-blue-100 bg-blue-50/60 p-3" aria-labelledby="install-card-title">
+      <h2 id="install-card-title" className="font-display text-sm font-extrabold text-slate-900">Get the My RUNHTec app</h2>
+      <p className="mt-0.5 text-xs text-slate-600">Free. No app store needed.</p>
 
       {d.inApp ? (
         <>
-          <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">
             You opened this inside another app, which can’t install apps. Tap <b>⋯</b> or <b>⋮</b>, then <b>Open in {d.ios ? 'Safari' : 'Chrome'}</b>.
           </p>
         </>
       ) : d.android || canPromptInstall() ? (
         <>
-          <button type="button" onClick={tapInstall} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm">
-            <Download className="h-5 w-5" /> Install My RUNHTec
+          <button type="button" onClick={tapInstall} className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#003DA5] text-sm font-semibold text-white shadow-sm">
+            <Download className="h-4 w-4" /> Install My RUNHTec
           </button>
           {(showSteps || !canPromptInstall()) && (
-            <ol className="mt-3 space-y-2 text-sm text-slate-800">
+            <ol className="mt-2 space-y-1 text-xs text-slate-800">
               <li><b>1.</b> Tap the menu <b>⋮</b> at the top right of Chrome{d.android ? '' : ' (or the install icon in the address bar)'}.</li>
               <li><b>2.</b> Tap <b>Install app</b> or <b>Add to Home screen</b>, then <b>Install</b>.</li>
             </ol>
@@ -76,7 +76,7 @@ export default function InstallCard() {
         </div>
       )}
 
-      <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500"><CheckCircle2 className="h-3.5 w-3.5" /> Already installed? You’ll see the icon on your home screen.</p>
+      
     </section>
   );
 }
