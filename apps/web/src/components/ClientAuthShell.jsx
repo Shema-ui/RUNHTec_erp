@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Wrench, ClipboardCheck, MessageCircle, BellRing } from 'lucide-react';
 import InstallCard from '@/components/InstallCard';
+import { useState } from 'react';
+import { COUNTRIES, flagOf } from '@/lib/countries';
 
 // The frame around the client sign-in and sign-up pages (My RUNHTec).
 // Phone: a blue band with the logo on top and the form card below.
@@ -68,13 +70,41 @@ export default function ClientAuthShell({ pageTitle, children }) {
   );
 }
 
-// Phone number with the Rwanda code shown in front. People type their number
-// the way they know it (0788…, 788…, or +256… for another country).
+// Phone number with a country choice (every country in the world). People pick
+// their country and type the number the way they know it. Rwanda is the default.
+// The value sent on is the full number, like +250788123456 or +447700900123.
+// A saved full number (+250788…) is split back into country code and digits.
+function split(full) {
+  const v = String(full || '');
+  if (!v.startsWith('+')) return { dial: '250', national: v };
+  const digits = v.slice(1);
+  const match = COUNTRIES.filter((c) => digits.startsWith(c.dial)).sort((a, b) => b.dial.length - a.dial.length)[0];
+  return match ? { dial: match.dial, national: digits.slice(match.dial.length) } : { dial: '250', national: v };
+}
+
 export function PhoneField({ id, value, onChange, autoFocus }) {
+  const [start] = useState(() => split(value));
+  const [dial, setDial] = useState(start.dial);
+  const [national, setNational] = useState(start.national);
+  const emit = (code, num) => {
+    const t = num.trim();
+    if (t.startsWith('+')) return onChange(t); // typed the full number with its code
+    const digits = t.replace(/\D/g, '').replace(/^0+/, ''); // 0788… → 788…
+    onChange(digits ? `+${code}${digits}` : '');
+  };
+  const pick = (e) => { setDial(e.target.value); emit(e.target.value, national); };
+  const type = (e) => { setNational(e.target.value); emit(dial, e.target.value); };
+  const current = COUNTRIES.find((c) => c.dial === dial && c.iso === 'RW') || COUNTRIES.find((c) => c.dial === dial);
   return (
     <div className="flex h-12 overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-[#003DA5] focus-within:ring-2 focus-within:ring-[#003DA5]/20">
-      <span className="flex items-center gap-1.5 border-r border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700" aria-hidden="true">🇷🇼 +250</span>
-      <input id={id} type="tel" inputMode="tel" autoComplete="tel" required autoFocus={autoFocus} value={value} onChange={(e) => onChange(e.target.value)} placeholder="788 123 456"
+      <label className="relative flex shrink-0 items-center gap-1 border-r border-slate-200 bg-slate-50 pl-3 pr-2 text-sm font-semibold text-slate-700">
+        <span aria-hidden="true">{flagOf(current?.iso || 'RW')} +{dial}</span>
+        <span className="sr-only">Country</span>
+        <select aria-label="Country code" value={dial} onChange={pick} className="absolute inset-0 cursor-pointer opacity-0">
+          {COUNTRIES.map((c) => <option key={c.iso} value={c.dial}>{flagOf(c.iso)} {c.name} (+{c.dial})</option>)}
+        </select>
+      </label>
+      <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" required autoFocus={autoFocus} value={national} onChange={type} placeholder="788 123 456"
         className="min-w-0 flex-1 bg-transparent px-3 text-base text-slate-900 outline-none placeholder:text-slate-400" />
     </div>
   );
