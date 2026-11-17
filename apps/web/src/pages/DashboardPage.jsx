@@ -227,7 +227,7 @@ export default function DashboardPage() {
       const q = quoteById[p.quotation];
       const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;
       const cur = (q && q.currency) || p.currency;
-      const revenue = rwf(plan ? plan.revenue : Number(p.value || 0), cur);
+      const revenue = rwf(Number(p.value || 0) || (plan ? plan.revenue : 0), cur);
       const fees = fixedFeeCosts((d.assignments || []).filter((a) => a.project === p.id)).list.reduce((s, a) => s + rwf(a.amount_paid, a.currency || cur), 0);
       profitDone += revenue - (costsByProject[p.id] || 0) - fees;
     });

@@ -41,7 +41,7 @@ export default function ProjectCostsCard({ project, team }) {
   const plan = useMemo(() => (quote
     ? computeCosting({ items: Array.isArray(quote.items) ? quote.items : [], costing: quote.costing, subtotal: quote.subtotal, discount: quote.discount_amount })
     : null), [quote]);
-  const revenue = plan ? plan.revenue : n(project.value);
+  const revenue = n(project.value) || (plan ? plan.revenue : 0);
   const planned = plan ? plan.totalCost : n(project.cost_budget);
   const fees = useMemo(() => fixedFeeCosts(team || []), [team]);
   const actual = useMemo(() => {

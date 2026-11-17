@@ -84,7 +84,7 @@ export default function ReportsPage() {
     const profit = d.projects.filter((p) => p.status !== 'cancelled').map((p) => {
       const q = quoteById[p.quotation];
       const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;
-      const revenue = plan ? plan.revenue : Number(p.value || 0);
+      const revenue = Number(p.value || 0) || (plan ? plan.revenue : 0);
       const planned = plan ? plan.totalCost : Number(p.cost_budget || 0);
       const split = splitExpenses(costsBy[p.id] || []);
       // Fixed-fee contractors from the Team section count as wages.
