@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import PaymentBar from '@/components/erp/PaymentBar';
 import { Helmet } from 'react-helmet';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
@@ -60,6 +61,14 @@ export default function InvoiceViewPage() {
   const canEmail = ['super_admin', 'admin', 'accountant'].includes(user?.role);
   const [params, setParams] = useSearchParams();
   const autoTried = useRef(false);
+  const [paidSoFar, setPaidSoFar] = useState(0);
+  // Payments received on this invoice, so the bar shows how much is still owed.
+  useEffect(() => {
+    if (!id) return;
+    pb.collection('payments').getFullList({ filter: `invoice = "${id}"` })
+      .then((list) => setPaidSoFar(list.filter((p) => p.status === 'completed').reduce((s, p) => s + (Number(p.amount) || 0), 0)))
+      .catch(() => setPaidSoFar(0));
+  }, [id, invoice?.status]);
 
   useEffect(() => {
     Promise.all([
@@ -357,7 +366,14 @@ export default function InvoiceViewPage() {
               </tbody>
             </table>
 
-            {/* Totals */}
+            {invoice && (
+        <div className="no-print mx-auto mb-4 max-w-[800px] px-4">
+          <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+            <PaymentBar label="Payment progress" total={invoice.total} paid={paidSoFar} currency={invoice.currency} />
+          </div>
+        </div>
+      )}
+      {/* Totals */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
               <div style={{ width: '300px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>

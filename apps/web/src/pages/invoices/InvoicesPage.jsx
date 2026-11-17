@@ -8,6 +8,7 @@ import {
 import pb from '@/lib/pocketbaseClient';
 import { nextDocNumber } from '@/lib/numbering';
 import { deleteInvoicePayments } from '@/lib/cleanup';
+import PaymentBar from '@/components/erp/PaymentBar';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -42,6 +43,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paidByInvoice, setPaidByInvoice] = useState({});
   const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(async () => {
@@ -56,6 +58,11 @@ export default function InvoicesPage() {
         requestKey: 'invoices-list',
       });
       setInvoices(result.items);
+      // Money received per invoice, for the progress bars in the list.
+      const payments = await pb.collection('payments').getFullList({ filter: 'status = "completed"' }).catch(() => []);
+      const map = {};
+      payments.forEach((p) => { if (p.invoice) map[p.invoice] = (map[p.invoice] || 0) + (Number(p.amount) || 0); });
+      setPaidByInvoice(map);
     } catch (e) {
       if (e.isAbort) return;
     } finally {
@@ -212,7 +219,10 @@ export default function InvoicesPage() {
                     <td className="px-4 py-3 text-muted-foreground">{inv.invoice_date || '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground">{inv.due_date || '—'}</td>
                     <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(inv.total, inv.currency)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={inv.status} />
+                      {inv.status !== 'draft' && inv.status !== 'cancelled' && <div className="mt-2"><PaymentBar compact total={inv.total} paid={paidByInvoice[inv.id] || 0} currency={inv.currency} /></div>}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <Link to={`/invoices/${inv.id}/view`} title="View" className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
