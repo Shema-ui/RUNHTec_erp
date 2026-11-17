@@ -12,6 +12,7 @@ const { markOverdueInvoices, nextNumber } = require('../jobs');
 const { notifyUsers, notifyClient, notifyRoles } = require('../notify');
 const clientScope = require('../clientScope');
 const { linkDocumentClient } = require('../clientAuto');
+const { syncProjectValue, hasInvoices } = require('../projectValue');
 
 // People newly put on a project (technicians on site or lead) get an alert.
 function teamOf(p) {
@@ -468,6 +469,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       await ensureQuoteForInvoice(rows[0]);
       [rows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [id]);
     }
+    if (req.collectionName === 'invoices') await syncProjectValue(rows[0].project);
     if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
     if (req.collectionName === 'quotations' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
@@ -521,6 +523,9 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
         for (const k of Object.keys(body)) if (!LEAD_PROJECT_FIELDS.includes(k)) delete body[k];
       }
       if (req.collectionName === 'project_costs') { delete body.project; delete body.recorded_by; delete body.paid; }
+    }
+    if (req.collectionName === 'projects' && 'value' in body && Number(body.value) !== Number(before.value) && await hasInvoices(req.params.id)) {
+      return res.status(400).json({ message: 'This project is invoiced, so its value comes from the invoices. Change the invoice instead.' });
     }
     if (req.collectionName === 'project_costs') {
       const approver = ['super_admin', 'admin', 'accountant'].includes(req.user.role);
@@ -584,7 +589,11 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (['quotations', 'invoices'].includes(req.collectionName) && !rows[0].client && await linkDocumentClient(def.table, rows[0])) {
       [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     }
-    if (req.collectionName === 'invoices') await syncQuoteFromInvoice(rows[0]);
+    if (req.collectionName === 'invoices') {
+      await syncQuoteFromInvoice(rows[0]);
+      await syncProjectValue(rows[0].project);
+      if (before.project && before.project !== rows[0].project) await syncProjectValue(before.project);
+    }
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);
       if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
@@ -621,7 +630,10 @@ router.delete('/:name/records/:id', collectionMiddleware, requireAuth, async (re
 
     await pool.query(`DELETE FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     // Its automatic quotation goes too (quotations the client actually received stay).
-    if (req.collectionName === 'invoices') await removeQuoteForInvoice(req.params.id);
+    if (req.collectionName === 'invoices') {
+      await removeQuoteForInvoice(req.params.id);
+      await syncProjectValue(record.project);
+    }
     // A removed vendor takes its price list and its portal login with it.
     if (req.collectionName === 'vendors') {
       await pool.query('DELETE FROM vendor_items WHERE vendor = ?', [req.params.id]);

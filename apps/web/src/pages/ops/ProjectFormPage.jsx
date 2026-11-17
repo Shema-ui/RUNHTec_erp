@@ -58,7 +58,7 @@ export default function ProjectFormPage() {
       ...p,
       quotation: qid,
       client: qt?.client || p.client,
-      value: qt ? Number(qt.total) || p.value : p.value,
+      value: qt ? (Number(qt.subtotal) || 0) - (Number(qt.discount_amount) || 0) || p.value : p.value,
       currency: qt?.currency || p.currency,
       title: p.title || (qt ? `${qt.bill_to_company || qt.bill_to_name || 'Project'} — ${qt.number}` : ''),
       site_address: p.site_address || qt?.bill_to_address || '',

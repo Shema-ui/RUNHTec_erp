@@ -151,6 +151,12 @@ async function runMigrations() {
     await ensureColumn(conn, 'project_costs', 'receipt', 'VARCHAR(20) DEFAULT NULL');
     await ensureColumn(conn, 'project_costs', 'approved', 'TINYINT(1) DEFAULT 0');
     await ensureColumn(conn, 'project_costs', 'approved_by_name', "VARCHAR(200) DEFAULT ''");
+    // Invoiced projects take their value from their invoices (see projectValue.js).
+    {
+      const { syncProjectValue } = require('./projectValue');
+      const [linked] = await conn.query("SELECT DISTINCT project AS id FROM invoices WHERE project IS NOT NULL AND project <> ''");
+      for (const r of linked) await syncProjectValue(r.id, conn);
+    }
 
     // Client portal: which client a login belongs to, what is shared, handover sign-off
     await ensureColumn(conn, 'users', 'client', 'VARCHAR(20) DEFAULT NULL');
