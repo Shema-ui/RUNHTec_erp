@@ -159,6 +159,19 @@ async function runMigrations() {
     await ensureColumn(conn, 'projects', 'handover_confirmed_at', 'DATETIME NULL');
     await ensureColumn(conn, 'projects', 'handover_confirmed_by', "VARCHAR(200) DEFAULT ''");
     await ensureColumn(conn, 'projects', 'handover_note', "VARCHAR(1000) DEFAULT ''");
+    // Unique reference per project (PRJ-2026-0001), used on expenses and reports.
+    await ensureColumn(conn, 'projects', 'code', "VARCHAR(40) DEFAULT ''");
+    {
+      const [missing] = await conn.query("SELECT id, created FROM projects WHERE code IS NULL OR code = '' ORDER BY created, id");
+      const next = {};
+      const [taken] = await conn.query("SELECT code FROM projects WHERE code LIKE 'PRJ-%'");
+      for (const r of taken) { const p = String(r.code).split('-'); const y = p[1]; next[y] = Math.max(next[y] || 0, parseInt(p[2], 10) || 0); }
+      for (const r of missing) {
+        const y = String(new Date(r.created || Date.now()).getFullYear());
+        next[y] = (next[y] || 0) + 1;
+        await conn.query('UPDATE projects SET code = ? WHERE id = ?', [`PRJ-${y}-${String(next[y]).padStart(4, '0')}`, r.id]);
+      }
+    }
     await ensureColumn(conn, 'notifications', 'link', "VARCHAR(300) DEFAULT ''");
     await ensureColumn(conn, 'company_settings', 'whatsapp_number', "VARCHAR(40) DEFAULT ''");
 

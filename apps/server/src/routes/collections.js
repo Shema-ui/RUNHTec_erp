@@ -366,7 +366,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       if (!body.kind) body.kind = 'message';
     }
     // Never reuse a quotation / invoice number.
-    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV']]) {
+    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV'], ['projects', 'code', 'PRJ']]) {
       if (req.collectionName !== coll) continue;
       const wanted = String(body[col] || '').trim();
       const [dup] = wanted ? await pool.query(`SELECT id FROM \`${coll}\` WHERE \`${col}\` = ?`, [wanted]) : [[{}]];

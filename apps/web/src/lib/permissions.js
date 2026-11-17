@@ -82,6 +82,7 @@ export const MODULE_ACCESS = {
   invoices: ['accountant'],
   payments: ['accountant'],
   reports: ['accountant'],
+  expenses: ['project_manager', 'sales', 'accountant'],
   hr: ['hr', 'project_manager'],
   documents: ['project_manager', 'technician', 'lead_technician', 'hr'],
   notifications: ['sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],

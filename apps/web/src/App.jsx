@@ -47,6 +47,7 @@ import QuotationViewPage from '@/pages/ops/QuotationViewPage';
 import ProjectsPage from '@/pages/ops/ProjectsPage';
 import MaintenancePage from '@/pages/ops/MaintenancePage';
 import ReportsPage from '@/pages/ops/ReportsPage';
+import ExpensesPage from '@/pages/ops/ExpensesPage';
 import ProjectFormPage from '@/pages/ops/ProjectFormPage';
 import ProjectDetailPage from '@/pages/ops/ProjectDetailPage';
 import HrOverviewPage from '@/pages/hr/HrOverviewPage';
@@ -164,6 +165,7 @@ function App() {
           <Route path="/invoices/:id/view" element={<Protected moduleKey="invoices"><InvoiceViewPage /></Protected>} />
           <Route path="/payments" element={<Protected moduleKey="payments"><PaymentsPage /></Protected>} />
           <Route path="/reports" element={<Protected moduleKey="reports"><ReportsPage /></Protected>} />
+          <Route path="/expenses" element={<Protected moduleKey="expenses"><ExpensesPage /></Protected>} />
 
           {/* Available to every role */}
           <Route path="/notifications" element={<Protected moduleKey="notifications"><NotificationsPage /></Protected>} />

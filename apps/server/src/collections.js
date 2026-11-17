@@ -104,7 +104,7 @@ const collections = {
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'created', 'updated'],
+    fields: ['id', 'code', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'created', 'updated'],
     relations: { quotation: 'quotations', client: 'clients', project_manager: 'users', lead_technician: 'users' },
     rules: {
       list: AUTHED,

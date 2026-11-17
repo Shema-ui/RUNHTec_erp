@@ -6,12 +6,13 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import {
-  Banknote, ReceiptText, AlertTriangle, FileText, FolderKanban, Wrench, Inbox, Clock3, Plus,
+  Banknote, ReceiptText, AlertTriangle, FileText, FolderKanban, Wrench, Inbox, Clock3, Plus, TrendingUp,
   ArrowUpRight, ArrowDownRight, Activity, ChevronRight, CalendarClock, PhoneCall, CheckCircle2,
 } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule } from '@/lib/permissions';
+import { canSeeCosts } from '@/lib/costing';
 import TechnicianDashboard from '@/components/erp/TechnicianDashboard';
 import { InstallBanner } from '@/components/erp/AppInstall';
 import { openAppDialog } from '@/lib/pwa';
@@ -163,6 +164,7 @@ export default function DashboardPage() {
   const isTech = ['technician', 'lead_technician'].includes(user?.role);
   const can = (m) => canAccessModule(user, m);
   const seeMoney = can('invoices');
+  const seeCosts = canSeeCosts(user);
   const seeQuotes = can('quotations');
   const seeProjects = can('projects');
   const seeRfq = can('rfq');
@@ -184,16 +186,17 @@ export default function DashboardPage() {
       safe(seeRfq, pb.collection('rfqs').getFullList({ sort: '-created' })),
       safe(seeMaint, pb.collection('maintenance_contracts').getFullList({ expand: 'client' })),
       safe(seeCrm, pb.collection('client_followups').getFullList({ filter: "status = 'pending'", sort: 'due_date', expand: 'client' })),
+      safe(seeCosts, pb.collection('project_costs').getFullList({ sort: '-cost_date' })),
       pb.collection('client_activities').getList(1, 8, { sort: '-created' }).then((r) => r.items || []).catch(() => []),
       pb.collection('company_settings').getList(1, 1).then((r) => r.items?.[0] || {}).catch(() => ({})),
-    ]).then(([invoices, payments, quotes, projects, rfqs, maint, followups, activity, cfg]) => {
+    ]).then(([invoices, payments, quotes, projects, rfqs, maint, followups, costs, activity, cfg]) => {
       if (cancelled) return;
       let rates = cfg.exchange_rates;
       if (typeof rates === 'string') { try { rates = JSON.parse(rates); } catch { rates = {}; } }
-      setD({ invoices, payments, quotes, projects, rfqs, maint, followups, activity, rates: rates || {} });
+      setD({ invoices, payments, quotes, projects, rfqs, maint, followups, costs, activity, rates: rates || {} });
     });
     return () => { cancelled = true; };
-  }, [isTech, seeMoney, seeQuotes, seeProjects, seeRfq, seeMaint, seeCrm]);
+  }, [isTech, seeMoney, seeCosts, seeQuotes, seeProjects, seeRfq, seeMaint, seeCrm]);
 
   const r = useMemo(() => {
     if (!d) return null;
@@ -213,6 +216,13 @@ export default function DashboardPage() {
     const recThis = received(thisMonth);
     const recLast = received(lastMonth);
     const trend = recLast > 0 ? Math.round(((recThis - recLast) / recLast) * 100) : null;
+    // Profit = money received minus expenses logged on projects (same month).
+    const spentIn = (m) => (d.costs || []).filter((c) => monthOf(c.cost_date) === m).reduce((s, c) => s + rwf(c.amount, c.currency), 0);
+    const spentThis = spentIn(thisMonth);
+    const spentLast = spentIn(lastMonth);
+    const profitThis = recThis - spentThis;
+    const profitLast = recLast - spentLast;
+    const profitTrend = profitLast !== 0 ? Math.round(((profitThis - profitLast) / Math.abs(profitLast)) * 100) : null;
     const paidByInv = {};
     paid.forEach((p) => { if (p.invoice) paidByInv[p.invoice] = (paidByInv[p.invoice] || 0) + n(p.amount); });
     const open = d.invoices.filter((i) => ['sent', 'overdue'].includes(i.status));
@@ -275,7 +285,7 @@ export default function DashboardPage() {
     ].filter(Boolean);
 
     return {
-      recThis, trend, outstanding, open, lateInv, lateAmount, months, awaiting, awaitingValue, quoteMix, winRate,
+      recThis, trend, spentThis, profitThis, profitTrend, outstanding, open, lateInv, lateAmount, months, awaiting, awaitingValue, quoteMix, winRate,
       active, lateProjects, byStatus, doneThisMonth, todo, skipped,
     };
   }, [d, seeRfq, seeQuotes, seeMoney, seeProjects, seeMaint, seeCrm]);
@@ -288,11 +298,12 @@ export default function DashboardPage() {
 
   const kpis = r ? [
     seeMoney && { key: 'rec', icon: Banknote, label: 'Received this month', value: formatMoneyShort(r.recThis, C), sub: r.trend == null ? 'No payments last month to compare' : 'compared with last month', trend: r.trend, tone: { icon: 'bg-emerald-50 text-emerald-700', bar: 'bg-emerald-500' }, to: '/payments' },
+    seeMoney && seeCosts && { key: 'profit', icon: TrendingUp, label: 'Profit this month', value: formatMoneyShort(r.profitThis, C), sub: `${formatMoneyShort(r.recThis, C)} received − ${formatMoneyShort(r.spentThis, C)} spent`, trend: r.profitTrend, tone: { icon: 'bg-violet-50 text-violet-700', bar: 'bg-violet-500' }, to: '/reports' },
     seeMoney && { key: 'out', icon: ReceiptText, label: 'Unpaid invoices', value: formatMoneyShort(r.outstanding, C), sub: `${r.open.length} invoice${r.open.length === 1 ? '' : 's'} not fully paid`, tone: { icon: 'bg-blue-50 text-blue-700', bar: 'bg-blue-600' }, to: '/invoices' },
     seeMoney && { key: 'late', icon: AlertTriangle, label: 'Overdue', value: formatMoneyShort(r.lateAmount, C), sub: `${r.lateInv.length} past the due date`, tone: { icon: 'bg-rose-50 text-rose-700', bar: 'bg-rose-500' }, to: '/invoices' },
     seeQuotes && { key: 'quotes', icon: FileText, label: 'Quotes awaiting answer', value: formatMoneyShort(r.awaitingValue, C), sub: `${r.awaiting.length} quote${r.awaiting.length === 1 ? '' : 's'} sent`, tone: { icon: 'bg-amber-50 text-amber-700', bar: 'bg-amber-500' }, to: '/quotations' },
     seeProjects && { key: 'proj', icon: FolderKanban, label: 'Active projects', value: r.active.length, sub: `${r.doneThisMonth} completed this month`, tone: { icon: 'bg-indigo-50 text-indigo-700', bar: 'bg-indigo-500' }, to: '/projects' },
-  ].filter(Boolean).slice(0, 4) : [];
+  ].filter(Boolean).slice(0, 5) : [];
 
   return (
     <PortalLayout title={isTech ? 'My work' : 'Dashboard'} subtitle={isTech ? 'Your projects, tasks and visits' : 'Business overview'}>
@@ -333,7 +344,7 @@ export default function DashboardPage() {
       ) : (<>
         {/* KPI cards */}
         {kpis.length > 0 && (
-          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${kpis.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+          <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${kpis.length >= 5 ? 'lg:grid-cols-5' : kpis.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
             {kpis.map((k, i) => <KpiCard key={k.key} {...k} i={i} />)}
           </div>
         )}
