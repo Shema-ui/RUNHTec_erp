@@ -147,6 +147,10 @@ async function runMigrations() {
     // Lead technician of a project (a user account), who logs the crew's days on site
     await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');
     await ensureColumn(conn, 'project_costs', 'recorded_by', 'VARCHAR(20) DEFAULT NULL');
+    // Receipt photo or PDF, and the accountant's approval of the entry.
+    await ensureColumn(conn, 'project_costs', 'receipt', 'VARCHAR(20) DEFAULT NULL');
+    await ensureColumn(conn, 'project_costs', 'approved', 'TINYINT(1) DEFAULT 0');
+    await ensureColumn(conn, 'project_costs', 'approved_by_name', "VARCHAR(200) DEFAULT ''");
 
     // Client portal: which client a login belongs to, what is shared, handover sign-off
     await ensureColumn(conn, 'users', 'client', 'VARCHAR(20) DEFAULT NULL');
@@ -159,6 +163,19 @@ async function runMigrations() {
     await ensureColumn(conn, 'projects', 'handover_confirmed_at', 'DATETIME NULL');
     await ensureColumn(conn, 'projects', 'handover_confirmed_by', "VARCHAR(200) DEFAULT ''");
     await ensureColumn(conn, 'projects', 'handover_note', "VARCHAR(1000) DEFAULT ''");
+    // Unique reference per project (PRJ-2026-0001), used on expenses and reports.
+    await ensureColumn(conn, 'projects', 'code', "VARCHAR(40) DEFAULT ''");
+    {
+      const [missing] = await conn.query("SELECT id, created FROM projects WHERE code IS NULL OR code = '' ORDER BY created, id");
+      const next = {};
+      const [taken] = await conn.query("SELECT code FROM projects WHERE code LIKE 'PRJ-%'");
+      for (const r of taken) { const p = String(r.code).split('-'); const y = p[1]; next[y] = Math.max(next[y] || 0, parseInt(p[2], 10) || 0); }
+      for (const r of missing) {
+        const y = String(new Date(r.created || Date.now()).getFullYear());
+        next[y] = (next[y] || 0) + 1;
+        await conn.query('UPDATE projects SET code = ? WHERE id = ?', [`PRJ-${y}-${String(next[y]).padStart(4, '0')}`, r.id]);
+      }
+    }
     await ensureColumn(conn, 'notifications', 'link', "VARCHAR(300) DEFAULT ''");
     await ensureColumn(conn, 'company_settings', 'whatsapp_number', "VARCHAR(40) DEFAULT ''");
 

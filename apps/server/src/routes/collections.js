@@ -366,7 +366,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       if (!body.kind) body.kind = 'message';
     }
     // Never reuse a quotation / invoice number.
-    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV']]) {
+    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV'], ['projects', 'code', 'PRJ']]) {
       if (req.collectionName !== coll) continue;
       const wanted = String(body[col] || '').trim();
       const [dup] = wanted ? await pool.query(`SELECT id FROM \`${coll}\` WHERE \`${col}\` = ?`, [wanted]) : [[{}]];
@@ -389,6 +389,9 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     }
     if (req.collectionName === 'project_costs') {
       body.recorded_by = req.user.id;
+      // Nobody approves their own entry: approval is set only by the accountant or admin.
+      body.approved = 0;
+      body.approved_by_name = '';
       if (req.user.role === 'lead_technician') {
         const [pr] = await pool.query('SELECT lead_technician FROM projects WHERE id = ?', [body.project || '']);
         if (!pr[0] || pr[0].lead_technician !== req.user.id) return res.status(403).json({ message: 'You can only log work on projects you lead.' });
@@ -518,6 +521,17 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
         for (const k of Object.keys(body)) if (!LEAD_PROJECT_FIELDS.includes(k)) delete body[k];
       }
       if (req.collectionName === 'project_costs') { delete body.project; delete body.recorded_by; delete body.paid; }
+    }
+    if (req.collectionName === 'project_costs') {
+      const approver = ['super_admin', 'admin', 'accountant'].includes(req.user.role);
+      if ('approved' in body) {
+        if (approver) body.approved_by_name = body.approved && Number(body.approved) ? (req.user.name || req.user.email || '') : '';
+        else { delete body.approved; delete body.approved_by_name; }
+      }
+      // Changing the amount after approval means it must be checked again.
+      if (!approver || !('approved' in body)) {
+        if (before && 'amount' in body && Number(body.amount) !== Number(before.amount)) { body.approved = 0; body.approved_by_name = ''; }
+      }
     }
     const invalid = validateBody(body);
     if (invalid) return res.status(400).json({ message: invalid });

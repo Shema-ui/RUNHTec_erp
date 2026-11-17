@@ -104,7 +104,7 @@ const collections = {
   },
   projects: {
     table: 'projects',
-    fields: ['id', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'created', 'updated'],
+    fields: ['id', 'code', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'created', 'updated'],
     relations: { quotation: 'quotations', client: 'clients', project_manager: 'users', lead_technician: 'users' },
     rules: {
       list: AUTHED,
@@ -270,8 +270,9 @@ const collections = {
   // Internal job costs (labour days, materials, transport…). Staff only.
   project_costs: {
     table: 'project_costs',
-    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'created', 'updated'],
+    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'receipt', 'approved', 'approved_by_name', 'created', 'updated'],
     relations: { project: 'projects', contractor: 'contractors' },
+    fileFields: ['receipt'],
     // A lead technician logs days/expenses on projects they lead (checked when saving)
     // and sees and corrects only the entries they made themselves.
     rules: {

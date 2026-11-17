@@ -3,7 +3,7 @@ import { CalendarCheck, Receipt, Trash2, Loader2, Save, Plus, AlertTriangle, Tre
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Card, Modal, Field, inputCls, btnPrimary, btnLine, fmtDate, todayISO } from '@/components/erp/kit';
+import { Card, Modal, Field, inputCls, btnPrimary, btnLine, fmtDate, todayISO, toBody } from '@/components/erp/kit';
 import { InternalBadge } from '@/components/erp/CostingPanel';
 import { formatMoney } from '@/lib/money';
 import {
@@ -69,6 +69,12 @@ export default function ProjectCostsCard({ project, team }) {
     setCosts((list) => list.map((x) => (x.id === c.id ? { ...x, paid: !c.paid } : x)));
     try { await pb.collection('project_costs').update(c.id, { paid: !c.paid }); } catch (e) { toast({ title: 'Could not update', description: e.message, variant: 'destructive' }); load(); }
   };
+  const canApprove = ['super_admin', 'admin', 'accountant'].includes(user?.role);
+  const toggleApprove = async (c) => {
+    const next = c.approved ? 0 : 1;
+    setCosts((list) => list.map((x) => (x.id === c.id ? { ...x, approved: next } : x)));
+    try { await pb.collection('project_costs').update(c.id, { approved: next }); load(); } catch (e) { toast({ title: 'Could not update', description: e.message, variant: 'destructive' }); load(); }
+  };
   const remove = async (c) => {
     if (!window.confirm(`Remove this cost (${formatMoney(c.amount, currency)})?`)) return;
     try { await pb.collection('project_costs').delete(c.id); load(); } catch (e) { toast({ title: 'Could not delete', description: e.message, variant: 'destructive' }); }
@@ -117,7 +123,7 @@ export default function ProjectCostsCard({ project, team }) {
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cost log</h4>
         {fees.list.length > 0 && (
           <p className="mb-2 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-            Also counted: {fees.list.map((a) => `${a.expand?.contractor?.full_name || 'Contractor'} (fixed fee ${formatMoney(a.agreed_amount, a.currency)})`).join(', ')} from the Team section. Daily-rate contractors are counted through “Log work day” instead.
+            Also counted: {fees.list.map((a) => `${a.expand?.contractor?.full_name || 'Contractor'} (paid ${formatMoney(a.amount_paid, a.currency)} of ${formatMoney(a.agreed_amount, a.currency)})`).join(', ')} from the Team section. Daily-rate contractors are counted through “Log work day” instead.
           </p>
         )}
         {!costs ? <p className="text-sm text-muted-foreground">Loading…</p> : costs.length === 0 ? (
@@ -139,9 +145,15 @@ export default function ProjectCostsCard({ project, team }) {
                           ? `${labourRole(c.worker_role).label} · ${n(c.quantity) === 0.5 ? 'half day' : `${n(c.quantity)} day${n(c.quantity) === 1 ? '' : 's'}`} × ${formatMoney(c.unit_cost, currency)}`
                           : costCategoryLabel(c.category)}
                       </p>
+                      {c.receipt && <a href={pb.files.getURL(c, c.receipt)} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline">View receipt</a>}
                     </td>
                     <td className="py-2 pr-2 text-right font-semibold">{formatMoney(c.amount, currency)}</td>
-                    <td className="py-2 pr-2 text-center"><input type="checkbox" checked={!!c.paid} disabled={!canRecord} onChange={() => togglePaid(c)} aria-label="Paid" className="h-4 w-4" /></td>
+                    <td className="py-2 pr-2 text-center">
+                      <input type="checkbox" checked={!!c.paid} disabled={!canRecord} onChange={() => togglePaid(c)} aria-label="Paid" className="h-4 w-4" />
+                      {canApprove ? (
+                        <button onClick={() => toggleApprove(c)} className={`mt-1 block w-full text-[11px] font-semibold ${c.approved ? 'text-emerald-700' : 'text-amber-700'}`}>{c.approved ? `Approved${c.approved_by_name ? ` · ${c.approved_by_name}` : ''}` : 'Approve'}</button>
+                      ) : c.approved ? <span className="mt-1 block text-[11px] font-semibold text-emerald-700">Approved</span> : null}
+                    </td>
                     <td className="whitespace-nowrap py-2 text-right">{canRecord && (<>
                       <button onClick={() => setEditCost(c)} aria-label="Edit cost" className="mr-2 text-muted-foreground hover:text-primary"><Pencil className="h-4 w-4" /></button>
                       <button onClick={() => remove(c)} aria-label="Remove cost" className="text-muted-foreground hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
@@ -273,7 +285,7 @@ export function LogDayDialog({ open, onClose, project, team, costs, onSaved }) {
 export function ExpenseDialog({ open, onClose, project, onSaved, allowPaid = true }) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const blank = () => ({ cost_date: todayISO(), category: 'transport', description: '', amount: '', paid: true, notes: '' });
+  const blank = () => ({ cost_date: todayISO(), category: 'transport', description: '', amount: '', paid: true, notes: '', receipt: null });
   const [f, setF] = useState(blank());
   const [saving, setSaving] = useState(false);
   useEffect(() => { if (open) setF(blank()); }, [open]);
@@ -284,11 +296,11 @@ export function ExpenseDialog({ open, onClose, project, onSaved, allowPaid = tru
     if (amount <= 0) { toast({ title: 'Enter the amount spent', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      await pb.collection('project_costs').create({
+      await pb.collection('project_costs').create(toBody({
         project: project.id, cost_date: f.cost_date, category: f.category, description: f.description || costCategoryLabel(f.category),
         quantity: 1, unit_cost: amount, amount, currency: project.currency || 'RWF', paid: f.paid, notes: f.notes,
         recorded_by_name: user?.name || user?.email || '',
-      });
+      }, { receipt: f.receipt }));
       toast({ title: 'Expense added', description: formatMoney(amount, project.currency) });
       onSaved(); onClose();
     } catch (e) { toast({ title: 'Could not save', description: e.message, variant: 'destructive' }); }
@@ -308,6 +320,7 @@ export function ExpenseDialog({ open, onClose, project, onSaved, allowPaid = tru
           <Field label="What was it for" className="sm:col-span-2"><input className={inputCls} value={f.description} onChange={(e) => set('description', e.target.value)} placeholder="e.g. Fuel Kigali–Musanze return, 6mm² cable 100 m" /></Field>
           <Field label="Amount" required><input type="number" min="0" className={inputCls} value={f.amount} onChange={(e) => set('amount', e.target.value)} /></Field>
           {allowPaid && <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" checked={f.paid} onChange={(e) => set('paid', e.target.checked)} className="h-4 w-4" /> Already paid</label>}
+          <Field label="Receipt (photo or PDF, optional)" className="sm:col-span-2"><input type="file" accept="image/*,application/pdf" className="text-sm" onChange={(e) => set('receipt', e.target.files?.[0] || null)} /></Field>
         </div>
         <div className="flex justify-end gap-2">
           <button className={btnLine} onClick={onClose}>Cancel</button>

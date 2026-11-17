@@ -17,6 +17,7 @@ const REFS = [
   ['clients', ['logo'], []],
   ['client_documents', ['file'], []],
   ['documents', ['file'], []],
+  ['project_costs', ['receipt'], []],
   ['project_photos', ['photo'], []],
   ['rfqs', ['voice_note'], ['attachments']],
   ['equipment', [], ['photos']],

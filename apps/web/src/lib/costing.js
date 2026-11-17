@@ -114,7 +114,8 @@ export const marginTone = (m) => (m >= 25 ? 'text-emerald-700' : m >= 12 ? 'text
 export const FIXED_BASES = ['fixed', 'milestone'];
 export function fixedFeeCosts(assignments = []) {
   const list = assignments.filter((a) => FIXED_BASES.includes(a.payment_basis || 'fixed') && !['cancelled', 'declined'].includes(a.status));
-  const total = list.reduce((s, a) => s + n(a.agreed_amount), 0);
+  // Counted when paid: a fixed fee is a cost once it has been paid out. What is still owed is 'unpaid'.
+  const total = list.reduce((s, a) => s + n(a.amount_paid), 0);
   const unpaid = list.reduce((s, a) => s + Math.max(0, n(a.agreed_amount) - n(a.amount_paid)), 0);
   return { list, total, unpaid };
 }
