@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Toolbar, SearchBox, FilterSelect, Loading, Empty, Pill, StatCard, btnPrimary, fmtDate, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES, PRIORITIES, SERVICE_CATEGORIES, projectStatusInfo, priorityInfo, serviceLabel } from '@/lib/projects';
 import { formatMoney, formatMoneyShort, DEFAULT_CURRENCY } from '@/lib/money';
+import { projectBalances, isSettled } from '@/lib/projectSettle';
 
 const today = () => todayISO();
 
@@ -19,8 +20,18 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState(['technician', 'lead_technician'].includes(user?.role) ? 'mine' : 'active');
   const [service, setService] = useState('all');
   const [priority, setPriority] = useState('all');
+  const [invoices, setInvoices] = useState([]);
+  const [payments, setPayments] = useState([]);
   const canCreate = ['super_admin', 'admin', 'project_manager'].includes(user?.role);
   const isTechRole = ['technician', 'lead_technician'].includes(user?.role);
+
+  useEffect(() => {
+    pb.collection('invoices').getFullList({}).then(setInvoices).catch(() => {});
+    pb.collection('payments').getFullList({}).then(setPayments).catch(() => {});
+  }, []);
+
+  const balances = useMemo(() => projectBalances(invoices, payments), [invoices, payments]);
+  const settled = (p) => isSettled(p, balances);
 
   useEffect(() => {
     pb.collection('projects').getFullList({ sort: '-created', expand: 'client,project_manager' })
@@ -34,21 +45,23 @@ export default function ProjectsPage() {
 
   const filtered = useMemo(() => (projects || []).filter((p) => {
     if (status === 'mine') { if (p.lead_technician !== user?.id && !(Array.isArray(p.assigned_technicians) && p.assigned_technicians.includes(user?.id))) return false; }
-    else if (status === 'active' && ['done', 'cancelled'].includes(p.status)) return false;
-    else if (status !== 'active' && status !== 'all' && p.status !== status) return false;
+    else if (status === 'active' && (p.status === 'cancelled' || settled(p))) return false;
+    else if (status === 'completed' && !settled(p)) return false;
+    else if (status === 'awaiting' && !(p.status === 'done' && !settled(p))) return false;
+    else if (!['active', 'all', 'completed', 'awaiting'].includes(status) && p.status !== status) return false;
     if (service !== 'all' && p.service_category !== service) return false;
     if (priority !== 'all' && p.priority !== priority) return false;
     if (q && ![p.title, p.expand?.client?.company_name, p.site_address].join(' ').toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [projects, q, status, service, priority]);
+  }), [projects, q, status, service, priority, balances]);
 
   const stats = useMemo(() => {
     const list = projects || [];
-    const live = list.filter((p) => ['scheduled', 'in_progress', 'planning', 'on_hold'].includes(p.status));
-    const overdue = live.filter((p) => p.due_date && p.due_date < today());
+    const live = list.filter((p) => ['scheduled', 'in_progress', 'planning', 'on_hold'].includes(p.status) || (p.status === 'done' && !isSettled(p, balances)));
+    const overdue = live.filter((p) => p.status !== 'done' && p.due_date && p.due_date < today());
     const value = live.reduce((s, p) => s + Number(p.value || 0), 0);
     return { live: live.length, inProgress: list.filter((p) => p.status === 'in_progress').length, overdue: overdue.length, value };
-  }, [projects]);
+  }, [projects, balances]);
 
   return (
     <PortalLayout title="Projects & Work Orders" subtitle="Every job from accepted quote to handover">
@@ -67,7 +80,9 @@ export default function ProjectsPage() {
           {['technician', 'lead_technician'].includes(user?.role) && <option value="mine">My projects</option>}
           <option value="active">Open projects</option>
           <option value="all">All projects</option>
-          {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          <option value="completed">Completed (fully paid)</option>
+          <option value="awaiting">Done, awaiting payment</option>
+          {PROJECT_STATUSES.filter((s) => s.value !== 'done').map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <FilterSelect value={service} onChange={setService} options={SERVICE_CATEGORIES} allLabel="All services" />
         <FilterSelect value={priority} onChange={setPriority} options={PRIORITIES} allLabel="Any priority" />
@@ -95,6 +110,7 @@ export default function ProjectsPage() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>{progress}% complete</span>
+                  {p.status === 'done' && !settled(p) && <span className="font-semibold text-amber-700">Awaiting payment</span>}
                   <span className={`inline-flex items-center gap-1 ${overdue ? 'font-semibold text-rose-600' : ''}`}><CalendarDays className="h-3.5 w-3.5" />{p.due_date ? `Due ${fmtDate(p.due_date)}` : 'No due date'}{overdue ? ' · overdue' : ''}</span>
                   {p.site_address && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{p.site_address}</span>}
                   <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{teamCount[p.id] || 0} contractor{teamCount[p.id] === 1 ? '' : 's'}</span>

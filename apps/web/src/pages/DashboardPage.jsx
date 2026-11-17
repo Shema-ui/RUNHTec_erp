@@ -20,6 +20,7 @@ import pb from '@/lib/pocketbaseClient';
 import { formatMoney, formatMoneyShort, DEFAULT_CURRENCY } from '@/lib/money';
 import { fmtDate, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES } from '@/lib/projects';
+import { projectBalances, isSettled } from '@/lib/projectSettle';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The main Dashboard: a business overview (money, quotes, projects, what needs
@@ -270,8 +271,10 @@ export default function DashboardPage() {
     const winRate = decided ? Math.round((qCount('accepted') / decided) * 100) : null;
 
     // Projects
-    const active = d.projects.filter((p) => ['planning', 'scheduled', 'in_progress', 'on_hold'].includes(p.status));
-    const lateProjects = active.filter((p) => p.due_date && p.due_date < today);
+    // Done projects stay active until every invoice for them is paid.
+    const balances = projectBalances(d.invoices, d.payments);
+    const active = d.projects.filter((p) => ['planning', 'scheduled', 'in_progress', 'on_hold'].includes(p.status) || (p.status === 'done' && !isSettled(p, balances)));
+    const lateProjects = active.filter((p) => p.status !== 'done' && p.due_date && p.due_date < today);
     const byStatus = PROJECT_STATUSES.filter((s) => s.value !== 'cancelled')
       .map((s) => ({ label: s.label, value: d.projects.filter((p) => p.status === s.value).length }));
     const doneThisMonth = d.projects.filter((p) => p.status === 'done' && monthOf(p.completed_date || p.updated) === thisMonth).length;
