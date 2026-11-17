@@ -11,6 +11,7 @@ import {
 } from '@/components/erp/kit';
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import SuperDelete from '@/components/erp/SuperDelete';
+import PaymentBar from '@/components/erp/PaymentBar';
 
 const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Other'];
 const today = () => todayISO();
@@ -181,7 +182,12 @@ function RecordPaymentDialog({ open, payment, onClose, invoices, paidByInvoice: 
             {open_.map((i) => <option key={i.id} value={i.id}>{i.invoice_number} — {i.bill_to_company || i.bill_to_name} — {formatMoney(i.total, i.currency)}</option>)}
           </select>
         </Field>
-        {inv && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm">Balance due: <strong>{formatMoney(balance, inv.currency)}</strong> of {formatMoney(inv.total, inv.currency)}</p>}
+        {inv && (
+          <div className="rounded-xl border border-border bg-background p-3">
+            <PaymentBar label="Invoice after this payment" total={inv.total} paid={(paidByInvoice[inv.id] || 0) + (Number(form.amount) || 0)} currency={inv.currency} />
+            <p className="mt-2 text-xs text-muted-foreground">Updates as you type the amount. Balance before this payment: {formatMoney(balance, inv.currency)}.</p>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Amount received" required><input type="number" min="0" className={inputCls} value={form.amount} onChange={(e) => set('amount', e.target.value)} /></Field>
           <Field label="Date received"><input type="date" className={inputCls} value={form.paid_date} onChange={(e) => set('paid_date', e.target.value)} /></Field>
