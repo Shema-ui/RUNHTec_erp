@@ -270,8 +270,9 @@ const collections = {
   // Internal job costs (labour days, materials, transport…). Staff only.
   project_costs: {
     table: 'project_costs',
-    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'created', 'updated'],
+    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'receipt', 'approved', 'approved_by_name', 'created', 'updated'],
     relations: { project: 'projects', contractor: 'contractors' },
+    fileFields: ['receipt'],
     // A lead technician logs days/expenses on projects they lead (checked when saving)
     // and sees and corrects only the entries they made themselves.
     rules: {

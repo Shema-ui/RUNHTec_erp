@@ -166,7 +166,7 @@ export default function ReportsPage() {
                       ))}
                     </tbody>
                   </table>
-                  <p className="mt-3 text-xs text-muted-foreground"><strong>Profit</strong> = price − everything spent. <strong>Cash profit</strong> = what the client has paid so far − everything spent.</p>
+                  <p className="mt-3 text-xs text-muted-foreground"><strong>Profit</strong> = price − everything spent. <strong>Cash profit</strong> = what the client has paid so far − everything spent. Prices exclude VAT; fixed-fee contractors count when paid. Check VAT treatment with your accountant.</p>
                   <p className="mt-2 text-sm">Profit on completed projects: <strong>{formatMoney(r.doneProfit, C)}</strong></p>
                 </div>
               )}

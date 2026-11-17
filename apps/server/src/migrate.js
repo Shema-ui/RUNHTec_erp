@@ -147,6 +147,10 @@ async function runMigrations() {
     // Lead technician of a project (a user account), who logs the crew's days on site
     await ensureColumn(conn, 'projects', 'lead_technician', 'VARCHAR(20) DEFAULT NULL');
     await ensureColumn(conn, 'project_costs', 'recorded_by', 'VARCHAR(20) DEFAULT NULL');
+    // Receipt photo or PDF, and the accountant's approval of the entry.
+    await ensureColumn(conn, 'project_costs', 'receipt', 'VARCHAR(20) DEFAULT NULL');
+    await ensureColumn(conn, 'project_costs', 'approved', 'TINYINT(1) DEFAULT 0');
+    await ensureColumn(conn, 'project_costs', 'approved_by_name', "VARCHAR(200) DEFAULT ''");
 
     // Client portal: which client a login belongs to, what is shared, handover sign-off
     await ensureColumn(conn, 'users', 'client', 'VARCHAR(20) DEFAULT NULL');

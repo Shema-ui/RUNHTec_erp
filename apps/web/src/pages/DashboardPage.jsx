@@ -12,7 +12,7 @@ import {
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel, canAccessModule } from '@/lib/permissions';
-import { canSeeCosts } from '@/lib/costing';
+import { canSeeCosts, computeCosting, fixedFeeCosts } from '@/lib/costing';
 import TechnicianDashboard from '@/components/erp/TechnicianDashboard';
 import { InstallBanner } from '@/components/erp/AppInstall';
 import { openAppDialog } from '@/lib/pwa';
@@ -187,13 +187,14 @@ export default function DashboardPage() {
       safe(seeMaint, pb.collection('maintenance_contracts').getFullList({ expand: 'client' })),
       safe(seeCrm, pb.collection('client_followups').getFullList({ filter: "status = 'pending'", sort: 'due_date', expand: 'client' })),
       safe(seeCosts, pb.collection('project_costs').getFullList({ sort: '-cost_date' })),
+      safe(seeCosts, pb.collection('project_assignments').getFullList({})),
       pb.collection('client_activities').getList(1, 8, { sort: '-created' }).then((r) => r.items || []).catch(() => []),
       pb.collection('company_settings').getList(1, 1).then((r) => r.items?.[0] || {}).catch(() => ({})),
-    ]).then(([invoices, payments, quotes, projects, rfqs, maint, followups, costs, activity, cfg]) => {
+    ]).then(([invoices, payments, quotes, projects, rfqs, maint, followups, costs, assignments, activity, cfg]) => {
       if (cancelled) return;
       let rates = cfg.exchange_rates;
       if (typeof rates === 'string') { try { rates = JSON.parse(rates); } catch { rates = {}; } }
-      setD({ invoices, payments, quotes, projects, rfqs, maint, followups, costs, activity, rates: rates || {} });
+      setD({ invoices, payments, quotes, projects, rfqs, maint, followups, costs, assignments, activity, rates: rates || {} });
     });
     return () => { cancelled = true; };
   }, [isTech, seeMoney, seeCosts, seeQuotes, seeProjects, seeRfq, seeMaint, seeCrm]);
@@ -216,13 +217,20 @@ export default function DashboardPage() {
     const recThis = received(thisMonth);
     const recLast = received(lastMonth);
     const trend = recLast > 0 ? Math.round(((recThis - recLast) / recLast) * 100) : null;
-    // Profit = money received minus expenses logged on projects (same month).
-    const spentIn = (m) => (d.costs || []).filter((c) => monthOf(c.cost_date) === m).reduce((s, c) => s + rwf(c.amount, c.currency), 0);
-    const spentThis = spentIn(thisMonth);
-    const spentLast = spentIn(lastMonth);
-    const profitThis = recThis - spentThis;
-    const profitLast = recLast - spentLast;
-    const profitTrend = profitLast !== 0 ? Math.round(((profitThis - profitLast) / Math.abs(profitLast)) * 100) : null;
+    // Profit on projects finished this year: contract price minus expenses logged and fixed fees paid.
+    const quoteById = Object.fromEntries((d.quotes || []).map((q) => [q.id, q]));
+    const costsByProject = {};
+    (d.costs || []).forEach((c) => { costsByProject[c.project] = (costsByProject[c.project] || 0) + rwf(c.amount, c.currency); });
+    const finished = (d.projects || []).filter((p) => p.status === 'done' && String(p.completed_date || p.updated || '').startsWith(today.slice(0, 4)));
+    let profitDone = 0;
+    finished.forEach((p) => {
+      const q = quoteById[p.quotation];
+      const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;
+      const cur = (q && q.currency) || p.currency;
+      const revenue = rwf(plan ? plan.revenue : Number(p.value || 0), cur);
+      const fees = fixedFeeCosts((d.assignments || []).filter((a) => a.project === p.id)).list.reduce((s, a) => s + rwf(a.amount_paid, a.currency || cur), 0);
+      profitDone += revenue - (costsByProject[p.id] || 0) - fees;
+    });
     const paidByInv = {};
     paid.forEach((p) => { if (p.invoice) paidByInv[p.invoice] = (paidByInv[p.invoice] || 0) + n(p.amount); });
     const open = d.invoices.filter((i) => ['sent', 'overdue'].includes(i.status));
@@ -285,7 +293,7 @@ export default function DashboardPage() {
     ].filter(Boolean);
 
     return {
-      recThis, trend, spentThis, profitThis, profitTrend, outstanding, open, lateInv, lateAmount, months, awaiting, awaitingValue, quoteMix, winRate,
+      recThis, trend, profitDone, finishedCount: finished.length, outstanding, open, lateInv, lateAmount, months, awaiting, awaitingValue, quoteMix, winRate,
       active, lateProjects, byStatus, doneThisMonth, todo, skipped,
     };
   }, [d, seeRfq, seeQuotes, seeMoney, seeProjects, seeMaint, seeCrm]);
@@ -298,7 +306,7 @@ export default function DashboardPage() {
 
   const kpis = r ? [
     seeMoney && { key: 'rec', icon: Banknote, label: 'Received this month', value: formatMoneyShort(r.recThis, C), sub: r.trend == null ? 'No payments last month to compare' : 'compared with last month', trend: r.trend, tone: { icon: 'bg-emerald-50 text-emerald-700', bar: 'bg-emerald-500' }, to: '/payments' },
-    seeMoney && seeCosts && { key: 'profit', icon: TrendingUp, label: 'Profit this month', value: formatMoneyShort(r.profitThis, C), sub: `${formatMoneyShort(r.recThis, C)} received − ${formatMoneyShort(r.spentThis, C)} spent`, trend: r.profitTrend, tone: { icon: 'bg-violet-50 text-violet-700', bar: 'bg-violet-500' }, to: '/reports' },
+    seeMoney && seeCosts && { key: 'profit', icon: TrendingUp, label: 'Profit on finished projects', value: formatMoneyShort(r.profitDone, C), sub: `${r.finishedCount} finished this year`, tone: { icon: 'bg-violet-50 text-violet-700', bar: 'bg-violet-500' }, to: '/reports' },
     seeMoney && { key: 'out', icon: ReceiptText, label: 'Unpaid invoices', value: formatMoneyShort(r.outstanding, C), sub: `${r.open.length} invoice${r.open.length === 1 ? '' : 's'} not fully paid`, tone: { icon: 'bg-blue-50 text-blue-700', bar: 'bg-blue-600' }, to: '/invoices' },
     seeMoney && { key: 'late', icon: AlertTriangle, label: 'Overdue', value: formatMoneyShort(r.lateAmount, C), sub: `${r.lateInv.length} past the due date`, tone: { icon: 'bg-rose-50 text-rose-700', bar: 'bg-rose-500' }, to: '/invoices' },
     seeQuotes && { key: 'quotes', icon: FileText, label: 'Quotes awaiting answer', value: formatMoneyShort(r.awaitingValue, C), sub: `${r.awaiting.length} quote${r.awaiting.length === 1 ? '' : 's'} sent`, tone: { icon: 'bg-amber-50 text-amber-700', bar: 'bg-amber-500' }, to: '/quotations' },

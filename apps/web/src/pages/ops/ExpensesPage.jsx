@@ -78,7 +78,7 @@ export default function ExpensesPage() {
             <StatCard icon={Receipt} label="Spent (shown)" value={Object.keys(byCurrency).length ? Object.entries(byCurrency).map(([cur, v]) => formatMoney(v, cur)).join(' + ') : formatMoney(0)} note={`${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`} />
             <StatCard icon={Receipt} label="Not yet paid out" value={formatMoney(unpaid, DEFAULT_CURRENCY)} note="Shown in the currency of each entry" tone={unpaid ? 'amber' : 'green'} />
             <StatCard icon={Receipt} label="Projects with expenses" value={new Set(rows.map((c) => c.project)).size} note="In the current view" />
-            <StatCard icon={Receipt} label="Recorded in total" value={costs.length} note="All projects, all time" />
+            <StatCard icon={Receipt} label="Awaiting approval" value={rows.filter((c) => !c.approved).length} note="Accountant or admin to approve" tone={rows.some((c) => !c.approved) ? 'amber' : 'green'} />
           </div>
 
           <Card
