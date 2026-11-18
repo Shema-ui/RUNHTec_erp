@@ -12,6 +12,7 @@ import {
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import SuperDelete from '@/components/erp/SuperDelete';
 import PaymentBar from '@/components/erp/PaymentBar';
+import BusinessFilter, { inBusiness } from '@/components/erp/BusinessFilter';
 
 const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Other'];
 const today = () => todayISO();
@@ -20,6 +21,7 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [q, setQ] = useState('');
+  const [business, setBusiness] = useState('all');
   const [recording, setRecording] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -60,7 +62,7 @@ export default function PaymentsPage() {
     if (!inv) return null;
     return { total: Number(inv.total) || 0, paid: paidByInvoice[inv.id] || 0, currency: inv.currency || p.currency };
   };
-  const filtered = (payments || []).filter((p) => !q || [p.reference, p.transaction_reference, p.expand?.invoice?.invoice_number, p.expand?.client?.company_name, p.expand?.invoice?.bill_to_company].join(' ').toLowerCase().includes(q.toLowerCase()));
+  const filtered = (payments || []).filter((p) => inBusiness(p, business)).filter((p) => !q || [p.reference, p.transaction_reference, p.expand?.invoice?.invoice_number, p.expand?.client?.company_name, p.expand?.invoice?.bill_to_company].join(' ').toLowerCase().includes(q.toLowerCase()));
 
   return (
     <PortalLayout title="Payments" subtitle="Money received from clients, matched to invoices">
@@ -74,6 +76,7 @@ export default function PaymentsPage() {
 
       <Toolbar>
         <SearchBox value={q} onChange={setQ} placeholder="Search invoice, client or reference" />
+        <BusinessFilter value={business} onChange={setBusiness} />
         <button className={`${btnPrimary} ml-auto`} onClick={() => setRecording(true)}><Plus className="h-4 w-4" /> Record payment</button>
       </Toolbar>
 
