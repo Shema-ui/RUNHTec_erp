@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 
 // Fallback logo used only when no logo has been uploaded in Settings.
 const DEFAULT_LOGO_URL = '/logo.png';
+const ORVIO_LOGO_URL = '/orvio-logo.png';
+const ORVIO_BRAND = '#0F4C5C';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
 const BRAND = '#003DA5';
 
@@ -84,7 +86,10 @@ export default function InvoiceViewPage() {
     }).catch(() => navigate('/invoices'));
   }, [id]);
 
-  const logoUrl = settings?.logo ? pb.files.getURL(settings, settings.logo) : DEFAULT_LOGO_URL;
+  // Orvio documents use Orvio's colours and logo; RUNHTec documents keep the RUNHTec look.
+  const isOrvio = invoice?.business === 'orvio';
+  const brand = isOrvio ? ORVIO_BRAND : BRAND;
+  const logoUrl = settings?.logo ? pb.files.getURL(settings, settings.logo) : (isOrvio ? ORVIO_LOGO_URL : DEFAULT_LOGO_URL);
   const signatureUrl = settings?.signature ? pb.files.getURL(settings, settings.signature) : null;
   const stampUrl = settings?.stamp ? pb.files.getURL(settings, settings.stamp) : null;
   const showSignature = settings?.show_signature !== false && Boolean(signatureUrl);
@@ -268,7 +273,7 @@ export default function InvoiceViewPage() {
           style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '13px', lineHeight: '1.5', color: '#1e293b' }}
         >
           {/* Header */}
-          <div style={{ background: BRAND, borderRadius: '16px 16px 0 0', padding: '32px 40px 28px' }}>
+          <div style={{ background: brand, borderRadius: '16px 16px 0 0', padding: '32px 40px 28px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
               {/* Logo + Company */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -349,7 +354,7 @@ export default function InvoiceViewPage() {
           <div style={{ padding: '28px 40px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: BRAND }}>
+                <tr style={{ background: brand }}>
                   <th style={{ padding: '10px 14px', textAlign: 'left', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderRadius: '6px 0 0 6px' }}>Description</th>
                   <th style={{ padding: '10px 14px', textAlign: 'center', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px' }}>Qty</th>
                   <th style={{ padding: '10px 14px', textAlign: 'right', color: 'white', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', width: '130px' }}>Unit Price</th>
@@ -394,7 +399,7 @@ export default function InvoiceViewPage() {
                     <span style={{ fontWeight: 500 }}>{fmt(inv.tax_amount, currency)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 14px', marginTop: '6px', background: BRAND, borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '12px 14px', marginTop: '6px', background: brand, borderRadius: '8px' }}>
                   <span style={{ color: 'white', fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total Due</span>
                   <span style={{ color: 'white', fontWeight: 800, fontSize: '19px' }}>{fmt(inv.total, currency)}</span>
                 </div>
@@ -422,7 +427,7 @@ export default function InvoiceViewPage() {
 
           {/* Bank Details */}
           <div style={{ margin: '0 40px 24px', padding: '20px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: BRAND, marginBottom: '12px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: brand, marginBottom: '12px' }}>
               Payment / Banking Details
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 24px' }}>
@@ -474,17 +479,17 @@ export default function InvoiceViewPage() {
                 ) : (
                   <div style={{ height: '52px' }} />
                 )}
-                <div style={{ borderTop: `2px solid ${BRAND}`, paddingTop: '8px' }}>
+                <div style={{ borderTop: `2px solid ${brand}`, paddingTop: '8px' }}>
                   {cfg.signature_name && <div style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{cfg.signature_name}</div>}
                   <div style={{ fontSize: '11px', color: '#64748b' }}>{cfg.signature_position || 'Authorized Representative'}</div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: BRAND, marginTop: '2px' }}>{companyName}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: brand, marginTop: '2px' }}>{companyName}</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div style={{ background: BRAND, borderRadius: '0 0 16px 16px', padding: '18px 40px' }}>
+          <div style={{ background: brand, borderRadius: '0 0 16px 16px', padding: '18px 40px' }}>
             {cfg.invoice_footer_text && (
               <div style={{ color: 'white', fontSize: '13px', fontWeight: 600, marginBottom: '8px', textAlign: 'center' }}>
                 {cfg.invoice_footer_text}
