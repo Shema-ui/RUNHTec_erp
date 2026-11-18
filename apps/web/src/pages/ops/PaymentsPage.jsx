@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2, Save, CreditCard, Pencil } from 'lucide-react';
+import { Plus, Loader2, Save, CreditCard, Pencil, ChevronRight } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
@@ -24,11 +24,14 @@ export default function PaymentsPage() {
   const [business, setBusiness] = useState('all');
   const [recording, setRecording] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [openKey, setOpenKey] = useState(null);
 
   const load = () => Promise.all([
     pb.collection('payments').getFullList({ sort: '-created', expand: 'invoice,client' }),
     pb.collection('invoices').getFullList({ sort: '-created' }),
-  ]).then(([p, i]) => { setPayments(p); setInvoices(i); }).catch(() => setPayments([]));
+    pb.collection('projects').getFullList({}).catch(() => []),
+  ]).then(([p, i, pr]) => { setPayments(p); setInvoices(i); setProjects(pr); }).catch(() => setPayments([]));
   useEffect(() => { load(); }, []);
 
   const paidByInvoice = useMemo(() => {
@@ -63,6 +66,32 @@ export default function PaymentsPage() {
     return { total: Number(inv.total) || 0, paid: paidByInvoice[inv.id] || 0, currency: inv.currency || p.currency };
   };
   const filtered = (payments || []).filter((p) => inBusiness(p, business)).filter((p) => !q || [p.reference, p.transaction_reference, p.expand?.invoice?.invoice_number, p.expand?.client?.company_name, p.expand?.invoice?.bill_to_company].join(' ').toLowerCase().includes(q.toLowerCase()));
+  // One card per client per project: every payment from one person about one project.
+  const projectById = Object.fromEntries((projects || []).map((pr) => [pr.id, pr]));
+  const groupMap = new Map();
+  filtered.forEach((p) => {
+    const inv = p.expand?.invoice;
+    const clientName = p.expand?.client?.company_name || inv?.bill_to_company || 'No client';
+    const projectId = inv?.project || '';
+    const key = `${p.client || inv?.client || clientName}::${projectId || p.invoice || 'none'}`;
+    if (!groupMap.has(key)) groupMap.set(key, { key, clientName, projectId, payments: [], invoiceIds: new Set(), currency: p.currency });
+    const g = groupMap.get(key);
+    g.payments.push(p);
+    if (p.invoice) g.invoiceIds.add(p.invoice);
+  });
+  const groups = [...groupMap.values()].map((g) => {
+    const invs = [...g.invoiceIds].map((id) => invoices.find((i) => i.id === id)).filter(Boolean);
+    const pr = projectById[g.projectId];
+    const projectLabel = pr ? (pr.code ? `${pr.code} · ${pr.title}` : pr.title) : (invs[0]?.invoice_number || 'No project');
+    return {
+      ...g,
+      projectLabel,
+      total: g.payments.reduce((s, p) => s + Number(p.amount || 0), 0),
+      owed: invs.reduce((s, i) => s + (Number(i.total) || 0), 0),
+      paidOnInvoices: invs.reduce((s, i) => s + (paidByInvoice[i.id] || 0), 0),
+    };
+  });
+  const openGroup = groups.find((g) => g.key === openKey) || null;
 
   return (
     <PortalLayout title="Payments" subtitle="Money received from clients, matched to invoices">
@@ -80,51 +109,50 @@ export default function PaymentsPage() {
         <button className={`${btnPrimary} ml-auto`} onClick={() => setRecording(true)}><Plus className="h-4 w-4" /> Record payment</button>
       </Toolbar>
 
-      {!payments ? <Loading /> : filtered.length === 0 ? (
+      {!payments ? <Loading /> : groups.length === 0 ? (
         <Empty>No payments recorded yet. When a client pays, click “Record payment” and choose the invoice — it is marked paid automatically once fully settled.</Empty>
       ) : (
-        <>
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card shadow-sm md:hidden">
-          {filtered.map((p) => (
-            <li key={p.id} className="flex items-start justify-between gap-3 px-4 py-3.5">
-              <div className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{p.expand?.client?.company_name || p.expand?.invoice?.bill_to_company || '—'}</span>
-                <span className="block text-xs text-muted-foreground">{fmtDate(p.paid_date || p.created)} · {p.method || '—'}{p.expand?.invoice?.invoice_number ? ` · ${p.expand.invoice.invoice_number}` : ''}</span>
-                {progressFor(p) && <div className="mt-2"><PaymentBar compact total={progressFor(p).total} paid={progressFor(p).paid} currency={progressFor(p).currency} /></div>}
-              </div>
-              <span className="flex shrink-0 flex-col items-end gap-1">
-                <span className="font-semibold">{formatMoney(p.amount, p.currency)}</span>
-                <span className="flex gap-1">
-                  <button onClick={() => setEditing(p)} aria-label="Edit payment" className="inline-flex rounded-lg border border-border p-1.5 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                  <SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}`} after={afterDelete(p)} />
-                </span>
-              </span>
+        <ul className="grid gap-3 md:grid-cols-2">
+          {groups.map((g) => (
+            <li key={g.key}>
+              <button onClick={() => setOpenKey(g.key)} className="block w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-primary/40 hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="block truncate font-semibold">{g.clientName}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{g.projectLabel}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">{g.payments.length} payment{g.payments.length === 1 ? '' : 's'} · last {fmtDate(g.payments[0].paid_date || g.payments[0].created)}</span>
+                  <span className="font-semibold">{formatMoney(g.total, g.currency)}</span>
+                </div>
+                {g.owed > 0 && <div className="mt-2"><PaymentBar compact total={g.owed} paid={g.paidOnInvoices} currency={g.currency} /></div>}
+              </button>
             </li>
           ))}
         </ul>
-        <div className="hidden overflow-x-auto rounded-2xl border border-border bg-card shadow-sm md:block">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Client</th><th className="px-4 py-3">Method</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Paid / owed</th><th className="w-24 px-2 py-3" /></tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((p) => (
-                <tr key={p.id}>
-                  <td className="px-4 py-3">{fmtDate(p.paid_date || p.created)}</td>
-                  <td className="px-4 py-3">{p.invoice ? <Link to={`/invoices/${p.invoice}/view`} className="font-medium text-primary hover:underline">{p.expand?.invoice?.invoice_number || 'Invoice'}</Link> : '—'}</td>
-                  <td className="px-4 py-3">{p.expand?.client?.company_name || p.expand?.invoice?.bill_to_company || '—'}</td>
-                  <td className="px-4 py-3">{p.method || '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.transaction_reference || p.reference || '—'}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatMoney(p.amount, p.currency)}</td>
-                  <td className="px-4 py-3">{progressFor(p) && <PaymentBar compact total={progressFor(p).total} paid={progressFor(p).paid} currency={progressFor(p).currency} />}</td>
-                  <td className="whitespace-nowrap px-2 py-3 text-right"><button onClick={() => setEditing(p)} aria-label="Edit payment" title="Edit" className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button><SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}${p.expand?.invoice?.invoice_number ? ` on ${p.expand.invoice.invoice_number}` : ''}`} after={afterDelete(p)} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        </>
       )}
+
+      <Modal open={Boolean(openGroup)} onClose={() => setOpenKey(null)} title={openGroup ? `${openGroup.clientName} · ${openGroup.projectLabel}` : ''} description="Every payment from this client for this project." wide>
+        {openGroup && (
+          <div className="space-y-2">
+            {openGroup.payments.map((p) => (
+              <div key={p.id} className="flex items-start justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
+                <div className="min-w-0">
+                  <span className="block text-sm font-medium">{fmtDate(p.paid_date || p.created)} · {p.method || '—'}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{p.expand?.invoice?.invoice_number ? `${p.expand.invoice.invoice_number} · ` : ''}{p.transaction_reference || p.reference || 'No reference'}</span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="font-semibold">{formatMoney(p.amount, p.currency)}</span>
+                  <button onClick={() => { setOpenKey(null); setEditing(p); }} aria-label="Edit payment" className="inline-flex rounded-lg border border-border p-1.5 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
+                  <SuperDelete collection="payments" id={p.id} label={`payment of ${formatMoney(p.amount, p.currency)}`} after={afterDelete(p)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       <RecordPaymentDialog open={recording || Boolean(editing)} payment={editing} onClose={() => { setRecording(false); setEditing(null); }} invoices={invoices} paidByInvoice={paidByInvoice} onSaved={load} />
     </PortalLayout>
