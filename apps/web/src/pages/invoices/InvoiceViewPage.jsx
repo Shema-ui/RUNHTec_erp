@@ -75,9 +75,11 @@ export default function InvoiceViewPage() {
       pb.collection('invoices').getOne(id, { requestKey: `view-inv-${id}` }),
       pb.collection('company_settings').getList(1, 1, { requestKey: 'view-settings' })
         .then(r => r.items[0] || null).catch(() => null),
-    ]).then(([inv, cfg]) => {
+      pb.collection('business_profiles').getFullList({ requestKey: 'view-profiles' }).catch(() => []),
+    ]).then(([inv, cfg, profiles]) => {
       setInvoice(inv);
-      setSettings(cfg);
+      // Orvio invoices use Orvio's profile (logo, bank, footer); RUNHTec's use company settings.
+      setSettings((inv.business === 'orvio' && profiles.find(p => p.code === 'orvio')) || cfg);
       setLoading(false);
     }).catch(() => navigate('/invoices'));
   }, [id]);

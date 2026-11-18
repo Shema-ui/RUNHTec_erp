@@ -14,6 +14,7 @@ const clientScope = require('./clientScope');
 // Where files are kept: [collection, single-file columns, JSON-list columns]
 const REFS = [
   ['company_settings', ['logo', 'signature', 'stamp'], []],
+  ['business_profiles', ['logo'], []],
   ['clients', ['logo'], []],
   ['client_documents', ['file'], []],
   ['documents', ['file'], []],

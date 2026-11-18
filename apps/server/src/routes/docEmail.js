@@ -127,7 +127,10 @@ async function loadDoc(type, id, user) {
   const doc = rows[0];
   if (!doc || !def.rules.view(user, doc)) return { error: [404, 'Not found.'] };
   if (!def.rules.update(user, doc)) return { error: [403, 'You are not allowed to send this document.'] };
-  const [cfgRows] = await pool.query('SELECT * FROM company_settings LIMIT 1');
+  // Orvio documents are sent with Orvio's profile; everything else with RUNHTec's settings.
+  const [cfgRows] = doc.business === 'orvio'
+    ? await pool.query("SELECT * FROM business_profiles WHERE code = 'orvio' LIMIT 1")
+    : await pool.query('SELECT * FROM company_settings LIMIT 1');
   return { doc, cfg: cfgRows[0] || {}, t, def };
 }
 

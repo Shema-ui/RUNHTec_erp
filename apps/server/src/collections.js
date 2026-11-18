@@ -97,7 +97,7 @@ const collections = {
   },
   quotations: {
     table: 'quotations',
-    fields: ['id', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'emailed_at', 'emailed_to', 'created', 'updated'],
+    fields: ['id', 'business', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'emailed_at', 'emailed_to', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
     rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],
@@ -253,7 +253,7 @@ const collections = {
   },
   invoices: {
     table: 'invoices',
-    fields: ['id', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'costing', 'emailed_at', 'emailed_to', 'created', 'updated'],
+    fields: ['id', 'business', 'invoice_number', 'client', 'quotation', 'project', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'invoice_date', 'due_date', 'payment_terms', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'payment_instructions', 'terms_conditions', 'status', 'created_by', 'created_by_name', 'costing', 'emailed_at', 'emailed_to', 'created', 'updated'],
     relations: { client: 'clients', created_by: 'users', quotation: 'quotations', project: 'projects' },
     // Financial data — protected per the RBAC requirements: read AND write
     // restricted to accountant + super_admin, not just write.
@@ -262,7 +262,7 @@ const collections = {
   },
   payments: {
     table: 'payments',
-    fields: ['id', 'client', 'invoice', 'reference', 'amount', 'currency', 'status', 'transaction_reference', 'method', 'paid_date', 'notes', 'recorded_by_name', 'created'],
+    fields: ['id', 'business', 'client', 'invoice', 'reference', 'amount', 'currency', 'status', 'transaction_reference', 'method', 'paid_date', 'notes', 'recorded_by_name', 'created'],
     relations: { client: 'clients', invoice: 'invoices' },
     rules: { list: FINANCE, view: FINANCE, create: FINANCE, update: FINANCE, delete: FINANCE },
     watchedFields: ['status', 'amount'],
@@ -270,7 +270,7 @@ const collections = {
   // Internal job costs (labour days, materials, transport…). Staff only.
   project_costs: {
     table: 'project_costs',
-    fields: ['id', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'receipt', 'approved', 'approved_by_name', 'created', 'updated'],
+    fields: ['id', 'business', 'project', 'cost_date', 'category', 'description', 'contractor', 'worker_name', 'worker_role', 'quantity', 'unit_cost', 'amount', 'currency', 'paid', 'notes', 'recorded_by', 'recorded_by_name', 'receipt', 'approved', 'approved_by_name', 'created', 'updated'],
     relations: { project: 'projects', contractor: 'contractors' },
     fileFields: ['receipt'],
     // A lead technician logs days/expenses on projects they lead (checked when saving)
@@ -303,6 +303,14 @@ const collections = {
     fileFields: ['logo', 'signature', 'stamp'],
     rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
     watchedFields: ['bank_name', 'account_number', 'show_signature', 'show_stamp'],
+  },
+  // Orvio's profile: the same branding fields as company_settings, used for documents tagged business = 'orvio'.
+  business_profiles: {
+    table: 'business_profiles',
+    fields: ['id', 'code', 'company_name', 'company_tagline', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_registration_number', 'logo', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'quote_prefix', 'invoice_prefix', 'created', 'updated'],
+    relations: {},
+    fileFields: ['logo'],
+    rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
   },
   activity_logs: {
     table: 'activity_logs',

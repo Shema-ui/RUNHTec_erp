@@ -73,9 +73,11 @@ export default function QuotationViewPage() {
       pb.collection('quotations').getOne(id, { requestKey: `view-quote-${id}` }),
       pb.collection('company_settings').getList(1, 1, { requestKey: 'view-quote-settings' })
         .then(r => r.items[0] || null).catch(() => null),
-    ]).then(([q, cfg]) => {
+      pb.collection('business_profiles').getFullList({ requestKey: 'view-quote-profiles' }).catch(() => []),
+    ]).then(([q, cfg, profiles]) => {
       setQuote(q);
-      setSettings(cfg);
+      // Orvio quotes use Orvio's profile (logo, bank, footer); RUNHTec's use company settings.
+      setSettings((q.business === 'orvio' && profiles.find(p => p.code === 'orvio')) || cfg);
       setLoading(false);
     }).catch(() => navigate('/quotations'));
   }, [id]);

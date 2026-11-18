@@ -72,6 +72,7 @@ export default function QuotationFormPage() {
     bill_to_email: '',
     bill_to_phone: '',
     number: '',
+    business: 'runhtec',
     valid_until: IN30,
     currency: DEFAULT_CURRENCY,
     tax_rate: DEFAULT_TAX_RATE,
@@ -285,7 +286,13 @@ export default function QuotationFormPage() {
             <Field label="Valid Until">
               <input type="date" className={inputCls} value={form.valid_until} onChange={e => setField('valid_until', e.target.value)} />
             </Field>
-            <Field label="Currency">
+            <Field label="Issued by">
+              <select className={inputCls} value={form.business || 'runhtec'} onChange={e => setField('business', e.target.value)}>
+                <option value="runhtec">RUNHTec Contractors</option>
+                <option value="orvio">Orvio</option>
+              </select>
+            </Field>
+<Field label="Currency">
               <select className={inputCls} value={form.currency} onChange={e => setField('currency', e.target.value)}>
                 {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.value}</option>)}
               </select>

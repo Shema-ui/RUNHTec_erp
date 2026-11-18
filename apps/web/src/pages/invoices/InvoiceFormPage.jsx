@@ -71,6 +71,7 @@ export default function InvoiceFormPage() {
 
   const [form, setForm] = useState({
     invoice_number: '',
+    business: 'runhtec',
     client: '',
     quotation: '',
     project: '',
@@ -367,7 +368,13 @@ export default function InvoiceFormPage() {
                 <option value="Custom">Custom</option>
               </select>
             </Field>
-            <Field label="Currency">
+            <Field label="Issued by">
+              <select className={inputCls} value={form.business || 'runhtec'} onChange={e => setField('business', e.target.value)}>
+                <option value="runhtec">RUNHTec Contractors</option>
+                <option value="orvio">Orvio</option>
+              </select>
+            </Field>
+<Field label="Currency">
               <select className={inputCls} value={form.currency} onChange={e => setField('currency', e.target.value)}>
                 {CURRENCIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
