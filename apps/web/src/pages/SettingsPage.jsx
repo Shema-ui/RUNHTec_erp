@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { Link } from 'react-router-dom';
 import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image as ImageIcon, Stamp, FileText, HardHat, Plus, Trash2, DatabaseBackup, Truck, Sun, Mail } from 'lucide-react';
 import { CURRENCIES } from '@/lib/money';
 import { resetVendorOffers } from '@/lib/vendorPricing';
@@ -329,6 +330,7 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground">
           These details appear on every generated invoice. Update them here to reflect on future invoices automatically.
         </p>
+        <Link to="/settings/orvio" className="text-sm font-semibold text-primary hover:underline">Orvio profile →</Link>
         {isSuperAdmin && (
           <button
             onClick={handleSave}

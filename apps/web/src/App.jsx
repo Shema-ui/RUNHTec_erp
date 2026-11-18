@@ -40,6 +40,7 @@ import InvoicesPage from '@/pages/invoices/InvoicesPage';
 import InvoiceFormPage from '@/pages/invoices/InvoiceFormPage';
 import InvoiceViewPage from '@/pages/invoices/InvoiceViewPage';
 import SettingsPage from '@/pages/SettingsPage';
+import OrvioProfilePage from '@/pages/OrvioProfilePage';
 import RfqsPage from '@/pages/ops/RfqsPage';
 import QuotationsPage from '@/pages/ops/QuotationsPage';
 import QuotationFormPage from '@/pages/ops/QuotationFormPage';
@@ -171,6 +172,14 @@ function App() {
           <Route path="/notifications" element={<Protected moduleKey="notifications"><NotificationsPage /></Protected>} />
 
           {/* Super Administrator only */}
+          <Route
+            path="/settings/orvio"
+            element={
+              <RequireAuth>
+                <RequireRole roles={['super_admin']}><OrvioProfilePage /></RequireRole>
+              </RequireAuth>
+            }
+          />
           <Route
             path="/settings"
             element={

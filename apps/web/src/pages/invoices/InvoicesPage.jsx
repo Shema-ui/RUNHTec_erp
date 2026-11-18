@@ -9,6 +9,7 @@ import pb from '@/lib/pocketbaseClient';
 import { nextDocNumber } from '@/lib/numbering';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import PaymentBar from '@/components/erp/PaymentBar';
+import BusinessFilter from '@/components/erp/BusinessFilter';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -43,6 +44,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [business, setBusiness] = useState('all');
   const [paidByInvoice, setPaidByInvoice] = useState({});
   const [deleting, setDeleting] = useState(null);
 
@@ -52,6 +54,7 @@ export default function InvoicesPage() {
       const filters = [];
       if (search.trim()) filters.push(`(invoice_number ~ "${search}" || bill_to_name ~ "${search}" || bill_to_company ~ "${search}")`);
       if (statusFilter !== 'all') filters.push(`status = "${statusFilter}"`);
+      if (business !== 'all') filters.push(`business = "${business}"`);
       const result = await pb.collection('invoices').getList(1, 200, {
         filter: filters.join(' && ') || '',
         sort: '-created',
@@ -68,7 +71,7 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, business]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -155,6 +158,7 @@ export default function InvoicesPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+        <BusinessFilter value={business} onChange={setBusiness} />
       </div>
 
       {/* Table */}
