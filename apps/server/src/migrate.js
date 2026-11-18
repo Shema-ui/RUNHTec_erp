@@ -243,6 +243,36 @@ async function runMigrations() {
     }
     for (const c of ['quote_email_subject', 'invoice_email_subject']) await ensureColumn(conn, 'company_settings', c, "VARCHAR(200) DEFAULT ''");
     for (const c of ['quote_email_body', 'invoice_email_body']) await ensureColumn(conn, 'company_settings', c, 'TEXT NULL');
+    // Orvio: a business under RUNHTec's books. Each quote, invoice, payment and cost is tagged with its business,
+    // and Orvio's own profile (name, logo, bank, footer) lives in business_profiles.
+    for (const t of ['quotations', 'invoices', 'payments', 'project_costs']) await ensureColumn(conn, t, 'business', "VARCHAR(20) NOT NULL DEFAULT 'runhtec'");
+    await conn.query(`CREATE TABLE IF NOT EXISTS business_profiles (
+      id VARCHAR(20) PRIMARY KEY,
+      code VARCHAR(20) NOT NULL DEFAULT '',
+      company_name VARCHAR(200) DEFAULT '',
+      company_tagline VARCHAR(300) DEFAULT '',
+      company_address TEXT,
+      company_phone VARCHAR(60) DEFAULT '',
+      company_email VARCHAR(200) DEFAULT '',
+      company_website VARCHAR(200) DEFAULT '',
+      company_registration_number VARCHAR(100) DEFAULT '',
+      logo VARCHAR(200) DEFAULT '',
+      bank_name VARCHAR(200) DEFAULT '',
+      account_name VARCHAR(200) DEFAULT '',
+      account_number VARCHAR(100) DEFAULT '',
+      branch_code VARCHAR(50) DEFAULT '',
+      swift_code VARCHAR(50) DEFAULT '',
+      currency VARCHAR(10) DEFAULT 'RWF',
+      invoice_footer_text TEXT,
+      default_terms_conditions TEXT,
+      default_payment_instructions TEXT,
+      quote_prefix VARCHAR(20) DEFAULT 'ORV-Q',
+      invoice_prefix VARCHAR(20) DEFAULT 'ORV-INV',
+      created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated DATETIME NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    const [orvioRow] = await conn.query("SELECT id FROM business_profiles WHERE code = 'orvio' LIMIT 1");
+    if (!orvioRow.length) await conn.query("INSERT INTO business_profiles (id, code, company_name, company_tagline, currency) VALUES (LEFT(REPLACE(UUID(), '-', ''), 15), 'orvio', 'Orvio', 'Systems that make everything easy.', 'RWF')");
     // A client can have several sites (home, office, branch…).
     await conn.query(`CREATE TABLE IF NOT EXISTS client_sites (
       id VARCHAR(20) PRIMARY KEY,

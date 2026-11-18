@@ -366,12 +366,16 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
       Object.assign(body, { sender: req.user.id, sender_name: req.user.name || req.user.email || 'RUNHTec', sender_role: 'staff', read_by_staff: 1, read_by_client: 0 });
       if (!body.kind) body.kind = 'message';
     }
-    // Never reuse a quotation / invoice number.
-    for (const [coll, col, prefix] of [['quotations', 'number', 'Q'], ['invoices', 'invoice_number', 'INV'], ['projects', 'code', 'PRJ']]) {
+    // Never reuse a quotation / invoice number. Orvio documents take the ORV- series.
+    const orvio = body.business === 'orvio';
+    for (const [coll, col, prefix, orvioPrefix] of [['quotations', 'number', 'Q', 'ORV-Q'], ['invoices', 'invoice_number', 'INV', 'ORV-INV'], ['projects', 'code', 'PRJ', null]]) {
       if (req.collectionName !== coll) continue;
+      const useOrvio = Boolean(orvio && orvioPrefix);
       const wanted = String(body[col] || '').trim();
+      // A number from the other business's series (the form was switched) is replaced.
+      const otherSeries = orvioPrefix ? (useOrvio ? !wanted.startsWith(`${orvioPrefix}-`) : wanted.startsWith('ORV-')) : false;
       const [dup] = wanted ? await pool.query(`SELECT id FROM \`${coll}\` WHERE \`${col}\` = ?`, [wanted]) : [[{}]];
-      if (!wanted || dup.length) body[col] = await nextNumber(coll, col, prefix);
+      if (!wanted || dup.length || otherSeries) body[col] = await nextNumber(coll, col, useOrvio ? orvioPrefix : prefix);
     }
     if (req.collectionName === 'project_photos') {
       // Sharing with the client is decided by the office, not on site.
