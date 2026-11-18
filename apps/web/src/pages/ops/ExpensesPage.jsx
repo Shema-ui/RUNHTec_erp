@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import BusinessFilter, { inBusiness } from '@/components/erp/BusinessFilter';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Receipt, Plus, Download, Search } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function ExpensesPage() {
   const [type, setType] = useState('');
   const [month, setMonth] = useState('');
   const [q, setQ] = useState('');
+  const [business, setBusiness] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
 
   const load = () => Promise.all([
@@ -31,7 +33,7 @@ export default function ExpensesPage() {
   useEffect(() => { load(); }, []);
 
   const projectById = useMemo(() => Object.fromEntries((projects || []).map((p) => [p.id, p])), [projects]);
-  const rows = useMemo(() => (costs || []).filter((c) => {
+  const rows = useMemo(() => (costs || []).filter((c) => inBusiness(c, business)).filter((c) => {
     if (projectId && c.project !== projectId) return false;
     if (type && c.category !== type) return false;
     if (month && !String(c.cost_date || '').startsWith(month)) return false;
@@ -40,7 +42,7 @@ export default function ExpensesPage() {
       if (!hay.includes(q.toLowerCase())) return false;
     }
     return true;
-  }), [costs, projectId, type, month, q, projectById]);
+  }), [business, costs, projectId, type, month, q, projectById]);
 
   // Totals are per currency, so mixed-currency projects never get added together.
   const byCurrency = useMemo(() => {
@@ -91,6 +93,9 @@ export default function ExpensesPage() {
             )}
           >
             <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <Field label="Business">
+                <BusinessFilter value={business} onChange={setBusiness} />
+              </Field>
               <Field label="Project">
                 <select className={inputCls} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                   <option value="">All projects</option>

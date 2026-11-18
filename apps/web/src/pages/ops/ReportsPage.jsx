@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import BusinessFilter, { scopeToBusiness } from '@/components/erp/BusinessFilter';
 import { Helmet } from 'react-helmet';
 import { TrendingUp, ReceiptText, FileText, FolderKanban, Banknote, HardHat, Download } from 'lucide-react';
 import PortalLayout from '@/layouts/PortalLayout';
@@ -31,7 +32,9 @@ function Bars({ rows, money }) {
 }
 
 export default function ReportsPage() {
-  const [d, setD] = useState(null);
+  const [raw, setRaw] = useState(null);
+  const [business, setBusiness] = useState('all');
+  const d = useMemo(() => scopeToBusiness(raw, business), [raw, business]);
 
   useEffect(() => {
     Promise.all([
@@ -42,7 +45,7 @@ export default function ReportsPage() {
       safe(pb.collection('rfqs').getFullList({})),
       safe(pb.collection('project_assignments').getFullList({})),
       safe(pb.collection('project_costs').getFullList({})),
-    ]).then(([invoices, payments, quotes, projects, rfqs, assignments, costs]) => setD({ invoices, payments, quotes, projects, rfqs, assignments, costs }));
+    ]).then(([invoices, payments, quotes, projects, rfqs, assignments, costs]) => setRaw({ invoices, payments, quotes, projects, rfqs, assignments, costs }));
   }, []);
 
   const r = useMemo(() => {
@@ -113,6 +116,7 @@ export default function ReportsPage() {
 
   return (
     <PortalLayout title="Reports" subtitle="Cash, sales and delivery at a glance">
+      <div className="mb-4 flex justify-end"><BusinessFilter value={business} onChange={setBusiness} /></div>
       <Helmet><title>Reports | RUNHTec Business Portal</title></Helmet>
       {!r ? <Loading /> : (
         <div className="space-y-5">
