@@ -21,6 +21,7 @@ import { formatMoney, formatMoneyShort, DEFAULT_CURRENCY } from '@/lib/money';
 import { fmtDate, todayISO } from '@/components/erp/kit';
 import { PROJECT_STATUSES } from '@/lib/projects';
 import { projectBalances, isSettled } from '@/lib/projectSettle';
+import BusinessFilter, { scopeToBusiness } from '@/components/erp/BusinessFilter';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The main Dashboard: a business overview (money, quotes, projects, what needs
@@ -171,7 +172,9 @@ export default function DashboardPage() {
   const seeRfq = can('rfq');
   const seeMaint = can('maintenance');
   const seeCrm = can('crm');
-  const [d, setD] = useState(null);
+  const [raw, setRaw] = useState(null);
+  const [business, setBusiness] = useState('all');
+  const d = useMemo(() => scopeToBusiness(raw, business), [raw, business]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -195,7 +198,7 @@ export default function DashboardPage() {
       if (cancelled) return;
       let rates = cfg.exchange_rates;
       if (typeof rates === 'string') { try { rates = JSON.parse(rates); } catch { rates = {}; } }
-      setD({ invoices, payments, quotes, projects, rfqs, maint, followups, costs, assignments, activity, rates: rates || {} });
+      setRaw({ invoices, payments, quotes, projects, rfqs, maint, followups, costs, assignments, activity, rates: rates || {} });
     });
     return () => { cancelled = true; };
   }, [isTech, seeMoney, seeCosts, seeQuotes, seeProjects, seeRfq, seeMaint, seeCrm]);
@@ -318,6 +321,7 @@ export default function DashboardPage() {
 
   return (
     <PortalLayout title={isTech ? 'My work' : 'Dashboard'} subtitle={isTech ? 'Your projects, tasks and visits' : 'Business overview'}>
+      {!isTech && <div className="mb-4 flex justify-end"><BusinessFilter value={business} onChange={setBusiness} /></div>}
       <Helmet>
         <title>Dashboard | RUNHTec Business Portal</title>
       </Helmet>

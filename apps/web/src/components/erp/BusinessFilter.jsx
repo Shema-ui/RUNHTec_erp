@@ -10,6 +10,13 @@ export function inBusiness(rec, business) {
   return business === 'all' || (rec?.business || 'runhtec') === business;
 }
 
+// Narrow a bundle of records to one business (quotes, invoices, payments, costs).
+export function scopeToBusiness(data, business) {
+  if (!data || business === 'all') return data;
+  const pick = (list) => (list || []).filter((x) => inBusiness(x, business));
+  return { ...data, invoices: pick(data.invoices), payments: pick(data.payments), quotes: pick(data.quotes), costs: pick(data.costs) };
+}
+
 export default function BusinessFilter({ value, onChange }) {
   return (
     <select
