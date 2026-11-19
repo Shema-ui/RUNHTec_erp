@@ -240,7 +240,7 @@ export default function InvoiceViewPage() {
           </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             {!isClientView && (<>
-            {canEmail && <SendDocChooser type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} startWithEmail={sendBalance} />}
+            {canEmail && <SendDocChooser type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} startWithChooser={sendBalance} />}
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
@@ -410,6 +410,18 @@ export default function InvoiceViewPage() {
                   <span style={{ color: 'white', fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Total Due</span>
                   <span style={{ color: 'white', fontWeight: 800, fontSize: '19px' }}>{fmt(inv.total, currency)}</span>
                 </div>
+                {paidSoFar > 0.5 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px', marginTop: '6px' }}>
+                      <span style={{ color: '#64748b' }}>Paid to date</span>
+                      <span style={{ fontWeight: 500, color: '#15803d' }}>-{fmt(paidSoFar, currency)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '10px 14px', marginTop: '6px', background: '#fff1f2', borderRadius: '8px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '13px', color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Balance remaining</span>
+                      <span style={{ fontWeight: 800, fontSize: '16px', color: '#be123c' }}>{fmt(Math.max(0, Number(inv.total || 0) - paidSoFar), currency)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
