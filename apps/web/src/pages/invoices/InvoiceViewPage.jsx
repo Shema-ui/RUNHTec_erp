@@ -45,6 +45,8 @@ const PRINT_STYLE = `
 
 export default function InvoiceViewPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const sendBalance = searchParams.get('balance') === '1';
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [settings, setSettings] = useState(null);
@@ -233,7 +235,7 @@ export default function InvoiceViewPage() {
           </select>)}
           <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             {!isClientView && (<>
-            {canEmail && <SendDocChooser type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} />}
+            {canEmail && <SendDocChooser type="invoice" id={id} number={inv.invoice_number} makePdf={makePdf} onSent={reloadInvoice} startWithEmail={sendBalance} />}
             <Link
               to={`/invoices/${id}/edit`}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-slate-50"

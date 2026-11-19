@@ -47,6 +47,8 @@ export default function InvoicesPage() {
   const [business, setBusiness] = useState('all');
   const [paidByInvoice, setPaidByInvoice] = useState({});
   const [deleting, setDeleting] = useState(null);
+  // What a client still owes on an invoice (total less payments completed so far).
+  const owedOn = (inv) => (inv.status === 'draft' || inv.status === 'cancelled' ? 0 : Math.max(0, Number(inv.total || 0) - (paidByInvoice[inv.id] || 0)));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -192,6 +194,7 @@ export default function InvoicesPage() {
                     <StatusBadge status={inv.status} />
                   </span>
                 </Link>
+                {owedOn(inv) > 0.5 && <div className="px-4 pb-3"><Link to={`/invoices/${inv.id}/view?balance=1`} className="text-xs font-semibold text-[#003DA5] hover:underline">Send balance ({fmt(owedOn(inv), inv.currency)} remaining)</Link></div>}
               </li>
             ))}
           </ul>
@@ -229,6 +232,7 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        {owedOn(inv) > 0.5 && <Link to={`/invoices/${inv.id}/view?balance=1`} title="Email the remaining balance to the client" className="rounded-md px-2 py-1 text-xs font-semibold text-[#003DA5] hover:bg-blue-50">Send balance</Link>}
                         <Link to={`/invoices/${inv.id}/view`} title="View" className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
                           <Eye className="h-4 w-4" />
                         </Link>
