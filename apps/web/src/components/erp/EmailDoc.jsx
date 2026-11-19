@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatMoney } from '@/lib/money';
 import { Mail, Loader2, Send, CheckCircle2, MessageCircle } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +59,7 @@ export function EmailDocDialog({ open, onClose, type, id, number, makePdf, onSen
     if (!open) return;
     setF(null); setErr('');
     pb.get(`/api/doc-email/prepare?type=${type}&id=${encodeURIComponent(id)}`)
-      .then((p) => setF({ to: p.to || '', cc: '', subject: p.subject, body: p.body, enabled: p.enabled, emailed_at: p.emailed_at, emailed_to: p.emailed_to }))
+      .then((p) => setF({ to: p.to || '', cc: '', subject: p.subject, body: p.body, enabled: p.enabled, emailed_at: p.emailed_at, emailed_to: p.emailed_to, summary: p.summary || null }))
       .catch((e) => setErr(e.message));
   }, [open, type, id]);
   if (!open) return null;
@@ -86,6 +87,16 @@ export function EmailDocDialog({ open, onClose, type, id, number, makePdf, onSen
           {f.emailed_at && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900">Already emailed to {f.emailed_to} on {when(f.emailed_at)}. Sending again is fine.</p>}
           <Field label="To (separate several addresses with commas)"><input className={inputCls} type="email" multiple value={f.to} onChange={set('to')} placeholder="client@example.com" /></Field>
           <Field label="CC (optional)"><input className={inputCls} type="email" multiple value={f.cc} onChange={set('cc')} placeholder="manager@example.com" /></Field>
+          {f.summary && (
+            <div className="rounded-xl border border-border bg-secondary/40 p-3 text-sm">
+              <div className="mb-2 font-semibold">Payment so far</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div><div className="text-xs text-muted-foreground">Invoice total</div><div className="font-semibold">{formatMoney(f.summary.total, f.summary.currency)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Paid</div><div className="font-semibold text-emerald-700">{formatMoney(f.summary.paid, f.summary.currency)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Remaining</div><div className="font-semibold text-rose-700">{formatMoney(f.summary.balance, f.summary.currency)}</div></div>
+              </div>
+            </div>
+          )}
           <Field label="Subject"><input className={inputCls} value={f.subject} onChange={set('subject')} /></Field>
           <Field label="Message"><textarea className={textareaCls} rows={12} value={f.body} onChange={set('body')} /></Field>
           <p className="text-xs text-muted-foreground">Attached: {number || label}.pdf, the same client copy as “Download PDF” (no buying prices). The message always starts “Dear RUNHTec Customer,”.</p>
