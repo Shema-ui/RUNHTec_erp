@@ -64,10 +64,13 @@ export default function InvoicesPage() {
       });
       setInvoices(result.items);
       // Money received per invoice, for the progress bars in the list.
-      const payments = await pb.collection('payments').getFullList({ filter: 'status = "completed"' }).catch(() => []);
-      const map = {};
-      payments.forEach((p) => { if (p.invoice) map[p.invoice] = (map[p.invoice] || 0) + (Number(p.amount) || 0); });
-      setPaidByInvoice(map);
+      // Its own request key, so a repeated load does not cancel it and reset every bar to zero.
+      const payments = await pb.collection('payments').getFullList({ filter: 'status = "completed"', requestKey: 'invoices-paid' }).catch((e) => (e?.isAbort ? null : []));
+      if (payments) {
+        const map = {};
+        payments.forEach((p) => { if (p.invoice) map[p.invoice] = (map[p.invoice] || 0) + (Number(p.amount) || 0); });
+        setPaidByInvoice(map);
+      }
     } catch (e) {
       if (e.isAbort) return;
     } finally {
