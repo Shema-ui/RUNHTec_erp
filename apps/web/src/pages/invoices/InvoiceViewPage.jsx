@@ -67,11 +67,15 @@ export default function InvoiceViewPage() {
   const autoTried = useRef(false);
   const [paidSoFar, setPaidSoFar] = useState(0);
   // Payments received on this invoice, so the bar shows how much is still owed.
+  // Each request has its own key so the SDK never cancels it, and a cancelled
+  // or failed request no longer resets the amount to zero.
   useEffect(() => {
-    if (!id) return;
-    pb.collection('payments').getFullList({ filter: `invoice = "${id}"` })
-      .then((list) => setPaidSoFar(list.filter((p) => p.status === 'completed').reduce((s, p) => s + (Number(p.amount) || 0), 0)))
-      .catch(() => setPaidSoFar(0));
+    if (!id) return undefined;
+    let cancelled = false;
+    pb.collection('payments').getFullList({ filter: `invoice = "${id}" && status = "completed"`, requestKey: `inv-paid-${id}` })
+      .then((list) => { if (!cancelled) setPaidSoFar(list.reduce((s, p) => s + (Number(p.amount) || 0), 0)); })
+      .catch((e) => { if (!cancelled && !e?.isAbort) setPaidSoFar(0); });
+    return () => { cancelled = true; };
   }, [id, invoice?.status]);
 
   useEffect(() => {
