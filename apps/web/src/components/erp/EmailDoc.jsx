@@ -204,9 +204,10 @@ export function WhatsAppDocDialog({ open, onClose, type, id, number, makePdf, on
 }
 
 // The Send button: choose Email or WhatsApp, then send.
-export function SendDocChooser({ type, id, number, makePdf, onSent }) {
+export function SendDocChooser({ type, id, number, makePdf, onSent, startWithEmail = false }) {
   const [chooser, setChooser] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(startWithEmail);
+  useEffect(() => { if (startWithEmail) setEmailOpen(true); }, [startWithEmail]);
   const [waOpen, setWaOpen] = useState(false);
   const label = type === 'invoice' ? 'invoice' : 'quotation';
   const common = { type, id, number, makePdf, onSent };
