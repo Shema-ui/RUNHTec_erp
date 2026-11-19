@@ -72,8 +72,9 @@ export default function InvoiceViewPage() {
   useEffect(() => {
     if (!id) return undefined;
     let cancelled = false;
-    pb.collection('payments').getFullList({ filter: `invoice = "${id}" && status = "completed"`, requestKey: `inv-paid-${id}` })
-      .then((list) => { if (!cancelled) setPaidSoFar(list.reduce((s, p) => s + (Number(p.amount) || 0), 0)); })
+    // Same query the other money pages use (completed payments), matched to this invoice here.
+    pb.collection('payments').getFullList({ filter: 'status = "completed"', requestKey: `inv-paid-${id}` })
+      .then((list) => { if (!cancelled) setPaidSoFar(list.filter((p) => p.invoice === id).reduce((s, p) => s + (Number(p.amount) || 0), 0)); })
       .catch((e) => { if (!cancelled && !e?.isAbort) setPaidSoFar(0); });
     return () => { cancelled = true; };
   }, [id, invoice?.status]);
