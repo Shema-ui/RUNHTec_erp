@@ -28,7 +28,7 @@ export default function PaymentsPage() {
   const [openKey, setOpenKey] = useState(null);
 
   const load = () => Promise.all([
-    pb.collection('payments').getFullList({ sort: '-created', expand: 'invoice,client' }),
+    pb.collection('payments').getFullList({ sort: '-created', expand: 'invoice,client', requestKey: 'payments-page' }),
     pb.collection('invoices').getFullList({ sort: '-created' }),
     pb.collection('projects').getFullList({}).catch(() => []),
   ]).then(([p, i, pr]) => { setPayments(p); setInvoices(i); setProjects(pr); }).catch(() => setPayments([]));
