@@ -140,17 +140,35 @@ function template(type, cfg) {
 }
 
 // GET /api/doc-email/prepare?type=quotation|invoice&id=… — the ready-to-send email.
+// Invoices: what has been received so far and what is still due.
+async function paymentSummary(type, doc) {
+  if (type !== 'invoice') return null;
+  const [rows] = await pool.query("SELECT COALESCE(SUM(amount), 0) AS paid FROM payments WHERE invoice = ? AND status = 'completed'", [doc.id]);
+  const paid = Number(rows[0]?.paid || 0);
+  const total = Number(doc.total || 0);
+  return { total, paid, balance: Math.max(0, total - paid), currency: doc.currency || '' };
+}
+
 router.get('/prepare', requireAuth, async (req, res) => {
   try {
     const type = String(req.query.type || '');
     const r = await loadDoc(type, req.query.id, req.user);
     if (r.error) return res.status(r.error[0]).json({ message: r.error[1] });
     const tpl = template(type, r.cfg);
+    const summary = await paymentSummary(type, r.doc);
+    let body = withGreeting(fill(tpl.body, r.doc, type, r.cfg));
+    if (summary && summary.paid > 0.5 && summary.balance > 0.5) {
+      // Right after the greeting: what has been received and what is still due.
+      const parts = body.split(/\n{2,}/);
+      parts.splice(1, 0, `So far we have received ${money(summary.paid, summary.currency)}. The balance still due is ${money(summary.balance, summary.currency)}.`);
+      body = parts.join('\n\n');
+    }
     res.json({
       enabled: emailEnabled(),
       to: await recipientFor(r.doc),
       subject: fill(tpl.subject, r.doc, type, r.cfg),
-      body: withGreeting(fill(tpl.body, r.doc, type, r.cfg)),
+      body,
+      summary,
       emailed_at: r.doc.emailed_at || null,
       emailed_to: r.doc.emailed_to || '',
       phone: await phoneFor(r.doc),

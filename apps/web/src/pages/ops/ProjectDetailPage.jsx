@@ -21,6 +21,7 @@ import { Card, BackLink, Loading, Pill, InfoRow, StatCard, Stars, inputCls, btnP
 import { PROJECT_STATUSES, projectStatusInfo, priorityInfo, serviceLabel } from '@/lib/projects';
 import { ASSIGNMENT_STATUSES, CONTRACTOR_PAYMENT_STATUSES, statusInfo } from '@/lib/hr';
 import { formatMoney } from '@/lib/money';
+import PaymentBar from '@/components/erp/PaymentBar';
 
 const newId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
@@ -32,6 +33,7 @@ export default function ProjectDetailPage() {
   const [p, setP] = useState(null);
   const [team, setTeam] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [docs, setDocs] = useState([]);
   const [newTask, setNewTask] = useState('');
   const [engaging, setEngaging] = useState(null);
@@ -55,6 +57,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     loadProject(); loadTeam(); loadDocs();
     if (canInvoice) pb.collection('invoices').getFullList({ filter: `project = '${id}'`, sort: '-created' }).then(setInvoices).catch(() => {});
+    if (canInvoice) pb.collection('payments').getFullList({ filter: 'status = "completed"' }).then(setPayments).catch(() => {});
   }, [id]);
 
   const tasks = useMemo(() => (Array.isArray(p?.tasks) ? p.tasks : []), [p]);
@@ -66,6 +69,10 @@ export default function ProjectDetailPage() {
     };
   }, [team]);
   const invoiced = invoices.filter((i) => i.status !== 'cancelled').reduce((s, i) => s + Number(i.total || 0), 0);
+  // Money received against this project's invoices, from the payments recorded on them.
+  const paidOn = payments.reduce((m, pay) => { if (pay.invoice) m[pay.invoice] = (m[pay.invoice] || 0) + Number(pay.amount || 0); return m; }, {});
+  const received = invoices.filter((i) => i.status !== 'cancelled').reduce((s, i) => s + Math.min(Number(i.total || 0), paidOn[i.id] || 0), 0);
+  const owed = Math.max(0, invoiced - received);
 
   if (!p) return <PortalLayout title="Project" subtitle="Projects & Work Orders"><Loading /></PortalLayout>;
 
@@ -133,7 +140,10 @@ export default function ProjectDetailPage() {
         {!isTechRole && <StatCard label="Contract value" value={value ? formatMoney(value, currency) : '—'} tone="green" />}
         {!isTechRole && <StatCard label="Contractor fees" value={formatMoney(costs.fees, currency)} note={`${formatMoney(costs.paid, currency)} paid`} tone="amber" />}
         {canInvoice ? (
+          <>
           <StatCard label="Invoiced to client" value={formatMoney(invoiced, currency)} tone={value && invoiced < value ? 'red' : 'green'} note={value ? `${formatMoney(Math.max(0, value - invoiced), currency)} not yet invoiced` : ''} />
+          <StatCard label="Received from client" value={formatMoney(received, currency)} tone="green" note={`${formatMoney(owed, currency)} still owed`} />
+          </>
         ) : (
           <StatCard label="Due date" value={fmtDate(p.due_date) || 'Not set'} tone="amber" note={p.start_date ? `Started ${fmtDate(p.start_date)}` : ''} />
         )}
@@ -252,9 +262,13 @@ export default function ProjectDetailPage() {
                   {invoices.length === 0 ? <p className="text-muted-foreground">No invoices for this project yet.</p> : (
                     <ul className="space-y-1">
                       {invoices.map((inv) => (
-                        <li key={inv.id} className="flex justify-between gap-2">
-                          <Link to={`/invoices/${inv.id}/view`} className="font-medium text-primary hover:underline">{inv.invoice_number}</Link>
-                          <span>{formatMoney(inv.total, inv.currency)} · {inv.status}</span>
+                        <li key={inv.id} className="space-y-1">
+                          <div className="flex justify-between gap-2">
+                            <Link to={`/invoices/${inv.id}/view`} className="font-medium text-primary hover:underline">{inv.invoice_number}</Link>
+                            <span>{formatMoney(inv.total, inv.currency)} · {inv.status}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">Paid {formatMoney(Math.min(Number(inv.total || 0), paidOn[inv.id] || 0), inv.currency)} · remaining {formatMoney(Math.max(0, Number(inv.total || 0) - (paidOn[inv.id] || 0)), inv.currency)}</div>
+                          <PaymentBar compact total={inv.total} paid={paidOn[inv.id] || 0} currency={inv.currency} />
                         </li>
                       ))}
                     </ul>
