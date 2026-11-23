@@ -56,6 +56,7 @@ async function alertNewTeam(before, after, actor) {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const { announceOpenProject } = require('./projectOffers');
+const { announceApplicationStatus } = require('./applicationEmails');
 
 const router = express.Router();
 
@@ -601,6 +602,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       await syncProjectValue(rows[0].project);
       if (before.project && before.project !== rows[0].project) await syncProjectValue(before.project);
     }
+    if (req.collectionName === 'job_applications') await announceApplicationStatus(before, rows[0]);
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);
       if (!Number(before.offers_open) && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
