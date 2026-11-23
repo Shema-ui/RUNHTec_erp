@@ -78,6 +78,8 @@ export const MODULE_ACCESS = {
   // Uses buying prices, so the same people as Vendors.
   solar_kit: ['sales', 'accountant', 'project_manager'],
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
+  // Project offers: staff with matching skills are invited. Managers see the Manage tab.
+  offers: ['sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],
   payments: ['accountant'],
