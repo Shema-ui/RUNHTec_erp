@@ -26,7 +26,7 @@ const TEMPLATES = [
 export default function AnnouncementsPage() {
   const { toast } = useToast();
   const [list, setList] = useState(null);
-  const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '' });
+  const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '', when: '' });
   const [reach, setReach] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -37,12 +37,16 @@ export default function AnnouncementsPage() {
 
   const send = async () => {
     if (f.title.trim().length < 3 || f.body.trim().length < 3) { toast({ title: 'Add a title and a message', variant: 'destructive' }); return; }
-    if (!window.confirm(`Send “${f.title}” to ${reach ?? 'the selected'} client app user${reach === 1 ? '' : 's'}? They get a notification on their phone.`)) return;
+    const publish_at = f.when ? new Date(f.when).toISOString() : '';
+    const question = publish_at
+      ? `Schedule “${f.title}” for ${new Date(publish_at).toLocaleString()}? It will be sent to the clients then.`
+      : `Send “${f.title}” to ${reach ?? 'the selected'} client app user${reach === 1 ? '' : 's'}? They get a notification on their phone.`;
+    if (!window.confirm(question)) return;
     setBusy(true);
     try {
-      const r = await pb.post('/api/client/announcements', f);
-      toast({ title: 'Sent', description: `Delivered to ${r.sent_count} client app user${r.sent_count === 1 ? '' : 's'}.` });
-      setF({ title: '', body: '', audience: f.audience, link: '' }); load();
+      const r = await pb.post('/api/client/announcements', { title: f.title, body: f.body, audience: f.audience, link: f.link, publish_at });
+      toast({ title: r.scheduled ? 'Scheduled' : 'Sent', description: r.scheduled ? 'It will go out at the time you chose.' : `Delivered to ${r.sent_count} client app user${r.sent_count === 1 ? '' : 's'}.` });
+      setF({ title: '', body: '', audience: f.audience, link: '', when: '' }); load();
     } catch (e) { toast({ title: 'Could not send', description: e.message, variant: 'destructive' }); }
     finally { setBusy(false); }
   };
@@ -66,14 +70,15 @@ export default function AnnouncementsPage() {
             <Field label="Title"><input className={inputCls} maxLength={150} value={f.title} onChange={set('title')} placeholder="e.g. Rainy season check" /></Field>
             <Field label="Message"><textarea className={textareaCls} rows={5} maxLength={3000} value={f.body} onChange={set('body')} placeholder="Keep it short and clear. The first line shows in the phone notification." /></Field>
             <Field label="Link (optional)" hint="A web page to open, starting with https://"><input className={inputCls} value={f.link} onChange={set('link')} placeholder="https://runhteccontractors.si/…" /></Field>
+            <Field label="Send later (optional)" hint="Leave empty to send now. Uses the time on this device."><input type="datetime-local" className={inputCls} value={f.when} onChange={set('when')} /></Field>
             <div className="flex flex-wrap gap-2">
               {TEMPLATES.map((t) => <button key={t.title} type="button" onClick={() => setF((p) => ({ ...p, title: t.title, body: t.body }))} className="rounded-full border border-border px-3 py-1 text-xs font-medium hover:bg-secondary">Use “{t.title}”</button>)}
             </div>
-            <button type="button" onClick={send} disabled={busy} className={`${btnPrimary} w-full`}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send to clients</button>
+            <button type="button" onClick={send} disabled={busy} className={`${btnPrimary} w-full`}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {f.when ? 'Schedule' : 'Send to clients'}</button>
           </div>
         </section>
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="mb-4 font-display text-base font-bold">Sent</h2>
+          <h2 className="mb-4 font-display text-base font-bold">Sent and scheduled</h2>
           {list === null ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : list.length === 0 ? <p className="text-sm text-muted-foreground">Nothing sent yet.</p> : (
             <ul className="space-y-3">
               {list.map((a) => (
@@ -81,7 +86,7 @@ export default function AnnouncementsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-semibold">{a.title}</p>
-                      <p className="text-xs text-muted-foreground">{when(a.created)} · {audienceLabel(a.audience)} · reached {a.sent_count}{a.created_by_name ? ` · by ${a.created_by_name}` : ''}</p>
+                      <p className="text-xs text-muted-foreground">{a.sent_at ? when(a.sent_at) : <span className="font-medium text-primary">Scheduled for {when(a.publish_at)}</span>} · {audienceLabel(a.audience)} · {a.sent_at ? `reached ${a.sent_count}` : 'not sent yet'}{a.created_by_name ? ` · by ${a.created_by_name}` : ''}</p>
                     </div>
                     <button type="button" onClick={() => remove(a)} aria-label="Remove" className="rounded p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
                   </div>

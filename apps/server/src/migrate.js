@@ -299,6 +299,10 @@ async function runMigrations() {
       created_by_name VARCHAR(200) DEFAULT '',
       created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    // Scheduled news: publish_at is when it should go out; sent_at is set once it has gone out.
+    await ensureColumn(conn, 'announcements', 'publish_at', 'DATETIME NULL');
+    await ensureColumn(conn, 'announcements', 'sent_at', 'DATETIME NULL');
+    await conn.query("UPDATE announcements SET sent_at = created WHERE sent_at IS NULL AND publish_at IS NULL");
     await conn.query(`CREATE TABLE IF NOT EXISTS ratings (
       id VARCHAR(20) PRIMARY KEY,
       client VARCHAR(20) DEFAULT NULL,
