@@ -21,6 +21,7 @@ import {
   Truck,
   Sun,
   Megaphone,
+  Briefcase,
 } from 'lucide-react';
 
 // Primary operating modules. `to` is null for placeholders that are not yet
@@ -37,6 +38,7 @@ export const MODULE_NAV = [
   { key: 'client_messages', label: 'Client Messages', icon: MessagesSquare, to: '/client-messages' },
   { key: 'announcements', label: 'Client App News', icon: Megaphone, to: '/announcements' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, to: '/projects' },
+  { key: 'offers', label: 'Project Offers', icon: Briefcase, to: '/offers' },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },
   { key: 'invoices', label: 'Invoices', icon: ReceiptText, to: '/invoices' },
   { key: 'payments', label: 'Payments', icon: CreditCard, to: '/payments' },

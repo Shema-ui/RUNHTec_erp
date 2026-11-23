@@ -303,6 +303,31 @@ async function runMigrations() {
     await ensureColumn(conn, 'announcements', 'publish_at', 'DATETIME NULL');
     await ensureColumn(conn, 'announcements', 'sent_at', 'DATETIME NULL');
     await conn.query("UPDATE announcements SET sent_at = created WHERE sent_at IS NULL AND publish_at IS NULL");
+    // Project offers: fields on each project, and one row per person invited or responding.
+    await ensureColumn(conn, 'projects', 'offers_open', 'TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(conn, 'projects', 'offer_deadline', 'DATE NULL');
+    await ensureColumn(conn, 'projects', 'positions_needed', 'INT NOT NULL DEFAULT 0');
+    await ensureColumn(conn, 'projects', 'offer_skills', "VARCHAR(500) NOT NULL DEFAULT ''");
+    await ensureColumn(conn, 'projects', 'offer_location', "VARCHAR(200) NOT NULL DEFAULT ''");
+    await ensureColumn(conn, 'projects', 'offer_summary', 'TEXT NULL');
+    await conn.query(`CREATE TABLE IF NOT EXISTS project_offers (
+      id VARCHAR(20) PRIMARY KEY,
+      project VARCHAR(20) NOT NULL,
+      user VARCHAR(20) NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'invited',
+      interest VARCHAR(20) NOT NULL DEFAULT '',
+      available_from DATE NULL,
+      available_to DATE NULL,
+      role_pref VARCHAR(20) NOT NULL DEFAULT 'either',
+      note VARCHAR(1000) NOT NULL DEFAULT '',
+      invited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reminded TINYINT(1) NOT NULL DEFAULT 0,
+      responded_at DATETIME NULL,
+      decided_at DATETIME NULL,
+      decided_by VARCHAR(20) NOT NULL DEFAULT '',
+      decision_note VARCHAR(500) NOT NULL DEFAULT '',
+      UNIQUE KEY uq_project_offer (project, user)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
     await conn.query(`CREATE TABLE IF NOT EXISTS ratings (
       id VARCHAR(20) PRIMARY KEY,
       client VARCHAR(20) DEFAULT NULL,

@@ -12,6 +12,7 @@ import StaffLoginPage from '@/pages/StaffLoginPage';
 import TermsPage from '@/pages/TermsPage';
 import { PortalRequestsPage, PortalNewRequestPage, PortalNewsPage, PortalEquipmentPage } from '@/pages/portal/ClientAppPages';
 import AnnouncementsPage from '@/pages/crm/AnnouncementsPage';
+import OffersPage from '@/pages/ops/OffersPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -101,6 +102,7 @@ function App() {
           <Route path="/portal/news" element={<RequireAuth><PortalNewsPage /></RequireAuth>} />
           <Route path="/portal/equipment" element={<RequireAuth><PortalEquipmentPage /></RequireAuth>} />
           <Route path="/announcements" element={<RequireAuth><RequireModule moduleKey="announcements"><AnnouncementsPage /></RequireModule></RequireAuth>} />
+          <Route path="/offers" element={<RequireAuth><RequireModule moduleKey="offers"><OffersPage /></RequireModule></RequireAuth>} />
           <Route path="/client-messages" element={<RequireAuth><RequireModule moduleKey="client_messages"><ClientMessagesPage /></RequireModule></RequireAuth>} />
           <Route path="/search" element={<RequireAuth><SearchPage /></RequireAuth>} />
           <Route path="/items" element={<RequireAuth><RequireModule moduleKey="catalog"><CatalogPage /></RequireModule></RequireAuth>} />

@@ -55,6 +55,8 @@ async function alertNewTeam(before, after, actor) {
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
+const { announceOpenProject } = require('./projectOffers');
+
 const router = express.Router();
 
 const JSON_FIELDS = new Set(['categories', 'services', 'items', 'tasks', 'assigned_technicians', 'attachments', 'photos', 'skills', 'costing', 'labour_rates', 'exchange_rates', 'solar_kit']);
@@ -475,6 +477,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     }
     if (req.collectionName === 'invoices') await syncProjectValue(rows[0].project);
     if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
+    if (req.collectionName === 'projects' && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
     if (req.collectionName === 'quotations' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'client_messages') await notifyClient(rows[0].client, 'message', `New message from ${rows[0].sender_name}: ${String(rows[0].body).slice(0, 120)}`, '/portal/messages');
@@ -600,6 +603,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     }
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);
+      if (!Number(before.offers_open) && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
       if (before.status !== 'done' && rows[0].status === 'done') await notifyClient(rows[0].client, 'project', `“${rows[0].title}” is complete. Please review it and confirm the handover in your portal.`, `/portal/projects/${rows[0].id}`);
       // Every task ticked: tell the project manager it's ready to close and hand over.
       const allDone = (p) => { let t = p?.tasks; if (typeof t === 'string') { try { t = JSON.parse(t); } catch (_) { t = []; } } return Array.isArray(t) && t.length > 0 && t.every((x) => x && x.done); };
