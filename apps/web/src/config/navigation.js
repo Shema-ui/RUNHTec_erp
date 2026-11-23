@@ -1,28 +1,4 @@
-import {
-  LayoutDashboard,
-  Contact,
-  Building2,
-  FileQuestion,
-  FileText,
-  FolderKanban,
-  Wrench,
-  Receipt,
-  ReceiptText,
-  CreditCard,
-  Users,
-  BarChart3,
-  FolderArchive,
-  Settings,
-  ShieldCheck,
-  ScrollText,
-  Bell,
-  Tags,
-  MessagesSquare,
-  Truck,
-  Sun,
-  Megaphone,
-  Briefcase,
-} from 'lucide-react';
+import {LayoutDashboard, Contact, Building2, FileQuestion, FileText, FolderKanban, Wrench, Receipt, ReceiptText, CreditCard, Users, BarChart3, FolderArchive, Settings, ShieldCheck, ScrollText, Bell, Tags, MessagesSquare, Truck, Sun, Megaphone, Briefcase, Gift} from 'lucide-react';
 
 // Primary operating modules. `to` is null for placeholders that are not yet
 // wired to a working module (navigation-only per current scope).
@@ -39,6 +15,7 @@ export const MODULE_NAV = [
   { key: 'announcements', label: 'Client App News', icon: Megaphone, to: '/announcements' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, to: '/projects' },
   { key: 'offers', label: 'Project Offers', icon: Briefcase, to: '/offers' },
+  { key: 'referrals', label: 'Referrals', icon: Gift, to: '/referrals' },
   { key: 'maintenance', label: 'Maintenance', icon: Wrench, to: '/maintenance' },
   { key: 'invoices', label: 'Invoices', icon: ReceiptText, to: '/invoices' },
   { key: 'payments', label: 'Payments', icon: CreditCard, to: '/payments' },

@@ -80,6 +80,8 @@ export const MODULE_ACCESS = {
   projects: ['project_manager', 'technician', 'lead_technician', 'sales', 'accountant', 'hr'],
   // Project offers: staff with matching skills are invited. Managers see the Manage tab.
   offers: ['sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],
+  // Staff earn referral credit too
+  referrals: ['super_admin', 'admin', 'sales', 'project_manager', 'accountant', 'technician', 'lead_technician', 'hr'],
   maintenance: ['project_manager', 'technician', 'lead_technician'],
   invoices: ['accountant'],
   payments: ['accountant'],

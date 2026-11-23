@@ -4,6 +4,7 @@
 // Clients never use the staff API to write; everything they can do is here
 // (and in routes/portal.js for messages and handover).
 const express = require('express');
+const { attachReferral } = require('../referrals');
 const multer = require('multer');
 const crypto = require('crypto');
 const pool = require('../db');
@@ -99,6 +100,7 @@ router.post('/signup', async (req, res) => {
       "INSERT INTO users (id, email, password_hash, name, phone, role, status, client, profile_completed, can_upload_documents, pin_hash, signup_source, terms_accepted_at, terms_version) VALUES (?, ?, ?, ?, ?, 'client', 'active', ?, 1, 0, ?, 'app', UTC_TIMESTAMP(), ?)",
       [userId, `app-${userId}@clients.runhtec.local`, pw, name, phone, clientId, pinHash, TERMS_VERSION]
     );
+    if (b.ref) await attachReferral(String(b.ref).slice(0, 20), clientId, company || name, Boolean(company), phone).catch((e) => console.error('referral attach failed:', e.message));
     await notifyRoles(TEAM, 'client', `New client signed up in the app: ${name}${company ? ` (${company})` : ''}, +${phone}${location ? `, ${location}` : ''}.`, `/crm/clients/${clientId}`);
     res.json(await issue(userId));
   } catch (err) { res.status(400).json({ message: err.message }); }

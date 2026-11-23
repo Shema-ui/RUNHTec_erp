@@ -85,6 +85,7 @@ async function main() {
   app.use('/api/crm', require('./routes/crm'));
   app.use('/api/staff-link', staffLinkRoutes);
   app.use('/api/offers', require('./routes/projectOffers'));
+  app.use('/api/referrals', require('./routes/referrals'));
 
   app.use((req, res) => res.status(404).json({ message: 'Not found.' }));
   // eslint-disable-next-line no-unused-vars

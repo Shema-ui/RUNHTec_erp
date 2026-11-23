@@ -41,7 +41,7 @@ export default function JoinPage() {
     if (!agree) { setError('Please accept the Terms of Use and Privacy Notice to continue.'); return; }
     setLoading(true);
     try {
-      const res = await pb.post('/api/client/signup', { name: f.name, company: f.company, phone: f.phone, email: f.email, location: f.location, pin: f.pin, website: f.website, accept_terms: true });
+      const res = await pb.post('/api/client/signup', { name: f.name, company: f.company, phone: f.phone, email: f.email, location: f.location, pin: f.pin, website: f.website, accept_terms: true, ref: new URLSearchParams(window.location.search).get('ref') || '' });
       if (res?.token) {
         try { localStorage.setItem('runhtec-client-phone', f.phone); } catch { /* ignore */ }
         pb.authStore.save(res.token, res.record);
