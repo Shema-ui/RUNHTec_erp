@@ -350,7 +350,7 @@ router.get('/overview', requireAuth, async (req, res) => {
     const [cl] = await pool.query('SELECT services, status FROM clients WHERE id = ?', [c]);
     const hasContract = contracts.length > 0;
     const services = parseList(cl[0]?.services);
-    const [news] = await pool.query('SELECT id, title, body, link, audience, COALESCE(sent_at, created) AS created FROM announcements WHERE sent_at IS NOT NULL ORDER BY COALESCE(sent_at, created) DESC LIMIT 30');
+    const [news] = await pool.query("SELECT id, title, body, link, audience, COALESCE(sent_at, created) AS created FROM announcements WHERE sent_at IS NOT NULL AND audience NOT LIKE 'staff%' ORDER BY COALESCE(sent_at, created) DESC LIMIT 30");
     const [ratings] = await pool.query('SELECT target_type, target_id, rating FROM ratings WHERE client = ?', [c]);
     const [done] = await pool.query("SELECT id, title, completed_date, updated FROM projects WHERE client = ? AND status = 'done' ORDER BY updated DESC LIMIT 10", [c]);
     const rated = new Set(ratings.map((r) => `${r.target_type}:${r.target_id}`));
@@ -410,7 +410,15 @@ router.post('/ratings', requireAuth, clientOnly, async (req, res) => {
 
 // ── Staff: announcements ─────────────────────────────────────────────────────
 // Who an audience reaches (client user ids).
+const STAFF_ROLES = ['super_admin', 'admin', 'sales', 'project_manager', 'accountant', 'hr', 'technician', 'lead_technician'];
+// Staff news opens on the ERP home page; client news opens on the client News page.
+const newsLink = (audience) => (String(audience).startsWith('staff') ? '/' : '/portal/news');
 async function audienceUsers(audience) {
+  if (audience === 'staff' || audience === 'staff:technicians') {
+    const roles = audience === 'staff' ? STAFF_ROLES : ['technician', 'lead_technician'];
+    const [staff] = await pool.query("SELECT id FROM users WHERE status = 'active' AND role IN (?)", [roles]);
+    return staff.map((u) => u.id);
+  }
   const [users] = await pool.query("SELECT u.id, u.client, c.services FROM users u JOIN clients c ON c.id = u.client WHERE u.role = 'client' AND u.status = 'active'");
   if (audience === 'all') return users.map((u) => u.id);
   if (audience === 'contract') {
@@ -460,7 +468,7 @@ router.post('/announcements', requireAuth, staffOnly, async (req, res) => {
     const ids = await audienceUsers(audience);
     await pool.query('INSERT INTO announcements (id, title, body, audience, link, sent_count, created_by, created_by_name, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())',
       [id, title, body, audience, link, ids.length, req.user.id, req.user.name || '']);
-    await notifyUsers(ids, 'news', `${title}: ${body.slice(0, 200)}`, '/portal/news');
+    await notifyUsers(ids, 'news', `${title}: ${body.slice(0, 200)}`, newsLink(audience));
     res.json({ id, sent_count: ids.length });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -474,7 +482,7 @@ async function publishDueAnnouncements() {
     try {
       const ids = await audienceUsers(a.audience);
       await pool.query('UPDATE announcements SET sent_at = UTC_TIMESTAMP(), sent_count = ? WHERE id = ? AND sent_at IS NULL', [ids.length, a.id]);
-      await notifyUsers(ids, 'news', `${a.title}: ${String(a.body || '').slice(0, 200)}`, '/portal/news');
+      await notifyUsers(ids, 'news', `${a.title}: ${String(a.body || '').slice(0, 200)}`, newsLink(a.audience));
     } catch (err) { console.error('Scheduled news failed:', a.id, err.message); }
   }
 }

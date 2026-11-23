@@ -10,6 +10,8 @@ import { CLIENT_SERVICES } from '@/lib/crm';
 // Who can receive a message. Service groups come from the services ticked on each client's profile.
 const AUDIENCES = [
   { value: 'all', label: 'All clients in the app' },
+  { value: 'staff', label: 'Staff: everyone in the ERP' },
+  { value: 'staff:technicians', label: 'Staff: technicians' },
   { value: 'contract', label: 'Clients with an active maintenance contract' },
   ...CLIENT_SERVICES.filter((s) => s.value !== 'other').map((s) => ({ value: `service:${s.value}`, label: `Clients using: ${s.label}` })),
 ];
@@ -57,7 +59,7 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <PortalLayout title="Client App News" subtitle="Send updates, offers and reminders to clients in the app">
+    <PortalLayout title="Client App News" subtitle="Send updates, offers and reminders to clients in the app, or to staff">
       <Helmet><title>Client App News | RUNHTec Business Portal</title></Helmet>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -66,7 +68,7 @@ export default function AnnouncementsPage() {
             <Field label="Send to">
               <select className={inputCls} value={f.audience} onChange={set('audience')}>{AUDIENCES.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}</select>
             </Field>
-            <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Users className="h-3.5 w-3.5" />{reach === null ? 'Counting…' : `${reach} client app user${reach === 1 ? '' : 's'} will receive it`}</p>
+            <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Users className="h-3.5 w-3.5" />{reach === null ? 'Counting…' : `${reach} ${f.audience.startsWith('staff') ? 'staff member' : 'client app user'}${reach === 1 ? '' : 's'} will receive it`}</p>
             <Field label="Title"><input className={inputCls} maxLength={150} value={f.title} onChange={set('title')} placeholder="e.g. Rainy season check" /></Field>
             <Field label="Message"><textarea className={textareaCls} rows={5} maxLength={3000} value={f.body} onChange={set('body')} placeholder="Keep it short and clear. The first line shows in the phone notification." /></Field>
             <Field label="Link (optional)" hint="A web page to open, starting with https://"><input className={inputCls} value={f.link} onChange={set('link')} placeholder="https://runhteccontractors.si/…" /></Field>
