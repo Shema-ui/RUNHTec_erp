@@ -9,6 +9,8 @@ const { genId } = require('../idGen');
 const { storeFile } = require('../files');
 const { notifyRoles } = require('../notify');
 const { sendEmail } = require('../mailer');
+const { issueTempPassword, TEMP_HOURS } = require('../staffAccess');
+const { requireAuth } = require('../auth');
 
 const router = express.Router();
 
@@ -156,6 +158,32 @@ router.post('/apply', (req, res, next) => {
   } catch (err) {
     console.error('careers apply error:', err);
     res.status(500).json({ message: 'Something went wrong. Please try again or contact us on WhatsApp.' });
+  }
+});
+
+// Admin creates a new temporary password for an approved applicant and gets it back once,
+// to send on WhatsApp. It is stored only in hashed form.
+router.post('/applications/:id/staff-password', requireAuth, async (req, res) => {
+  if (!['super_admin', 'admin', 'hr'].includes(req.user.role)) return res.status(403).json({ message: 'Not allowed.' });
+  try {
+    const [rows] = await pool.query('SELECT id, ref, full_name, email, phone, status FROM job_applications WHERE id = ?', [req.params.id]);
+    const app = rows[0];
+    if (!app) return res.status(404).json({ message: 'Application not found.' });
+    if (app.status !== 'approved') return res.status(400).json({ message: 'Approve the application first.' });
+    if (!app.email) return res.status(400).json({ message: 'This applicant has no email address on the application.' });
+    const issued = await issueTempPassword(app.email);
+    if (!issued) return res.status(400).json({ message: 'No staff account exists for this applicant yet. Re-approve or contact the system administrator.' });
+    const digits = String(app.phone || '').replace(/\D/g, '');
+    res.json({
+      email: app.email,
+      password: issued.password,
+      expires: issued.expires,
+      hours: TEMP_HOURS,
+      whatsapp: digits ? `https://wa.me/${digits}?text=${encodeURIComponent(`RUNHTec staff sign-in. Email: ${app.email} Password: ${issued.password} (valid ${TEMP_HOURS} hours). Sign in through your private staff link, then change your password from Forgot password.`)}` : '',
+    });
+  } catch (err) {
+    console.error('staff password error:', err);
+    res.status(500).json({ message: 'Could not create the password. Please try again.' });
   }
 });
 
