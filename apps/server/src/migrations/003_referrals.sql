@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id VARCHAR(20) PRIMARY KEY,
+  owner_user VARCHAR(20) NOT NULL UNIQUE,
+  code VARCHAR(20) NOT NULL UNIQUE,
+  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS referrals (
+  id VARCHAR(20) PRIMARY KEY,
+  owner_user VARCHAR(20) NOT NULL,
+  referred_name VARCHAR(200) DEFAULT '',
+  referred_client VARCHAR(20) DEFAULT NULL,
+  kind VARCHAR(20) NOT NULL DEFAULT 'individual',
+  status VARCHAR(20) NOT NULL DEFAULT 'signed_up',
+  rewarded_credit INT NOT NULL DEFAULT 0,
+  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  rewarded_at DATETIME NULL,
+  INDEX idx_referrals_owner (owner_user),
+  INDEX idx_referrals_client (referred_client)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS credit_ledger (
+  id VARCHAR(20) PRIMARY KEY,
+  owner_user VARCHAR(20) NOT NULL,
+  amount INT NOT NULL,
+  kind VARCHAR(20) NOT NULL,
+  referral VARCHAR(20) DEFAULT NULL,
+  invoice VARCHAR(20) DEFAULT NULL,
+  note VARCHAR(255) DEFAULT '',
+  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ledger_owner (owner_user)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

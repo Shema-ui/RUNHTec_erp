@@ -57,6 +57,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 const { announceOpenProject } = require('./projectOffers');
 const { announceApplicationStatus } = require('./applicationEmails');
+const { spendForPayment, rewardForPayment, CREDIT_METHOD } = require('../referrals');
 
 const router = express.Router();
 
@@ -479,6 +480,14 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     if (req.collectionName === 'invoices') await syncProjectValue(rows[0].project);
     if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
     if (req.collectionName === 'projects' && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
+    if (req.collectionName === 'payments' && rows[0].status === 'completed') {
+      if (rows[0].method === CREDIT_METHOD) {
+        const problem = await spendForPayment(rows[0]);
+        if (problem) { await pool.query('DELETE FROM payments WHERE id = ?', [id]); return res.status(400).json({ message: problem }); }
+      } else {
+        await rewardForPayment(rows[0]).catch((e) => console.error('referral reward failed:', e.message));
+      }
+    }
     if (req.collectionName === 'quotations' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'client_messages') await notifyClient(rows[0].client, 'message', `New message from ${rows[0].sender_name}: ${String(rows[0].body).slice(0, 120)}`, '/portal/messages');
@@ -597,6 +606,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     if (['quotations', 'invoices'].includes(req.collectionName) && !rows[0].client && await linkDocumentClient(def.table, rows[0])) {
       [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     }
+    if (req.collectionName === 'payments') await rewardForPayment(rows[0]).catch((e) => console.error('referral reward failed:', e.message));
     if (req.collectionName === 'invoices') {
       await syncQuoteFromInvoice(rows[0]);
       await syncProjectValue(rows[0].project);

@@ -14,7 +14,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import PaymentBar from '@/components/erp/PaymentBar';
 import BusinessFilter, { inBusiness } from '@/components/erp/BusinessFilter';
 
-const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Other'];
+const METHODS = ['Bank transfer', 'Mobile money (MoMo)', 'Airtel Money', 'Cheque', 'Cash', 'Card', 'Referral credit', 'Other'];
 const today = () => todayISO();
 
 export default function PaymentsPage() {
