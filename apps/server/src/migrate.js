@@ -343,6 +343,7 @@ async function runMigrations() {
       INDEX idx_ratings_client (client)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
     await ensureColumn(conn, 'maintenance_contracts', 'last_reminded', "VARCHAR(20) DEFAULT ''");
+    await ensureColumn(conn, 'job_applications', 'campaign', "VARCHAR(255) NOT NULL DEFAULT ''");
     await ensureColumn(conn, 'equipment', 'last_reminded', "VARCHAR(20) DEFAULT ''");
     await ensureColumn(conn, 'equipment', 'warranty_reminded', 'TINYINT(1) NOT NULL DEFAULT 0');
     await ensureColumn(conn, 'invoices', 'due_reminded', 'TINYINT(1) NOT NULL DEFAULT 0');

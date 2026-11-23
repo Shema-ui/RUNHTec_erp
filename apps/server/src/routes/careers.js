@@ -62,6 +62,7 @@ router.post('/apply', (req, res, next) => {
     rate_unit: RATE_UNITS.includes(b.rate_unit) ? b.rate_unit : 'per_day',
     has_tools: yes(b.has_tools) ? 1 : 0,
     has_transport: yes(b.has_transport) ? 1 : 0,
+    campaign: clip(b.campaign, 255),
   };
 
   if (!data.full_name || !data.phone || !data.trade) {
