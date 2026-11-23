@@ -7,7 +7,6 @@ const multer = require('multer');
 const pool = require('../db');
 const { genId } = require('../idGen');
 const { storeFile } = require('../files');
-const { createLimiter } = require('../rateLimit');
 const { notifyRoles } = require('../notify');
 
 const router = express.Router();
@@ -26,9 +25,6 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, ALLOWED_TYPES.has(file.mimetype)),
 });
 
-const perIp = createLimiter({ windowMs: 60 * 60 * 1000, max: 4 });
-const perDay = createLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 150 });
-
 const DEPARTMENTS = ['administration', 'finance', 'hr', 'sales', 'procurement', 'projects', 'technical', 'inspection', 'ict'];
 const RATE_UNITS = ['per_day', 'per_hour', 'per_project', 'per_month'];
 
@@ -36,9 +32,6 @@ const clip = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const yes = (v) => ['1', 'true', 'yes', 'on'].includes(String(v || '').toLowerCase());
 
 router.post('/apply', (req, res, next) => {
-  if (perIp.isBlocked(req.ip) || perDay.isBlocked('all')) {
-    return res.status(429).json({ message: 'Too many applications from this connection. Please try again later.' });
-  }
   upload.fields([{ name: 'cv', maxCount: 1 }, { name: 'certificate', maxCount: 1 }])(req, res, (err) => {
     if (err) {
       const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Each file must be 5 MB or smaller.' : 'The upload could not be read. Please try again.';
@@ -81,8 +74,6 @@ router.post('/apply', (req, res, next) => {
     return res.status(400).json({ message: 'Please confirm you understand the per-project contract terms.' });
   }
 
-  perIp.hit(req.ip);
-  perDay.hit('all');
 
   try {
     const cvFile = req.files?.cv?.[0];
