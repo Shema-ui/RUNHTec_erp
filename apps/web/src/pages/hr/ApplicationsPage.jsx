@@ -102,6 +102,18 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState('');
   const [editDetails, setEditDetails] = useState(false);
+  const [staffPw, setStaffPw] = useState(null);
+  const sendStaffPassword = async () => {
+    setBusy('Password');
+    try {
+      const r = await pb.post(`/api/careers/applications/${a.id}/staff-password`);
+      setStaffPw(r);
+    } catch (e) {
+      toast({ title: 'Could not create password', description: e.message, variant: 'destructive' });
+    } finally {
+      setBusy('');
+    }
+  };
   const [details, setDetails] = useState({});
   const DETAIL_FIELDS = [
     ['full_name', 'Full name'], ['phone', 'Phone'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['city', 'City'],
@@ -206,6 +218,23 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
             <textarea className={textareaCls} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Interview / practical test results, references checked, documents seen…" />
           </Field>
         </div>
+
+        {a.status === 'approved' && (
+          <div className="space-y-3 rounded-xl border border-border bg-secondary/30 p-4">
+            <p className="text-sm font-semibold">Staff sign-in</p>
+            <p className="text-xs text-muted-foreground">The staff link is emailed automatically on approval. The password is created here and shown once. Send it on WhatsApp. It is valid for 72 hours.</p>
+            {staffPw ? (
+              <div className="space-y-2 text-sm">
+                <p>Email: <strong>{staffPw.email}</strong></p>
+                <p>Password: <strong className="font-mono">{staffPw.password}</strong></p>
+                <p className="text-xs text-muted-foreground">Copy it now. It will not be shown again.</p>
+                {staffPw.whatsapp && <a className={btnPrimary} href={staffPw.whatsapp} target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>}
+              </div>
+            ) : (
+              <button className={btnLine} disabled={!!busy} onClick={sendStaffPassword}>{busy === 'Password' && <Loader2 className="h-4 w-4 animate-spin" />}Create login password</button>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap justify-end gap-2">
           <button className={btnLine} disabled={!!busy} onClick={() => save({}, 'Notes saved')}>{busy === 'Notes saved' && <Loader2 className="h-4 w-4 animate-spin" />}Save notes</button>

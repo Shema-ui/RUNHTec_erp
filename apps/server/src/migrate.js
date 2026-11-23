@@ -71,6 +71,7 @@ async function runMigrations() {
       console.log(`[migrate] applied ${file}`);
     }
     await ensureColumn(conn, 'users', 'tokens_valid_after', 'DATETIME NULL');
+    await ensureColumn(conn, 'users', 'temp_password_expires', 'DATETIME NULL');
     await ensureColumn(conn, 'users', 'department', "VARCHAR(40) DEFAULT ''");
     await ensureEnumValue(conn, 'users', 'role', 'hr',
       "ENUM('super_admin','sales','project_manager','accountant','technician','hr') NOT NULL DEFAULT 'sales'");

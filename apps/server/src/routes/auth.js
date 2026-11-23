@@ -47,6 +47,9 @@ router.post('/users/auth-with-password', async (req, res) => {
     return res.status(400).json({ message: 'Invalid credentials.' });
   }
   if (user.status !== 'active') return res.status(400).json({ message: 'This account has been suspended.' });
+  if (user.temp_password_expires && new Date(user.temp_password_expires) < new Date()) {
+    return res.status(400).json({ message: 'Your temporary password has expired. Ask HR to send you a new one, or use Forgot password.' });
+  }
   loginByAccount.reset(accountKey);
 
   const token = signToken(user);
@@ -103,7 +106,7 @@ router.post('/users/confirm-password-reset', async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
   // Changing the password also signs the account out everywhere else.
-  await pool.query('UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL, tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?', [passwordHash, rows[0].id]);
+  await pool.query('UPDATE users SET password_hash = ?, reset_token_hash = NULL, reset_token_expires = NULL, temp_password_expires = NULL, tokens_valid_after = UTC_TIMESTAMP() WHERE id = ?', [passwordHash, rows[0].id]);
   res.status(200).json({});
 });
 
