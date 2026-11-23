@@ -150,7 +150,7 @@ const collections = {
   // Applications arrive from the public website form (routes/careers.js).
   job_applications: {
     table: 'job_applications',
-    fields: ['id', 'ref', 'full_name', 'email', 'phone', 'whatsapp', 'country', 'city', 'department', 'trade', 'other_skills', 'experience_years', 'qualifications', 'certifications', 'previous_projects', 'availability', 'expected_rate', 'rate_unit', 'has_tools', 'has_transport', 'cv', 'certificate_file', 'status', 'score', 'review_notes', 'reviewed_by', 'contractor', 'created', 'updated'],
+    fields: ['id', 'ref', 'full_name', 'email', 'phone', 'whatsapp', 'country', 'city', 'department', 'trade', 'other_skills', 'experience_years', 'qualifications', 'certifications', 'previous_projects', 'availability', 'expected_rate', 'rate_unit', 'has_tools', 'has_transport', 'campaign', 'cv', 'certificate_file', 'status', 'score', 'review_notes', 'reviewed_by', 'contractor', 'created', 'updated'],
     relations: { reviewed_by: 'users', contractor: 'contractors' },
     rules: { list: HR_PM, view: HR_PM, create: HR, update: HR_PM, delete: HR },
     watchedFields: ['status'],
