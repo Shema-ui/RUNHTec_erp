@@ -36,21 +36,15 @@ Congratulations. Your application (reference ${ref}) has been approved, and you 
 
 Being on the register does not guarantee work. We offer projects that match your skills one at a time, and we confirm each one in writing before you start.
 
-HOW TO GET STARTED
+NEXT STEPS
 
 1. Install the RUNHTec app on your phone
    Open ${APP_URL}/app and follow the steps there, or scan the QR code on that page with your phone camera.
 
-2. Create your account (first time only)
-   Go to ${APP_URL}/join and sign up using THIS email address, so your account matches your application.
+2. Staff login details
+   Our admin team will send you your private staff login link, with your email and password, separately. Keep it private and do not share it. Please do not use the public client sign-up page: it is for clients, not staff.
 
-3. Log in to the staff portal
-   Go to ${APP_URL}/login, enter your email and password, and tap Log in.
-
-4. Offer your services
-   Open Project Offers in the app to see open projects that match your skills.
-
-Need help? WhatsApp +250 793 229 790.
+3. Need help? WhatsApp +250 793 229 790.
 
 ${SIGN}`;
 
@@ -58,14 +52,11 @@ const WELCOME_HTML = (name, ref) => `
 <p>Dear ${esc(name)},</p>
 <p><strong>Congratulations.</strong> Your application (reference <strong>${esc(ref)}</strong>) has been approved, and you are now on the RUNHTec register of technical professionals.</p>
 <p>Being on the register does not guarantee work. We offer projects that match your skills one at a time, and we confirm each one in writing before you start.</p>
-<h3 style="margin:22px 0 8px">How to get started</h3>
+<h3 style="margin:22px 0 8px">Next steps</h3>
 <ol style="padding-left:20px;line-height:1.6">
   <li><strong>Install the RUNHTec app.</strong> <a href="${APP_URL}/app">Open the install page</a> and follow the steps, or scan the QR code on it with your phone camera.</li>
-  <li><strong>Create your account</strong> (first time only). <a href="${APP_URL}/join">Sign up here</a> using <u>this same email address</u>, so your account matches your application.</li>
-  <li><strong>Log in to the staff portal.</strong> <a href="${APP_URL}/login">Log in here</a> with your email and password.</li>
-  <li><strong>Offer your services.</strong> Open <em>Project Offers</em> in the app to see open projects that match your skills.</li>
+  <li><strong>Staff login details.</strong> Our admin team will send you your private staff login link, with your email and password, separately. Keep it private and do not share it. Please do not use the public client sign-up page: it is for clients, not staff.</li>
 </ol>
-<p style="margin:22px 0"><a href="${APP_URL}/login" style="background:#881946;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Log in to the staff portal</a></p>
 <p>Need help? WhatsApp +250 793 229 790.</p>
 <p>${esc(SIGN)}</p>`;
 
