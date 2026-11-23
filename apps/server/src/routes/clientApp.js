@@ -350,7 +350,7 @@ router.get('/overview', requireAuth, async (req, res) => {
     const [cl] = await pool.query('SELECT services, status FROM clients WHERE id = ?', [c]);
     const hasContract = contracts.length > 0;
     const services = parseList(cl[0]?.services);
-    const [news] = await pool.query('SELECT id, title, body, link, audience, created FROM announcements ORDER BY created DESC LIMIT 30');
+    const [news] = await pool.query('SELECT id, title, body, link, audience, COALESCE(sent_at, created) AS created FROM announcements WHERE sent_at IS NOT NULL ORDER BY COALESCE(sent_at, created) DESC LIMIT 30');
     const [ratings] = await pool.query('SELECT target_type, target_id, rating FROM ratings WHERE client = ?', [c]);
     const [done] = await pool.query("SELECT id, title, completed_date, updated FROM projects WHERE client = ? AND status = 'done' ORDER BY updated DESC LIMIT 10", [c]);
     const rated = new Set(ratings.map((r) => `${r.target_type}:${r.target_id}`));
@@ -427,7 +427,7 @@ async function audienceUsers(audience) {
 
 // GET /api/client/announcements — staff list (with how many people each reached).
 router.get('/announcements', requireAuth, staffOnly, async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM announcements ORDER BY created DESC LIMIT 100');
+  const [rows] = await pool.query('SELECT * FROM announcements ORDER BY COALESCE(sent_at, publish_at, created) DESC LIMIT 100');
   res.json(rows);
 });
 
@@ -444,15 +444,41 @@ router.post('/announcements', requireAuth, staffOnly, async (req, res) => {
   const link = String(req.body?.link || '').trim().slice(0, 300);
   if (title.length < 3 || body.length < 3) return res.status(400).json({ message: 'Add a title and a message.' });
   if (link && !/^https:\/\//.test(link)) return res.status(400).json({ message: 'The link must start with https://' });
+  // Optional send time (ISO date and time). Empty = send now.
+  let when = null;
+  if (req.body?.publish_at) {
+    when = new Date(String(req.body.publish_at));
+    if (isNaN(when)) return res.status(400).json({ message: 'Pick a valid date and time.' });
+  }
   try {
-    const ids = await audienceUsers(audience);
     const id = genId();
-    await pool.query('INSERT INTO announcements (id, title, body, audience, link, sent_count, created_by, created_by_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    if (when && when.getTime() > Date.now() + 60 * 1000) {
+      await pool.query('INSERT INTO announcements (id, title, body, audience, link, sent_count, created_by, created_by_name, publish_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)',
+        [id, title, body, audience, link, req.user.id, req.user.name || '', toSqlUtc(when)]);
+      return res.json({ id, scheduled: true, sent_count: 0 });
+    }
+    const ids = await audienceUsers(audience);
+    await pool.query('INSERT INTO announcements (id, title, body, audience, link, sent_count, created_by, created_by_name, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())',
       [id, title, body, audience, link, ids.length, req.user.id, req.user.name || '']);
     await notifyUsers(ids, 'news', `${title}: ${body.slice(0, 200)}`, '/portal/news');
     res.json({ id, sent_count: ids.length });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
+
+function toSqlUtc(d) { return d.toISOString().slice(0, 19).replace('T', ' '); }
+
+// Sends scheduled news once its time has come. Checked every 5 minutes.
+async function publishDueAnnouncements() {
+  const [due] = await pool.query('SELECT id, title, body, audience FROM announcements WHERE sent_at IS NULL AND publish_at IS NOT NULL AND publish_at <= UTC_TIMESTAMP()');
+  for (const a of due) {
+    try {
+      const ids = await audienceUsers(a.audience);
+      await pool.query('UPDATE announcements SET sent_at = UTC_TIMESTAMP(), sent_count = ? WHERE id = ? AND sent_at IS NULL', [ids.length, a.id]);
+      await notifyUsers(ids, 'news', `${a.title}: ${String(a.body || '').slice(0, 200)}`, '/portal/news');
+    } catch (err) { console.error('Scheduled news failed:', a.id, err.message); }
+  }
+}
+setInterval(() => { publishDueAnnouncements().catch((err) => console.error('Scheduled news check failed:', err.message)); }, 5 * 60 * 1000);
 
 // DELETE /api/client/announcements/:id — removes it from the clients' news list.
 router.delete('/announcements/:id', requireAuth, staffOnly, async (req, res) => {
