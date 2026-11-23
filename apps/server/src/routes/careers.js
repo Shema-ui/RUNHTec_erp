@@ -8,6 +8,7 @@ const pool = require('../db');
 const { genId } = require('../idGen');
 const { storeFile } = require('../files');
 const { notifyRoles } = require('../notify');
+const { sendEmail } = require('../mailer');
 
 const router = express.Router();
 
@@ -27,6 +28,39 @@ const upload = multer({
 
 const DEPARTMENTS = ['administration', 'finance', 'hr', 'sales', 'procurement', 'projects', 'technical', 'inspection', 'ict'];
 const RATE_UNITS = ['per_day', 'per_hour', 'per_project', 'per_month'];
+
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const APP_URL = process.env.APP_URL || 'https://erp.runhteccontractors.si';
+
+// Emails sent after a successful application. Never blocks or fails the request.
+async function sendApplicationEmails({ ref, updated, data }) {
+  const verb = updated ? 'updated' : 'received';
+  try {
+    if (data.email) {
+      await sendEmail({
+        to: data.email,
+        subject: `RUNHTec: we have ${verb} your application (${ref})`,
+        text: `Dear ${data.full_name},\n\nThank you for applying to work with RUNHTec Contractors Ltd. We have ${verb} your application, reference ${ref}.\n\nRUNHTec engages technical professionals per project and on contract. Being registered does not guarantee work. Our HR team reviews every application and will contact you on the phone or email you gave if your skills match a current or upcoming project.\n\nPlease keep your reference number for any follow-up. Questions? WhatsApp us on +250 793 229 790.\n\nRUNHTec Contractors Ltd`,
+        html: `<p>Dear ${esc(data.full_name)},</p><p>Thank you for applying to work with RUNHTec Contractors Ltd. We have ${verb} your application, reference <strong>${esc(ref)}</strong>.</p><p>RUNHTec engages technical professionals per project and on contract. Being registered does not guarantee work. Our HR team reviews every application and will contact you on the phone or email you gave if your skills match a current or upcoming project.</p><p>Please keep your reference number for any follow-up. Questions? WhatsApp us on +250 793 229 790.</p><p>RUNHTec Contractors Ltd</p>`,
+      });
+    }
+    const [hr] = await pool.query(
+      "SELECT email FROM users WHERE status = 'active' AND role IN ('hr','super_admin','admin') AND email IS NOT NULL AND email <> ''"
+    );
+    const to = hr.map((u) => u.email);
+    if (to.length) {
+      const line = `${ref}: ${data.full_name} (${data.trade}), ${data.country || '-'}, ${data.phone || '-'}${data.campaign ? ' · source: ' + data.campaign : ''}`;
+      await sendEmail({
+        to,
+        subject: `RUNHTec: ${verb} application ${ref} (${data.full_name})`,
+        text: `${verb === 'received' ? 'New' : 'Updated'} contractor application.\n\n${line}\n\nOpen the ERP: ${APP_URL}`,
+        html: `<p>${verb === 'received' ? 'New' : 'Updated'} contractor application.</p><p>${esc(line)}</p><p><a href="${APP_URL}">Open the ERP</a></p>`,
+      });
+    }
+  } catch (err) {
+    console.error('career emails failed:', err.message);
+  }
+}
 
 const clip = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const yes = (v) => ['1', 'true', 'yes', 'on'].includes(String(v || '').toLowerCase());
@@ -117,6 +151,7 @@ router.post('/apply', (req, res, next) => {
     await notifyRoles(['hr', 'super_admin', 'admin'], 'application',
       `${existing ? 'Updated' : 'New'} contractor application ${ref}: ${data.full_name} (${data.trade})`);
 
+    sendApplicationEmails({ ref, updated: Boolean(existing), data });
     res.status(200).json({ success: true, ref, updated: Boolean(existing) });
   } catch (err) {
     console.error('careers apply error:', err);
