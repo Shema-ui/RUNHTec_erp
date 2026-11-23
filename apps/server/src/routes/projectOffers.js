@@ -33,29 +33,48 @@ function partsOf(v) {
   return [String(v)];
 }
 
-// Skills, trade and department from each person's profiles. Used to match projects.
+// What each person has told us: skills listed on their profile, and the trade (domain) they
+// chose when they applied. Used to decide who is invited to a project.
 async function profileByUser() {
   const map = {};
-  const add = (user, parts) => { if (!user) return; (map[user] || (map[user] = [])).push(...parts); };
+  const entry = (user) => (map[user] || (map[user] = { skills: [], domain: [] }));
   const [sp] = await pool.query('SELECT user, skills FROM staff_profiles WHERE user IS NOT NULL');
-  sp.forEach((r) => add(r.user, partsOf(r.skills)));
+  sp.forEach((r) => entry(r.user).skills.push(...partsOf(r.skills)));
   const [em] = await pool.query('SELECT user, skills FROM employees WHERE user IS NOT NULL');
-  em.forEach((r) => add(r.user, partsOf(r.skills)));
-  const [ct] = await pool.query('SELECT user, skills, trade, department FROM contractors WHERE user IS NOT NULL');
-  ct.forEach((r) => add(r.user, [...partsOf(r.skills), ...partsOf(r.trade), ...partsOf(r.department)]));
+  em.forEach((r) => entry(r.user).skills.push(...partsOf(r.skills)));
+  // The domain is the trade chosen on the application (or on the contractor record).
+  // The contractor department is not used: it defaults to "technical" for everyone.
+  const [ct] = await pool.query(`SELECT c.user, c.skills, c.trade, a.trade AS app_trade
+    FROM contractors c LEFT JOIN job_applications a ON a.id = c.application WHERE c.user IS NOT NULL`);
+  ct.forEach((r) => {
+    const e = entry(r.user);
+    e.skills.push(...partsOf(r.skills));
+    e.domain.push(...partsOf(r.trade), ...partsOf(r.app_trade));
+  });
   const out = {};
   Object.keys(map).forEach((k) => {
-    out[k] = { label: [...new Set(map[k].filter(Boolean))].join(', '), text: map[k].join(',').toLowerCase() };
+    const skills = [...new Set(map[k].skills.filter(Boolean))];
+    const domain = [...new Set(map[k].domain.filter(Boolean))];
+    const all = [...skills, ...domain];
+    out[k] = {
+      label: all.join(', '),
+      text: all.join(',').toLowerCase(),
+      hasSkills: skills.length > 0,
+      hasDomain: domain.length > 0,
+    };
   });
   return out;
 }
 
-// A project with no skills wanted goes to everyone. Otherwise any wanted skill must appear in the profile.
+// A project with no skills wanted goes to everyone.
+// If the person listed skills, one of them must match the project's skills.
+// If they listed no skills but chose a trade when applying, they stay open to every project.
 function matches(projectSkills, profile) {
   const need = String(projectSkills || '').toLowerCase().split(/[,;\n]+/).map((t) => t.trim()).filter(Boolean);
   if (!need.length) return true;
-  const text = profile?.text || '';
-  return need.some((n) => text.includes(n));
+  if (!profile) return false;
+  if (profile.hasSkills) return need.some((n) => profile.text.includes(n));
+  return profile.hasDomain;
 }
 
 async function staffUsers() {
