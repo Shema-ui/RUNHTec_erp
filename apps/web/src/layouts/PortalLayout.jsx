@@ -101,6 +101,8 @@ function NavItem({ item, collapsed }) {
 }
 
 function SidebarContent({ collapsed, user }) {
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState({});
   // Until their profile is done, new staff only see "My profile".
   const gated = needsProfile(user);
   const moduleItems = gated ? [{ key: 'my-profile', label: 'My profile', icon: UserRound, to: '/my-profile' }] : MODULE_NAV.filter((i) => canAccessModule(user, i.key));
@@ -161,8 +163,6 @@ export default function PortalLayout({ children, title, subtitle }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [appOpen, setAppOpen] = useState(false);
-  const location = useLocation();
-  const [openGroups, setOpenGroups] = useState({});
   // The Dashboard's "Get the RUNHTec app" banner opens the same window.
   useEffect(() => {
     const open = () => setAppOpen(true);
