@@ -51,7 +51,7 @@ function welcomeEmail(name, ref, link) {
       { title: 'Install the RUNHTec app', text: `Open ${APP_URL}/app for instructions. A QR code on that page can be scanned with your phone camera.` },
       { title: 'Open the staff sign-in page', text: link ? 'Tap the "Open staff sign-in" button below. The page opens by itself, so you do not need to paste anything.' : 'Our team will send your staff link shortly.' },
       { title: 'Sign in', text: 'Enter the email address this message was sent to, and the password our team sends you on WhatsApp. Then tap "Sign in".' },
-      { title: 'If the button does not open the page', text: `Go to ${APP_URL}/login, tap "RUNHTec staff? Open your staff link" at the bottom of the page, paste the link from this email into "Paste your private staff link", then tap "Continue to staff sign-in".` },
+      { title: 'If the button does not open the page', text: `Go to ${APP_URL}/login, tap "RUNHTec staff? Open your staff link" at the bottom of the page, paste the link from this email into "Paste your private staff link", then tap "Continue to staff sign-in". See the picture: ${APP_URL}/help/staff-link-login.png` },
     ],
     button: link ? { label: 'Open staff sign-in', url: link } : null,
     closing: [
