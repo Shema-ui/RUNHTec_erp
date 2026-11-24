@@ -36,28 +36,44 @@ const APP_URL = process.env.APP_URL || 'https://erp.runhteccontractors.si';
 
 // Emails sent after a successful application. Never blocks or fails the request.
 async function sendApplicationEmails({ ref, updated, data }) {
+  const { renderEmail } = require('../emailLayout');
   const verb = updated ? 'updated' : 'received';
   try {
     if (data.email) {
-      await sendEmail({
-        to: data.email,
-        subject: `RUNHTec: we have ${verb} your application (${ref})`,
-        text: `Dear ${data.full_name},\n\nThank you for applying to work with RUNHTec Contractors Ltd. We have ${verb} your application, reference ${ref}.\n\nRUNHTec engages technical professionals per project and on contract. Being registered does not guarantee work. Our HR team reviews every application and will contact you on the phone or email you gave if your skills match a current or upcoming project.\n\nPlease keep your reference number for any follow-up. Questions? WhatsApp us on +250 793 229 790.\n\nRUNHTec Contractors Ltd`,
-        html: `<p>Dear ${esc(data.full_name)},</p><p>Thank you for applying to work with RUNHTec Contractors Ltd. We have ${verb} your application, reference <strong>${esc(ref)}</strong>.</p><p>RUNHTec engages technical professionals per project and on contract. Being registered does not guarantee work. Our HR team reviews every application and will contact you on the phone or email you gave if your skills match a current or upcoming project.</p><p>Please keep your reference number for any follow-up. Questions? WhatsApp us on +250 793 229 790.</p><p>RUNHTec Contractors Ltd</p>`,
+      const m = renderEmail({
+        greeting: `Dear ${data.full_name},`,
+        paragraphs: [
+          `Thank you for applying to work with RUNHTec Contractors Ltd. We have ${verb} your application. Your reference number is ${ref}.`,
+          'RUNHTec engages technical professionals on a project and contract basis. Registering with us does not guarantee work. When a project matches your skills, our HR team will contact you on the phone number or email address you provided.',
+          'Please keep your reference number for any follow-up.',
+        ],
+        closing: ['If you have a question, reply to this email or WhatsApp us on +250 793 229 790.'],
+        signoff: 'Kind regards,\nHuman Resources, RUNHTec Contractors Ltd',
       });
+      await sendEmail({ to: data.email, subject: `Your application to RUNHTec Contractors (ref ${ref})`, text: m.text, html: m.html });
     }
     const [hr] = await pool.query(
       "SELECT email FROM users WHERE status = 'active' AND role IN ('hr','super_admin','admin') AND email IS NOT NULL AND email <> ''"
     );
     const to = hr.map((u) => u.email);
     if (to.length) {
-      const line = `${ref}: ${data.full_name} (${data.trade}), ${data.country || '-'}, ${data.phone || '-'}${data.campaign ? ' · source: ' + data.campaign : ''}`;
-      await sendEmail({
-        to,
-        subject: `RUNHTec: ${verb} application ${ref} (${data.full_name})`,
-        text: `${verb === 'received' ? 'New' : 'Updated'} contractor application.\n\n${line}\n\nOpen the ERP: ${APP_URL}`,
-        html: `<p>${verb === 'received' ? 'New' : 'Updated'} contractor application.</p><p>${esc(line)}</p><p><a href="${APP_URL}">Open the ERP</a></p>`,
+      const m = renderEmail({
+        greeting: 'Hello HR team,',
+        paragraphs: [`A ${verb === 'received' ? 'new' : 'updated'} contractor application has been submitted through the website.`],
+        details: [
+          ['Reference', ref],
+          ['Name', data.full_name],
+          ['Main skill', data.trade],
+          ['Department', data.department],
+          ['Country', data.country || '-'],
+          ['Phone', data.phone || '-'],
+          ['Email', data.email || '-'],
+          ...(data.campaign ? [['Source', data.campaign]] : []),
+        ],
+        button: { label: 'Review in the ERP', url: APP_URL },
+        signoff: 'RUNHTec ERP',
       });
+      await sendEmail({ to, subject: `New application ${ref}: ${data.full_name} (${data.trade})`, text: m.text, html: m.html });
     }
   } catch (err) {
     console.error('career emails failed:', err.message);

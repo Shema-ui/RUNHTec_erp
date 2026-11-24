@@ -87,19 +87,24 @@ async function recipientsFor(project) {
   return (await staffUsers()).filter((u) => matches(project.offer_skills, profiles[u.id]));
 }
 
-function openProjectEmail(p) {
-  const facts = [
-    p.offer_location ? `<p style="margin:0 0 6px"><strong>Location:</strong> ${esc(p.offer_location)}</p>` : '',
-    p.offer_deadline ? `<p style="margin:0 0 6px"><strong>Offers close:</strong> ${esc(dayText(p.offer_deadline))}</p>` : '',
-    Number(p.positions_needed) ? `<p style="margin:0 0 6px"><strong>People needed:</strong> ${Number(p.positions_needed)}</p>` : '',
-  ].join('');
-  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#14211c;max-width:560px">
-    <h2 style="color:#003DA5;margin:0 0 12px">New project: ${esc(p.title)}</h2>
-    ${facts}
-    ${p.offer_summary ? `<p style="margin:14px 0;white-space:pre-line">${esc(p.offer_summary)}</p>` : ''}
-    <p style="margin:18px 0"><a href="${APP_URL}/offers" style="background:#003DA5;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Offer your services</a></p>
-    <p style="font-size:12px;color:#697570">Open the ERP and go to Project Offers to say you are interested or not available.</p>
-  </div>`;
+function openProjectEmail(p, name) {
+  const { renderEmail } = require('../emailLayout');
+  const details = [];
+  if (p.offer_location) details.push(['Location', p.offer_location]);
+  if (p.offer_deadline) details.push(['Offers close', dayText(p.offer_deadline)]);
+  if (Number(p.positions_needed)) details.push(['People needed', String(Number(p.positions_needed))]);
+  return renderEmail({
+    greeting: `Dear ${name || 'colleague'},`,
+    paragraphs: [
+      `A new project is open for offers: ${p.title}.`,
+      'Please let us know whether you are interested and available. Your reply is recorded in the ERP under Project Offers.',
+      ...(p.offer_summary ? [p.offer_summary] : []),
+    ],
+    details,
+    button: { label: 'View project offers', url: `${APP_URL}/offers` },
+    closing: ['Thank you.'],
+    signoff: 'RUNHTec Contractors Ltd',
+  });
 }
 
 // Called when a project is opened for offers (or saved as open). Invites matching staff once each.
@@ -117,12 +122,9 @@ async function announceOpenProject(p) {
   if (emailEnabled()) {
     for (const u of fresh) {
       if (!u.email) continue;
-      sendEmail({
-        to: u.email,
-        subject: `New project: ${p.title}`,
-        html: openProjectEmail(p),
-        text: `New project: ${p.title}. Open the ERP and go to Project Offers to offer your services: ${APP_URL}/offers`,
-      }).catch((err) => console.error('Offer email failed:', err.message));
+      const m = openProjectEmail(p, u.name);
+      sendEmail({ to: u.email, subject: `Project open for offers: ${p.title}`, text: m.text, html: m.html })
+        .catch((err) => console.error('Offer email failed:', err.message));
     }
   }
   return fresh.length;
