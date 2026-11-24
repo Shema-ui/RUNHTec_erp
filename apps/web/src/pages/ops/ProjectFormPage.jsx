@@ -66,6 +66,8 @@ export default function ProjectFormPage() {
   };
 
   const save = async (e) => {
+    e?.preventDefault?.();
+    if (step !== last) return; // only save from the final step
     e.preventDefault();
     if (!form.title.trim()) { toast({ title: 'Give the project a title', variant: 'destructive' }); return; }
     setSaving(true);
@@ -90,6 +92,10 @@ export default function ProjectFormPage() {
     }
   };
 
+  const STEPS = ['Project', 'Schedule & value', 'Description & notes'];
+  const [step, setStep] = useState(0);
+  const last = STEPS.length - 1;
+
   return (
     <PortalLayout title={isEdit ? 'Edit project' : 'New project'} subtitle="Projects & Work Orders">
       <Helmet><title>{isEdit ? 'Edit project' : 'New project'} | RUNHTec Business Portal</title></Helmet>
@@ -97,6 +103,7 @@ export default function ProjectFormPage() {
         <form onSubmit={save} className="space-y-5">
           <BackLink to={isEdit ? `/projects/${id}` : '/projects'} />
 
+          {step === 0 && (
           <Card title="Project">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Title" required className="sm:col-span-2"><input className={inputCls} value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. 10 kVA hybrid solar — Kivu Lodge" /></Field>
@@ -148,7 +155,9 @@ export default function ProjectFormPage() {
               <Field label="Site address" className="sm:col-span-2 lg:col-span-3"><input className={inputCls} value={form.site_address} onChange={(e) => set('site_address', e.target.value)} placeholder="District, sector, street / landmark" /></Field>
             </div>
           </Card>
+          )}
 
+          {step === 1 && (
           <Card title="Schedule, status & value">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Status">
@@ -176,17 +185,24 @@ export default function ProjectFormPage() {
               <Field label="Completed on"><input type="date" className={inputCls} value={form.completed_date || ''} onChange={(e) => set('completed_date', e.target.value)} /></Field>
             </div>
           </Card>
+          )}
 
+          {step === 2 && (
           <Card title="Description & notes">
             <div className="grid gap-4 lg:grid-cols-2">
               <Field label="Scope / description"><textarea className={textareaCls} rows={5} value={form.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="What will be delivered, key equipment, client requirements" /></Field>
               <Field label="Internal notes"><textarea className={textareaCls} rows={5} value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} /></Field>
             </div>
           </Card>
+          )}
 
-          <div className="flex justify-end gap-2 pb-4">
-            <button type="button" className={btnLine} onClick={() => navigate(-1)}>Cancel</button>
-            <button type="submit" className={btnPrimary} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save project</button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+            <p className="text-sm text-muted-foreground">Step {step + 1} of {STEPS.length}: <span className="font-semibold text-foreground">{STEPS[step]}</span></p>
+            <div className="flex gap-2">
+              <button type="button" className={btnLine} onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}>{step === 0 ? 'Cancel' : 'Back'}</button>
+              {step < last && <button type="button" className={btnPrimary} onClick={() => setStep(step + 1)}>Next</button>}
+              {step === last && <button type="submit" className={btnPrimary} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save project</button>}
+            </div>
           </div>
         </form>
       )}
