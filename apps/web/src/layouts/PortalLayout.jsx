@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { loadCostSettings } from '@/lib/costing';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PanelLeftClose,
@@ -112,18 +112,29 @@ function SidebarContent({ collapsed, user }) {
           Modules
         </p>
       )}
-      {groupedModuleItems(moduleItems).map((group) => (
-        <div key={group.title || 'top'}>
-          {group.title && !collapsed && (
-            <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-              {group.title}
-            </p>
-          )}
-          {group.items.map((item) => (
-            <NavItem key={item.key} item={item} collapsed={collapsed} />
-          ))}
-        </div>
-      ))}
+      {groupedModuleItems(moduleItems).map((group) => {
+        // A section opens by itself when you are inside it; otherwise you choose.
+        const holdsCurrent = group.items.some((i) => i.to && location.pathname.startsWith(i.to));
+        const open = openGroups[group.title] ?? holdsCurrent;
+        return (
+          <div key={group.title || 'top'}>
+            {group.title && !collapsed && (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpenGroups((o) => ({ ...o, [group.title]: !open }))}
+                className="flex w-full items-center justify-between rounded-md px-3 pb-1 pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80 transition hover:text-foreground"
+              >
+                <span>{group.title}</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
+              </button>
+            )}
+            {(!group.title || collapsed || open) && group.items.map((item) => (
+              <NavItem key={item.key} item={item} collapsed={collapsed} />
+            ))}
+          </div>
+        );
+      })}
 
       {adminItems.length > 0 && (
         <>
@@ -150,6 +161,8 @@ export default function PortalLayout({ children, title, subtitle }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [appOpen, setAppOpen] = useState(false);
+  const location = useLocation();
+  const [openGroups, setOpenGroups] = useState({});
   // The Dashboard's "Get the RUNHTec app" banner opens the same window.
   useEffect(() => {
     const open = () => setAppOpen(true);
