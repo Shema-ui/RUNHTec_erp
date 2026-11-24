@@ -83,7 +83,7 @@ export default function ClientLayout({ children }) {
   }
 
   const tab = (to, label, Icon, badge) => (
-    <NavLink to={`${to}${keep}`} end className={({ isActive }) => `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive ? 'text-[#003DA5]' : 'text-slate-500'}`}>
+    <NavLink to={`${to}${keep}`} end className={({ isActive }) => `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${isActive ? 'text-[#881946]' : 'text-slate-500'}`}>
       <Icon className="h-5 w-5" />{t(label)}
       {badge > 0 && <span className="absolute right-1/4 top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{badge}</span>}
     </NavLink>
@@ -102,7 +102,7 @@ export default function ClientLayout({ children }) {
             <Eye className="h-4 w-4" /> Preview: this is exactly what {name} sees. <Link className="underline" to={`/crm/clients/${clientId}`}>Back to the client</Link>
           </div>
         )}
-        <header className="sticky top-0 z-30 bg-[#003DA5] text-white shadow">
+        <header className="sticky top-0 z-30 bg-[#881946] text-white shadow">
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
             <Link to={`/portal${keep}`} className="shrink-0"><BrandMark title="My RUNHTec" subtitle="" /></Link>
             <nav className="ml-6 hidden items-center gap-1 md:flex">
@@ -135,7 +135,7 @@ export default function ClientLayout({ children }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Languages className="h-4 w-4" />{t('Language')}</DropdownMenuLabel>
                     {LANGUAGES.map((l) => (
-                      <DropdownMenuItem key={l.code} onClick={() => setLang(l.code)}><span className="mr-2 inline-flex w-4">{lang === l.code && <Check className="h-4 w-4 text-[#003DA5]" />}</span>{l.label}</DropdownMenuItem>
+                      <DropdownMenuItem key={l.code} onClick={() => setLang(l.code)}><span className="mr-2 inline-flex w-4">{lang === l.code && <Check className="h-4 w-4 text-[#881946]" />}</span>{l.label}</DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => { if (window.confirm(t('Sign out of My RUNHTec? You’ll need your phone number and PIN to sign in again.'))) leave(); }} className="text-destructive focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />{t('Sign out')}</DropdownMenuItem>
@@ -151,7 +151,7 @@ export default function ClientLayout({ children }) {
         <AppDialog open={appOpen} onClose={() => setAppOpen(false)} />
         {isClient && <PinDialog open={pinOpen} onClose={() => setPinOpen(false)} current={signin} onDone={(r) => setSignin({ ...(signin || {}), ...r, has_pin: true, terms_accepted: true })} />}
         <main className="mx-auto max-w-6xl px-4 py-5 md:py-8">
-          {!data ? <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" /></div> : children}
+          {!data ? <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#881946]" /></div> : children}
         </main>
 
         {/* Phone: bottom bar */}
@@ -204,8 +204,8 @@ export function PinDialog({ open, onClose, current, onDone }) {
         </div>
         {needTerms && (
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-300 p-3 text-sm leading-relaxed">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#003DA5]" />
-            <span>I agree to the <Link to="/terms" className="font-semibold text-[#003DA5] underline underline-offset-2">Terms of Use and Privacy Notice</Link>, and to RUNHTec using my details to provide its services.</span>
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#881946]" />
+            <span>I agree to the <Link to="/terms" className="font-semibold text-[#881946] underline underline-offset-2">Terms of Use and Privacy Notice</Link>, and to RUNHTec using my details to provide its services.</span>
           </label>
         )}
         {err && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}

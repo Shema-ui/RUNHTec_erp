@@ -21,7 +21,7 @@ export default function AuthShell({ children, pageTitle }) {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'linear-gradient(135deg, #001f5a 0%, #003DA5 55%, #002d80 100%)',
+              'linear-gradient(135deg, #001f5a 0%, #881946 55%, #002d80 100%)',
           }}
         />
         {/* Red accent streak */}

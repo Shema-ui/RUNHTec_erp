@@ -56,7 +56,7 @@ function Chat() {
                 <React.Fragment key={m.id}>
                   {showDay && <li className="py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{dayLabel(m.created)}</li>}
                   <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'bg-[#003DA5] text-white' : 'bg-slate-100'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${mine ? 'bg-[#881946] text-white' : 'bg-slate-100'}`}>
                       {m.kind === 'assistance' && <p className={`mb-1 text-[11px] font-semibold uppercase ${mine ? 'text-white/80' : 'text-rose-600'}`}>Help request{m.topic ? ` · ${m.topic}` : ''}</p>}
                       {proj && <p className={`mb-1 text-[11px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>About: {proj.title}</p>}
                       <p className="whitespace-pre-wrap">{m.body}</p>
@@ -81,8 +81,8 @@ function Chat() {
         <div className="flex gap-2">
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder="Write a message…" aria-label="Message"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            className="min-h-[44px] flex-1 resize-none rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#003DA5]/30" />
-          <button onClick={send} disabled={busy} aria-label="Send" className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#003DA5] text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
+            className="min-h-[44px] flex-1 resize-none rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#881946]/30" />
+          <button onClick={send} disabled={busy} aria-label="Send" className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#881946] text-white disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
         </div>
       </div>
     </div>

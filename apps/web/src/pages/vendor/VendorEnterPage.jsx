@@ -10,10 +10,10 @@ const inputCls = 'mt-1.5 h-12 w-full rounded-xl border border-border bg-backgrou
 
 function Shell({ children }) {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#003DA5] to-[#001f57] px-4 py-10">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#881946] to-[#001f57] px-4 py-10">
       <Helmet><title>Supplier portal | RUNHTec Contractors</title><meta name="robots" content="noindex" /></Helmet>
       <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl sm:p-9">
-        <div className="mb-6 rounded-xl bg-[#003DA5] px-4 py-3"><BrandMark /></div>
+        <div className="mb-6 rounded-xl bg-[#881946] px-4 py-3"><BrandMark /></div>
         {children}
       </div>
     </div>
@@ -89,7 +89,7 @@ export default function VendorEnterPage() {
     return (
       <Shell>
         <div className="flex flex-col items-center py-6 text-center">
-          <Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" />
+          <Loader2 className="h-7 w-7 animate-spin text-[#881946]" />
           {slow && <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Waking the system up, this can take up to a minute the first time…</p>}
         </div>
       </Shell>
@@ -107,7 +107,7 @@ export default function VendorEnterPage() {
   return (
     <Shell>
       <form onSubmit={enter}>
-        <p className="text-sm font-semibold text-[#003DA5]">{link.vendor}</p>
+        <p className="text-sm font-semibold text-[#881946]">{link.vendor}</p>
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">{setup ? 'Welcome, set your password' : 'RUNHTec supplier portal'}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {setup
@@ -126,7 +126,7 @@ export default function VendorEnterPage() {
           </>
         )}
         {error && <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-        <button type="submit" disabled={busy} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white disabled:opacity-60">
+        <button type="submit" disabled={busy} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-base font-semibold text-white disabled:opacity-60">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : setup ? <><ShieldCheck className="h-5 w-5" /> Save password and continue</> : <>Open my price list <ArrowRight className="h-5 w-5" /></>}
         </button>
         <p className="mt-4 flex items-start gap-1.5 text-xs text-muted-foreground"><Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />{setup ? 'Keep the link and the password private.' : 'Forgot your password? Ask RUNHTec for a new link, then you choose a new password.'}</p>

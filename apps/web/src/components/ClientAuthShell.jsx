@@ -25,9 +25,9 @@ export default function ClientAuthShell({ pageTitle, children }) {
       </Helmet>
 
       {/* Computer: brand panel */}
-      <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#0B1B3D] via-[#0A2A6B] to-[#003DA5] p-12 text-white lg:flex lg:flex-col">
+      <aside className="relative hidden overflow-hidden bg-[#4A0D26] bg-cover bg-center p-12 text-white lg:flex lg:flex-col" style={{ backgroundImage: "linear-gradient(160deg, rgba(74,13,38,0.92) 0%, rgba(136,25,70,0.86) 55%, rgba(74,13,38,0.95) 100%), url(/brand/field-solar-wide.jpg)" }}>
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -bottom-32 left-10 h-96 w-96 rounded-full bg-[#E4141B]/10" />
+        <div className="pointer-events-none absolute -bottom-32 left-10 h-96 w-96 rounded-full bg-[#E4141B]/15" />
         <div className="relative">
           <span className="inline-flex rounded-2xl bg-white p-3 shadow-lg"><img src="/logo.png" alt="RUNHTec Contractors" className="h-14 w-auto" /></span>
         </div>
@@ -48,7 +48,7 @@ export default function ClientAuthShell({ pageTitle, children }) {
 
       {/* Phone: blue band; both: the form card */}
       <main className="flex min-h-[100dvh] flex-col lg:min-h-0 lg:items-center lg:justify-center lg:p-10">
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#0B1B3D] to-[#003DA5] px-6 pb-16 pt-10 text-white lg:hidden">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#4A0D26] to-[#881946] px-6 pb-16 pt-10 text-white lg:hidden">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/5" />
           <span className="relative inline-flex rounded-2xl bg-white p-2.5 shadow-lg"><img src="/logo.png" alt="RUNHTec Contractors" className="h-11 w-auto" /></span>
           <p className="relative mt-5 font-display text-2xl font-extrabold">My RUNHTec</p>
@@ -96,7 +96,7 @@ export function PhoneField({ id, value, onChange, autoFocus }) {
   const type = (e) => { setNational(e.target.value); emit(dial, e.target.value); };
   const current = COUNTRIES.find((c) => c.dial === dial && c.iso === 'RW') || COUNTRIES.find((c) => c.dial === dial);
   return (
-    <div className="flex h-12 overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-[#003DA5] focus-within:ring-2 focus-within:ring-[#003DA5]/20">
+    <div className="flex h-12 overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-[#881946] focus-within:ring-2 focus-within:ring-[#881946]/20">
       <label className="relative flex shrink-0 items-center gap-1 border-r border-slate-200 bg-slate-50 pl-3 pr-2 text-sm font-semibold text-slate-700">
         <span aria-hidden="true">{flagOf(current?.iso || 'RW')} +{dial}</span>
         <span className="sr-only">Country</span>

@@ -48,7 +48,7 @@ function Home() {
       <ReferralCard />
       <Helmet><title>Your projects | RUNHTec Contractors</title></Helmet>
 
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#003DA5] to-[#0a2a6b] p-6 text-white shadow-lg sm:p-8">
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#881946] to-[#0a2a6b] p-6 text-white shadow-lg sm:p-8">
         <div className="flex flex-wrap items-center gap-4">
           {data.client?.logo
             ? <img src={pb.files.getURL(data.client, data.client.logo)} alt="" className="h-16 w-16 rounded-2xl bg-white object-contain p-1.5" />
@@ -85,9 +85,9 @@ function Home() {
           })}
         </div>
         <div className="mt-3 grid grid-cols-3 gap-3">
-          <Link to={`/portal/requests${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><ClipboardList className="h-4 w-4 text-[#003DA5]" /> {t('Requests')}{openRequests.length > 0 && <span className="rounded-full bg-[#003DA5] px-1.5 text-[11px] font-bold text-white">{openRequests.length}</span>}</Link>
-          <Link to={`/portal/equipment${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Cpu className="h-4 w-4 text-[#003DA5]" /> {t('Equipment')}</Link>
-          <Link to={`/portal/news${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Newspaper className="h-4 w-4 text-[#003DA5]" /> {t('News')}</Link>
+          <Link to={`/portal/requests${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><ClipboardList className="h-4 w-4 text-[#881946]" /> {t('Requests')}{openRequests.length > 0 && <span className="rounded-full bg-[#881946] px-1.5 text-[11px] font-bold text-white">{openRequests.length}</span>}</Link>
+          <Link to={`/portal/equipment${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Cpu className="h-4 w-4 text-[#881946]" /> {t('Equipment')}</Link>
+          <Link to={`/portal/news${keep}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-white py-2.5 text-sm font-medium"><Newspaper className="h-4 w-4 text-[#881946]" /> {t('News')}</Link>
         </div>
       </section>
 
@@ -97,9 +97,9 @@ function Home() {
 
       {signin && !signin.has_pin && (
         <button type="button" onClick={openPin} className="flex w-full items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003DA5] text-white"><KeyRound className="h-5 w-5" /></span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#881946] text-white"><KeyRound className="h-5 w-5" /></span>
           <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">{t('Set up your app sign-in')}</span><span className="block text-xs text-slate-600">{t('Choose a PIN to sign in to My RUNHTec with your phone number.')}</span></span>
-          <ChevronRight className="h-5 w-5 text-[#003DA5]" />
+          <ChevronRight className="h-5 w-5 text-[#881946]" />
         </button>
       )}
 
@@ -140,11 +140,11 @@ function Home() {
                   </div>
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display text-base font-bold group-hover:text-[#003DA5]">{p.title}</h3>
+                      <h3 className="font-display text-base font-bold group-hover:text-[#881946]">{p.title}</h3>
                       <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                     </div>
                     <div className="mt-3 flex items-center gap-3">
-                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#003DA5]" style={{ width: `${prog}%` }} /></div>
+                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#881946]" style={{ width: `${prog}%` }} /></div>
                       <span className="text-sm font-bold">{prog}%</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -177,7 +177,7 @@ function Home() {
               ) : (
                 <li key={`m${i}`}>
                   <Link to={`/portal/messages${keep}`} className="flex gap-3">
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#003DA5]"><MessageCircle className="h-6 w-6" /></span>
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#881946]"><MessageCircle className="h-6 w-6" /></span>
                     <span className="min-w-0 text-sm"><span className="block font-medium">{f.m.sender_name} replied</span><span className="block truncate text-muted-foreground">{f.m.body}</span><span className="text-xs text-muted-foreground">{timeLabel(f.t)}</span></span>
                   </Link>
                 </li>
@@ -190,7 +190,7 @@ function Home() {
           <h2 className="mb-3 font-display text-base font-bold">{t('Your RUNHTec contact')}</h2>
           {pm ? (
             <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#003DA5] font-semibold text-white">{initials(pm.name)}</span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#881946] font-semibold text-white">{initials(pm.name)}</span>
               <div className="min-w-0"><p className="font-semibold">{pm.name}</p><p className="text-xs text-muted-foreground">{t('Project manager')}</p></div>
             </div>
           ) : <p className="text-sm text-muted-foreground">{t('The RUNHTec team')}</p>}
@@ -198,7 +198,7 @@ function Home() {
             {(pm?.phone || data.settings.company_phone) && <a href={`tel:${pm?.phone || data.settings.company_phone}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Phone className="h-4 w-4" /> {t('Call')}</a>}
             {whatsappLink(data.settings) && <a href={whatsappLink(data.settings, `Hello RUNHTec, this is ${name}. `)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-2.5 text-sm font-semibold text-white"><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>}
             {(pm?.email || data.settings.company_email) && <a href={`mailto:${pm?.email || data.settings.company_email}`} className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-medium"><Mail className="h-4 w-4" /> {t('Email')}</a>}
-            <button onClick={openAssist} className="flex items-center justify-center gap-1.5 rounded-xl bg-[#003DA5] py-2.5 text-sm font-semibold text-white"><LifeBuoy className="h-4 w-4" /> {t('Get help')}</button>
+            <button onClick={openAssist} className="flex items-center justify-center gap-1.5 rounded-xl bg-[#881946] py-2.5 text-sm font-semibold text-white"><LifeBuoy className="h-4 w-4" /> {t('Get help')}</button>
           </div>
         </section>
       </div>

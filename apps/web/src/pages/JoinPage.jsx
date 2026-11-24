@@ -9,7 +9,7 @@ import { TermsContent } from '@/pages/TermsPage';
 
 // Public sign-up for My RUNHTec. Creates the client (as a lead in the CRM),
 // records that they accepted the terms, and signs them straight in.
-const inp = 'h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#003DA5] focus:ring-2 focus:ring-[#003DA5]/20';
+const inp = 'h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#881946] focus:ring-2 focus:ring-[#881946]/20';
 const WEAK = new Set(['0000', '1111', '1234', '12345', '123456', '000000', '111111', '4321', '2222', '9999']);
 
 function Rule({ ok, children }) {
@@ -59,7 +59,7 @@ export default function JoinPage() {
 
       <form onSubmit={submit} className="mt-6 space-y-6">
         <fieldset className="space-y-4">
-          <legend className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003DA5] text-[11px] text-white">1</span> About you</legend>
+          <legend className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#881946] text-[11px] text-white">1</span> About you</legend>
           <div><label htmlFor="j-name" className="mb-1.5 block text-sm font-semibold text-slate-800">Full name</label><input id="j-name" className={inp} autoComplete="name" required value={f.name} onChange={set('name')} placeholder="e.g. Aline Uwase" /></div>
           <div><label htmlFor="j-company" className="mb-1.5 block text-sm font-semibold text-slate-800">Company <span className="font-normal text-slate-500">(leave empty for a home)</span></label><input id="j-company" className={inp} autoComplete="organization" value={f.company} onChange={set('company')} placeholder="e.g. Kivu Lodge Ltd" /></div>
           <div><label htmlFor="j-loc" className="mb-1.5 block text-sm font-semibold text-slate-800">Area</label><input id="j-loc" className={inp} value={f.location} onChange={set('location')} placeholder="e.g. Kicukiro, Kigali" /></div>
@@ -67,7 +67,7 @@ export default function JoinPage() {
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003DA5] text-[11px] text-white">2</span> How you’ll sign in</legend>
+          <legend className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#881946] text-[11px] text-white">2</span> How you’ll sign in</legend>
           <div><label htmlFor="j-phone" className="mb-1.5 block text-sm font-semibold text-slate-800">Phone number</label><PhoneField id="j-phone" value={f.phone} onChange={set('phone')} /><p className="mt-1.5 text-xs text-slate-500">We’ll also use it to call you about your requests.</p></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label htmlFor="j-pin" className="mb-1.5 block text-sm font-semibold text-slate-800">Choose a PIN</label><input id="j-pin" type={showPin ? 'text' : 'password'} inputMode="numeric" autoComplete="new-password" required maxLength={6} value={f.pin} onChange={set('pin')} placeholder="4–6 digits" className={`${inp} tracking-[0.3em] placeholder:tracking-normal`} /></div>
@@ -79,30 +79,30 @@ export default function JoinPage() {
               <Rule ok={pinStrong}>Not easy to guess (not 1234)</Rule>
               <Rule ok={pinMatch}>Both PINs match</Rule>
             </ul>
-            <button type="button" onClick={() => setShowPin((s) => !s)} className="inline-flex items-center gap-1 text-sm font-semibold text-[#003DA5]">{showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{showPin ? 'Hide' : 'Show'} PIN</button>
+            <button type="button" onClick={() => setShowPin((s) => !s)} className="inline-flex items-center gap-1 text-sm font-semibold text-[#881946]">{showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{showPin ? 'Hide' : 'Show'} PIN</button>
           </div>
         </fieldset>
 
         {/* Hidden from people; bots fill it in and are ignored. */}
         <input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={set('website')} className="hidden" aria-hidden="true" />
 
-        <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed transition ${agree ? 'border-[#003DA5] bg-blue-50/60' : 'border-slate-300'}`}>
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#003DA5]" />
-          <span className="text-slate-700">I agree to the <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true); }} className="font-semibold text-[#003DA5] underline underline-offset-2">Terms of Use and Privacy Notice</button>, and to RUNHTec using my details to provide its services.</span>
+        <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm leading-relaxed transition ${agree ? 'border-[#881946] bg-blue-50/60' : 'border-slate-300'}`}>
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#881946]" />
+          <span className="text-slate-700">I agree to the <button type="button" onClick={(e) => { e.preventDefault(); setShowTerms(true); }} className="font-semibold text-[#881946] underline underline-offset-2">Terms of Use and Privacy Notice</button>, and to RUNHTec using my details to provide its services.</span>
         </label>
 
-        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
+        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
           {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating your account…</> : <>Create my account <ArrowRight className="h-5 w-5" /></>}
         </button>
         <WaitNotice active={loading} title="Creating your account…" />
-        <p className="text-center text-sm text-slate-600">Already have an account? <Link to="/login" className="font-semibold text-[#003DA5]">Sign in</Link></p>
+        <p className="text-center text-sm text-slate-600">Already have an account? <Link to="/login" className="font-semibold text-[#881946]">Sign in</Link></p>
       </form>
 
       <Modal open={showTerms} onClose={() => setShowTerms(false)} wide title="Terms of Use & Privacy Notice">
         <TermsContent />
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={() => setShowTerms(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Close</button>
-          <button type="button" onClick={() => { setAgree(true); setShowTerms(false); }} className="rounded-lg bg-[#003DA5] px-4 py-2 text-sm font-semibold text-white">I agree</button>
+          <button type="button" onClick={() => { setAgree(true); setShowTerms(false); }} className="rounded-lg bg-[#881946] px-4 py-2 text-sm font-semibold text-white">I agree</button>
         </div>
       </Modal>
     </ClientAuthShell>

@@ -20,7 +20,7 @@ function detect() {
 
 const Step = ({ n, children }) => (
   <li className="flex gap-3">
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#003DA5] text-sm font-bold text-white">{n}</span>
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#881946] text-sm font-bold text-white">{n}</span>
     <span className="pt-0.5 text-[15px] leading-relaxed text-slate-800">{children}</span>
   </li>
 );
@@ -49,7 +49,7 @@ export default function InstallAppPage() {
             <div className="text-center">
               <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
               <p className="mt-2 font-semibold text-slate-900">The app is installed.</p>
-              <Link to="/dashboard" className="mt-4 inline-flex rounded-lg bg-[#003DA5] px-5 py-2.5 text-sm font-semibold text-white">Open My RUNHTec</Link>
+              <Link to="/dashboard" className="mt-4 inline-flex rounded-lg bg-[#881946] px-5 py-2.5 text-sm font-semibold text-white">Open My RUNHTec</Link>
             </div>
           ) : d.inApp ? (
             <>
@@ -64,7 +64,7 @@ export default function InstallAppPage() {
             </>
           ) : d.ios ? (
             <>
-              <p className="flex items-center gap-2 font-semibold text-slate-900"><Smartphone className="h-5 w-5 text-[#003DA5]" /> iPhone / iPad</p>
+              <p className="flex items-center gap-2 font-semibold text-slate-900"><Smartphone className="h-5 w-5 text-[#881946]" /> iPhone / iPad</p>
               {d.iosOther && (
                 <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Works best in <b>Safari</b>. If you don’t see “Add to Home Screen”, copy this link and open it in Safari.</p>
               )}
@@ -78,9 +78,9 @@ export default function InstallAppPage() {
             </>
           ) : (
             <>
-              <p className="flex items-center gap-2 font-semibold text-slate-900">{d.android ? <Smartphone className="h-5 w-5 text-[#003DA5]" /> : <Monitor className="h-5 w-5 text-[#003DA5]" />}{d.android ? 'Android' : 'Computer'}</p>
+              <p className="flex items-center gap-2 font-semibold text-slate-900">{d.android ? <Smartphone className="h-5 w-5 text-[#881946]" /> : <Monitor className="h-5 w-5 text-[#881946]" />}{d.android ? 'Android' : 'Computer'}</p>
               {canPromptInstall() ? (
-                <button type="button" onClick={promptInstall} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] px-5 py-3 text-base font-semibold text-white"><Download className="h-5 w-5" /> Install My RUNHTec</button>
+                <button type="button" onClick={promptInstall} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#881946] px-5 py-3 text-base font-semibold text-white"><Download className="h-5 w-5" /> Install My RUNHTec</button>
               ) : (
                 <ol className="mt-4 space-y-3">
                   <Step n={1}>Open this page in <b>Chrome</b>{d.desktop ? ' or Edge' : ''}.</Step>
@@ -105,13 +105,13 @@ export default function InstallAppPage() {
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="font-semibold text-slate-900">After installing</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-            <li><b>Clients:</b> sign in with your phone number and PIN. New to RUNHTec? <Link to="/join" className="font-semibold text-[#003DA5]">Create your account</Link>.</li>
+            <li><b>Clients:</b> sign in with your phone number and PIN. New to RUNHTec? <Link to="/join" className="font-semibold text-[#881946]">Create your account</Link>.</li>
             <li>Turn on notifications: tap the phone icon at the top (clients) or your name → <b>App &amp; notifications</b> (staff).</li>
             <li>The app updates itself. You never need to reinstall it.</li>
           </ul>
         </div>
 
-        <p className="mt-6 text-center text-sm"><Link to="/login" className="font-semibold text-[#003DA5]">Continue in the browser instead</Link></p>
+        <p className="mt-6 text-center text-sm"><Link to="/login" className="font-semibold text-[#881946]">Continue in the browser instead</Link></p>
       </div>
     </div>
   );

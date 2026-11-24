@@ -19,7 +19,7 @@ function Card({ title, icon: Icon, action, children, className = '' }) {
     <section className={`rounded-2xl border border-border bg-white p-5 shadow-sm ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="inline-flex items-center gap-2 font-display text-base font-bold">{Icon && <Icon className="h-5 w-5 text-[#003DA5]" />}{title}</h2>
+          <h2 className="inline-flex items-center gap-2 font-display text-base font-bold">{Icon && <Icon className="h-5 w-5 text-[#881946]" />}{title}</h2>
           {action}
         </div>
       )}
@@ -112,7 +112,7 @@ function ProjectView() {
   return (
     <div className="space-y-5">
       <Helmet><title>{p.title} | Your project portal</title></Helmet>
-      <Link to={`/portal${keep}`} className="inline-flex items-center gap-1 text-sm font-medium text-[#003DA5]"><ChevronLeft className="h-4 w-4" /> All projects</Link>
+      <Link to={`/portal${keep}`} className="inline-flex items-center gap-1 text-sm font-medium text-[#881946]"><ChevronLeft className="h-4 w-4" /> All projects</Link>
 
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-lg">
@@ -132,7 +132,7 @@ function ProjectView() {
       </section>
 
       {p.status === 'done' && (
-        <Card title={p.handover_confirmed_at ? 'Handed over' : 'Your project is complete'} icon={BadgeCheck} className={p.handover_confirmed_at ? 'border-emerald-200 bg-emerald-50' : 'border-[#003DA5]/30'}>
+        <Card title={p.handover_confirmed_at ? 'Handed over' : 'Your project is complete'} icon={BadgeCheck} className={p.handover_confirmed_at ? 'border-emerald-200 bg-emerald-50' : 'border-[#881946]/30'}>
           {p.handover_confirmed_at ? (
             <p className="text-sm">Handover confirmed by <strong>{p.handover_confirmed_by}</strong> on {timeLabel(p.handover_confirmed_at)}.{p.handover_note ? ` “${p.handover_note}”` : ''} Thank you for working with RUNHTec.</p>
           ) : (
@@ -159,14 +159,14 @@ function ProjectView() {
                 {week.notes.map((c) => <li key={c} className="flex gap-2"><Camera className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />{c}</li>)}
               </ul>
             )}
-            {nextTask && p.status !== 'done' && <p className="mt-4 rounded-xl bg-blue-50 px-3 py-2 text-sm text-[#003DA5]"><strong>Next step:</strong> {nextTask.title}</p>}
+            {nextTask && p.status !== 'done' && <p className="mt-4 rounded-xl bg-blue-50 px-3 py-2 text-sm text-[#881946]"><strong>Next step:</strong> {nextTask.title}</p>}
           </Card>
 
           <Card title="Site photos" icon={Images}
             action={photos.length > 1 && (
               <div className="flex rounded-lg border border-border p-0.5 text-xs font-medium">
-                <button onClick={() => setMode('timeline')} className={`rounded-md px-2.5 py-1 ${mode === 'timeline' ? 'bg-[#003DA5] text-white' : ''}`}>By day</button>
-                <button onClick={() => setMode('compare')} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 ${mode === 'compare' ? 'bg-[#003DA5] text-white' : ''}`}><Columns2 className="h-3.5 w-3.5" />Before / now</button>
+                <button onClick={() => setMode('timeline')} className={`rounded-md px-2.5 py-1 ${mode === 'timeline' ? 'bg-[#881946] text-white' : ''}`}>By day</button>
+                <button onClick={() => setMode('compare')} className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 ${mode === 'compare' ? 'bg-[#881946] text-white' : ''}`}><Columns2 className="h-3.5 w-3.5" />Before / now</button>
               </div>
             )}>
             {photos.length === 0 ? <p className="text-sm text-muted-foreground">Photos from the site will appear here as the work progresses.</p>
@@ -198,12 +198,12 @@ function ProjectView() {
               )}
           </Card>
 
-          <Card title="Messages about this project" icon={Send} action={<Link to={`/portal/messages${keep}`} className="text-sm font-medium text-[#003DA5]">All messages</Link>}>
+          <Card title="Messages about this project" icon={Send} action={<Link to={`/portal/messages${keep}`} className="text-sm font-medium text-[#881946]">All messages</Link>}>
             {thread.length === 0 ? <p className="mb-3 text-sm text-muted-foreground">Questions or comments about this project? Write to the team here.</p> : (
               <ul className="mb-3 max-h-80 space-y-2 overflow-y-auto">
                 {thread.slice(-8).map((m) => (
                   <li key={m.id} className={`flex ${m.sender_role === 'client' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${m.sender_role === 'client' ? 'bg-[#003DA5] text-white' : 'bg-slate-100'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${m.sender_role === 'client' ? 'bg-[#881946] text-white' : 'bg-slate-100'}`}>
                       <p className="whitespace-pre-wrap">{m.body}</p>
                       <p className={`mt-1 text-[10px] ${m.sender_role === 'client' ? 'text-white/70' : 'text-muted-foreground'}`}>{m.sender_name} · {timeLabel(m.created)}</p>
                     </div>
@@ -212,8 +212,8 @@ function ProjectView() {
               </ul>
             )}
             <div className="flex gap-2">
-              <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }} placeholder="Write a message…" aria-label="Message about this project" className="h-11 flex-1 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 focus:ring-[#003DA5]/30" />
-              <button onClick={send} disabled={sending} aria-label="Send" className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#003DA5] text-white disabled:opacity-60">{sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
+              <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send(); }} placeholder="Write a message…" aria-label="Message about this project" className="h-11 flex-1 rounded-xl border border-border px-3 text-sm outline-none focus:ring-2 focus:ring-[#881946]/30" />
+              <button onClick={send} disabled={sending} aria-label="Send" className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#881946] text-white disabled:opacity-60">{sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
             </div>
           </Card>
         </div>
@@ -226,8 +226,8 @@ function ProjectView() {
                   const current = !t.done && tasks.slice(0, i).every((x) => x.done);
                   return (
                     <li key={t.id} className="flex items-start gap-3 text-sm">
-                      {t.done ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <Circle className={`mt-0.5 h-5 w-5 shrink-0 ${current ? 'text-[#003DA5]' : 'text-slate-300'}`} />}
-                      <span className={t.done ? 'text-muted-foreground' : current ? 'font-semibold' : ''}>{t.title}{current && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#003DA5]">In progress</span>}</span>
+                      {t.done ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <Circle className={`mt-0.5 h-5 w-5 shrink-0 ${current ? 'text-[#881946]' : 'text-slate-300'}`} />}
+                      <span className={t.done ? 'text-muted-foreground' : current ? 'font-semibold' : ''}>{t.title}{current && <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#881946]">In progress</span>}</span>
                     </li>
                   );
                 })}
@@ -247,14 +247,14 @@ function ProjectView() {
 
           <Card title="Documents" icon={FileText}>
             <ul className="divide-y divide-border text-sm">
-              {quote && <li><Link to={`/quotations/${quote.id}/view`} className="flex items-center justify-between gap-2 py-2.5"><span>Quotation {quote.number}</span><Download className="h-4 w-4 text-[#003DA5]" /></Link></li>}
-              {money.invoices.map((inv) => <li key={inv.id}><Link to={`/invoices/${inv.id}/view`} className="flex items-center justify-between gap-2 py-2.5"><span>Invoice {inv.invoice_number} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'overdue' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>{inv.status}</span></span><Download className="h-4 w-4 text-[#003DA5]" /></Link></li>)}
-              {docs.map((d) => <li key={d.id}><a href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 py-2.5"><span>{d.title}<span className="block text-xs text-muted-foreground">{d.type}</span></span><Download className="h-4 w-4 text-[#003DA5]" /></a></li>)}
+              {quote && <li><Link to={`/quotations/${quote.id}/view`} className="flex items-center justify-between gap-2 py-2.5"><span>Quotation {quote.number}</span><Download className="h-4 w-4 text-[#881946]" /></Link></li>}
+              {money.invoices.map((inv) => <li key={inv.id}><Link to={`/invoices/${inv.id}/view`} className="flex items-center justify-between gap-2 py-2.5"><span>Invoice {inv.invoice_number} <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'overdue' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>{inv.status}</span></span><Download className="h-4 w-4 text-[#881946]" /></Link></li>)}
+              {docs.map((d) => <li key={d.id}><a href={pb.files.getURL(d, d.file)} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 py-2.5"><span>{d.title}<span className="block text-xs text-muted-foreground">{d.type}</span></span><Download className="h-4 w-4 text-[#881946]" /></a></li>)}
               {!quote && money.invoices.length === 0 && docs.length === 0 && <li className="py-2 text-muted-foreground">Your quotation, invoices and documents will appear here.</li>}
             </ul>
           </Card>
 
-          <button onClick={openAssist} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-white py-3 text-sm font-semibold text-[#003DA5] shadow-sm"><LifeBuoy className="h-4 w-4" /> Report a problem or ask for help</button>
+          <button onClick={openAssist} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-white py-3 text-sm font-semibold text-[#881946] shadow-sm"><LifeBuoy className="h-4 w-4" /> Report a problem or ask for help</button>
         </div>
       </div>
 
