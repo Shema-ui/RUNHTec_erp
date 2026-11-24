@@ -49,8 +49,11 @@ function welcomeEmail(name, ref, link) {
     ],
     steps: [
       { title: 'Install the RUNHTec app', text: `Open ${APP_URL}/app for instructions. A QR code on that page can be scanned with your phone camera.` },
-      { title: 'Sign in to the staff portal', text: `Use your private staff link: ${link || '(our team will send it to you shortly)'} and your email address. Our team will send your password to you on WhatsApp.` },
+      { title: 'Open the staff sign-in page', text: link ? 'Tap the "Open staff sign-in" button below. The page opens by itself, so you do not need to paste anything.' : 'Our team will send your staff link shortly.' },
+      { title: 'Sign in', text: 'Enter the email address this message was sent to, and the password our team sends you on WhatsApp. Then tap "Sign in".' },
+      { title: 'If the button does not open the page', text: `Go to ${APP_URL}/login, tap "RUNHTec staff? Open your staff link" at the bottom of the page, paste the link from this email into "Paste your private staff link", then tap "Continue to staff sign-in".` },
     ],
+    button: link ? { label: 'Open staff sign-in', url: link } : null,
     closing: [
       'Please keep your staff link and password private. Do not use the public client sign-up page, which is for clients only.',
       'If you need help, reply to this email or WhatsApp us on +250 793 229 790.',
