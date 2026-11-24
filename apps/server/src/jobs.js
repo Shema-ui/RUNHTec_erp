@@ -112,7 +112,8 @@ function startJobs() {
   markOverdueInvoices();
   markExpiredQuotes();
   sendClientReminders();
-  setInterval(() => { markOverdueInvoices(); markExpiredQuotes(); sendClientReminders(); }, 30 * 60 * 1000);
+  const { sendInterviewReminders } = require('./routes/applicantContact');
+  setInterval(() => { markOverdueInvoices(); markExpiredQuotes(); sendClientReminders(); sendInterviewReminders().catch(() => {}); }, 30 * 60 * 1000);
 }
 
 // Next free document number like Q-2026-0007 / INV-2026-0012 (highest + 1,

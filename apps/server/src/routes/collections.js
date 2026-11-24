@@ -58,6 +58,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 const { announceOpenProject } = require('./projectOffers');
 const { announceApplicationStatus } = require('./applicationEmails');
 const { spendForPayment, rewardForPayment, CREDIT_METHOD } = require('../referrals');
+const { commissionsHook } = require('../commissions');
 
 const router = express.Router();
 
@@ -480,6 +481,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     if (req.collectionName === 'invoices') await syncProjectValue(rows[0].project);
     if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
     if (req.collectionName === 'projects' && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
+    await commissionsHook(req.collectionName, rows[0]).catch((e) => console.error('commission refresh failed:', e.message));
     if (req.collectionName === 'payments' && rows[0].status === 'completed') {
       if (rows[0].method === CREDIT_METHOD) {
         const problem = await spendForPayment(rows[0]);
@@ -607,6 +609,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE id = ?`, [req.params.id]);
     }
     if (req.collectionName === 'payments') await rewardForPayment(rows[0]).catch((e) => console.error('referral reward failed:', e.message));
+    await commissionsHook(req.collectionName, rows[0]).catch((e) => console.error('commission refresh failed:', e.message));
     if (req.collectionName === 'invoices') {
       await syncQuoteFromInvoice(rows[0]);
       await syncProjectValue(rows[0].project);
