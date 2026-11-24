@@ -1,5 +1,5 @@
-// Staff commission: 5% of profit on the first project a staff member brings in.
-// Profit = money the client has paid for the project minus all recorded project costs.
+// Staff commission: 5% of profit on every project a staff member brings in.
+// Profit = money the client has paid for the project, excluding VAT, minus all recorded project costs.
 // The commission becomes owed only when the project is done AND the client has paid in full.
 // Staff see only their own amount and status. Profit is never shown to staff.
 const pool = require('./db');
@@ -24,12 +24,10 @@ async function refreshProject(projectId) {
   if (!project || !project.client) return;
   const ref = await staffReferralFor(project.client);
   if (!ref) return;
-  // Only the first project this client gives us counts
-  const [first] = await pool.query('SELECT id FROM projects WHERE client = ? ORDER BY created ASC, id ASC LIMIT 1', [project.client]);
-  if (!first[0] || first[0].id !== project.id) return;
-
+  // Client money received, excluding VAT: each payment is split using its invoice's subtotal / total
   const [[paidRow]] = await pool.query(
-    "SELECT COALESCE(SUM(p.amount), 0) AS s FROM payments p JOIN invoices i ON i.id = p.invoice WHERE i.project = ? AND p.status = 'completed'",
+    `SELECT COALESCE(SUM(p.amount * CASE WHEN i.total > 0 THEN i.subtotal / i.total ELSE 1 END), 0) AS s
+     FROM payments p JOIN invoices i ON i.id = p.invoice WHERE i.project = ? AND p.status = 'completed'`,
     [project.id]
   );
   const [[invRow]] = await pool.query("SELECT COALESCE(SUM(total), 0) AS s FROM invoices WHERE project = ? AND status <> 'cancelled'", [project.id]);

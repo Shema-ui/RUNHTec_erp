@@ -70,7 +70,7 @@ export default function CommissionsPanel() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs text-muted-foreground">
-                  <tr><th className="py-1">Staff</th><th>Project</th><th>Paid by client</th><th>Costs</th><th>Profit</th><th>Commission</th><th>Status</th><th /></tr>
+                  <tr><th className="py-1">Staff</th><th>Project</th><th>Paid by client (ex VAT)</th><th>Costs</th><th>Profit</th><th>Commission</th><th>Status</th><th /></tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {all.map((c) => (
