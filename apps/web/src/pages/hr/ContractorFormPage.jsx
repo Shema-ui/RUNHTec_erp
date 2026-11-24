@@ -40,8 +40,13 @@ export default function ContractorFormPage() {
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const tradesForDept = TRADES.filter((t) => t.dept === form.department || t.value === 'other');
 
+  const STEPS = ['Personal details', 'Department & skills', 'Rate & payment', 'Vetting & status'];
+  const [step, setStep] = useState(0);
+  const last = STEPS.length - 1;
+
   const save = async (e) => {
     e.preventDefault();
+    if (step !== last) return; // only save from the final step
     if (!form.full_name.trim() || !form.phone.trim()) {
       toast({ title: 'Name and phone are required', variant: 'destructive' }); return;
     }
@@ -78,6 +83,7 @@ export default function ContractorFormPage() {
         <form onSubmit={save} className="space-y-5">
           <div className="flex items-center gap-2"><BackLink to={isEdit ? `/hr/contractors/${id}` : '/hr/contractors'} /></div>
 
+          {step === 0 && (
           <Card title="Personal & contact details">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Full name" required><input className={inputCls} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></Field>
@@ -93,7 +99,9 @@ export default function ContractorFormPage() {
               <Field label="Emergency contact" className="sm:col-span-2 lg:col-span-1"><input className={inputCls} value={form.emergency_contact} onChange={(e) => set('emergency_contact', e.target.value)} placeholder="Name and phone" /></Field>
             </div>
           </Card>
+          )}
 
+          {step === 1 && (
           <Card title="Department, skills & experience">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Department">
@@ -115,7 +123,9 @@ export default function ContractorFormPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!form.has_transport} onChange={(e) => set('has_transport', e.target.checked)} /> Has own transport</label>
             </div>
           </Card>
+          )}
 
+          {step === 2 && (
           <Card title="Rate & payment">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Standard rate"><input type="number" min="0" className={inputCls} value={form.rate_amount} onChange={(e) => set('rate_amount', e.target.value)} /></Field>
@@ -133,7 +143,9 @@ export default function ContractorFormPage() {
             </div>
             <p className="mt-3 text-xs text-muted-foreground">The standard rate is a guide. The fee for each project is agreed separately in the project engagement.</p>
           </Card>
+          )}
 
+          {step === 3 && (
           <Card title="Vetting & status">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Status">
@@ -151,10 +163,15 @@ export default function ContractorFormPage() {
             </div>
             <Field label="Internal notes" className="mt-4"><textarea className={textareaCls} rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
           </Card>
+          )}
 
-          <div className="flex justify-end gap-2 pb-4">
-            <button type="button" className={btnLine} onClick={() => navigate(-1)}>Cancel</button>
-            <button type="submit" className={btnPrimary} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save contractor</button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+            <p className="text-sm text-muted-foreground">Step {step + 1} of {STEPS.length}: <span className="font-semibold text-foreground">{STEPS[step]}</span></p>
+            <div className="flex gap-2">
+              <button type="button" className={btnLine} onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))}>{step === 0 ? 'Cancel' : 'Back'}</button>
+              {step < last && <button type="button" className={btnPrimary} onClick={() => setStep(step + 1)}>Next</button>}
+              {step === last && <button type="submit" className={btnPrimary} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save contractor</button>}
+            </div>
           </div>
         </form>
       )}
