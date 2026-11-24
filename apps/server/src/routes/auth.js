@@ -82,11 +82,18 @@ router.post('/users/request-password-reset', async (req, res) => {
     await pool.query('UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?', [tokenHash, expires, rows[0].id]);
 
     const resetUrl = `${process.env.APP_URL || ''}/reset-password?token=${rawToken}`;
-    const sent = await sendEmail({
-      to: email,
-      subject: 'Reset your RUNHTec ERP password',
-      text: `Hello,\n\nSomeone (hopefully you) asked to reset the password for your RUNHTec ERP account.\n\nOpen this link within 1 hour to choose a new password:\n${resetUrl}\n\nIf you didn't ask for this, ignore this email — your password stays the same.\n\nRUNHTec Contractors`,
+    const { renderEmail } = require('../emailLayout');
+    const m = renderEmail({
+      greeting: 'Hello,',
+      paragraphs: [
+        'We received a request to reset the password for your RUNHTec account.',
+        'Use the button below to choose a new password. The link expires in 1 hour.',
+      ],
+      button: { label: 'Choose a new password', url: resetUrl },
+      closing: ["If you did not request this, you can ignore this email. Your password will not change."],
+      signoff: 'Kind regards,\nRUNHTec Contractors Ltd',
     });
+    const sent = await sendEmail({ to: email, subject: 'Reset your RUNHTec password', text: m.text, html: m.html });
     if (!sent) console.log(`[password-reset] email not sent (email not set up) for ${email}`);
   }
   res.status(200).json({});
