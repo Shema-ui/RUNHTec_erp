@@ -49,18 +49,18 @@ export default function LoginPage() {
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label htmlFor="pin" className="text-sm font-semibold text-slate-800">PIN</label>
-            <button type="button" onClick={() => setHelp((h) => !h)} className="text-sm font-semibold text-[#003DA5]">Forgot PIN?</button>
+            <button type="button" onClick={() => setHelp((h) => !h)} className="text-sm font-semibold text-[#881946]">Forgot PIN?</button>
           </div>
           <div className="relative">
             <input id="pin" type={show ? 'text' : 'password'} inputMode="numeric" autoComplete="current-password" required maxLength={6} value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="4–6 digits"
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 pr-12 text-lg tracking-[0.35em] text-slate-900 outline-none placeholder:text-base placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#003DA5] focus:ring-2 focus:ring-[#003DA5]/20" />
+              className="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 pr-12 text-lg tracking-[0.35em] text-slate-900 outline-none placeholder:text-base placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#881946] focus:ring-2 focus:ring-[#881946]/20" />
             <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide PIN' : 'Show PIN'} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-500">{show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
           </div>
         </div>
         {help && (
           <div className="rounded-xl bg-blue-50 p-4 text-sm text-slate-700">
-            <p className="flex items-center gap-2 font-semibold text-slate-900"><HelpCircle className="h-4 w-4 text-[#003DA5]" /> Forgot your PIN?</p>
+            <p className="flex items-center gap-2 font-semibold text-slate-900"><HelpCircle className="h-4 w-4 text-[#881946]" /> Forgot your PIN?</p>
             <p className="mt-1">No problem. Call or WhatsApp us and we’ll reset it. Then open the private link we send you to choose a new PIN.</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <a href={`tel:${HELP_PHONE}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white py-2 font-semibold text-slate-800"><Phone className="h-4 w-4" /> Call</a>
@@ -69,14 +69,14 @@ export default function LoginPage() {
             <p className="mt-2 text-xs text-slate-500">{HELP_PHONE_LABEL}</p>
           </div>
         )}
-        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
+        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-base font-semibold text-white shadow-sm transition hover:bg-[#00337f] disabled:opacity-60">
           {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Signing in…</> : <>Sign in <ArrowRight className="h-5 w-5" /></>}
         </button>
         <WaitNotice active={loading} />
       </form>
 
       <div className="my-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />New to RUNHTec?<span className="h-px flex-1 bg-slate-200" /></div>
-      <Link to="/join" className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-[#003DA5] text-base font-semibold text-[#003DA5] transition hover:bg-blue-50">Create my free account</Link>
+      <Link to="/join" className="flex h-12 w-full items-center justify-center rounded-xl border-2 border-[#881946] text-base font-semibold text-[#881946] transition hover:bg-blue-50">Create my free account</Link>
       <StaffLinkOpener />
     </ClientAuthShell>
   );

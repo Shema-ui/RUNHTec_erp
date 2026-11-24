@@ -35,10 +35,10 @@ body {
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    /* RUNHTec brand: dark blue #003DA5, red #E5151A */
+    /* RUNHTec brand: burgundy #881946 (primary), with the logo's blue and red as small accents */
     --brand-blue: 219 100% 32%;
     --brand-red: 358 85% 49%;
-    --primary: 219 100% 32%;
+    --primary: 336 69% 32%;
     --primary-foreground: 0 0% 100%;
     --secondary: 219 30% 94%;
     --secondary-foreground: 219 60% 20%;
@@ -50,7 +50,7 @@ body {
     --destructive-foreground: 0 0% 100%;
     --border: 214 25% 88%;
     --input: 214 25% 88%;
-    --ring: 217 91% 45%;
+    --ring: 336 69% 40%;
     --radius: 0.6rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -83,7 +83,7 @@ body {
     --ring: 240 4.9% 83.9%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 336 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;

@@ -19,7 +19,7 @@ const DEFAULT_LOGO_URL = '/logo.png';
 const ORVIO_LOGO_URL = '/orvio-logo.png';
 const ORVIO_BRAND = '#0F4C5C';
 const DEFAULT_COMPANY_NAME = 'RUNHTec Contractors';
-const BRAND = '#003DA5';
+const BRAND = '#881946';
 
 const STATUS_COLORS = {
   draft:    { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
@@ -285,7 +285,7 @@ export default function QuotationViewPage() {
             <button
               onClick={handleDownloadPDF}
               disabled={downloading}
-              className="flex items-center gap-1.5 rounded-lg bg-[#003DA5] px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-[#003DA5]/90 disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded-lg bg-[#881946] px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-[#881946]/90 disabled:opacity-60"
             >
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               {downloading ? 'Generating…' : 'Download PDF'}

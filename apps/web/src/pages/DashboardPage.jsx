@@ -30,7 +30,7 @@ import BusinessFilter, { scopeToBusiness } from '@/components/erp/BusinessFilter
 // sales staff never see invoice totals here.
 // Colours used by the charts — change them here if you want.
 const COLORS = {
-  blue: '#003DA5', // RUNHTec blue
+  blue: '#881946', // RUNHTec blue
   blueLight: '#8FB2EC',
   green: '#16A34A',
   amber: '#D97706',
@@ -327,7 +327,7 @@ export default function DashboardPage() {
       </Helmet>
 
       {/* Welcome banner */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#002B75] via-[#003DA5] to-[#1D5BD0] p-5 text-white shadow-sm sm:p-7">
+      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#002B75] via-[#881946] to-[#1D5BD0] p-5 text-white shadow-sm sm:p-7">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full bg-[#E4141B]/25" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">

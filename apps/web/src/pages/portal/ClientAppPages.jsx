@@ -27,7 +27,7 @@ const onTheWay = (r) => {
 // What a client can ask for. The words here are what the client sees.
 export const REQUEST_KINDS = [
   { key: 'callout', label: 'Technician call-out', hint: 'Something is not working', icon: HardHat, tone: 'bg-rose-50 text-rose-700' },
-  { key: 'maintenance', label: 'Maintenance visit', hint: 'Routine service or check-up', icon: Wrench, tone: 'bg-blue-50 text-[#003DA5]' },
+  { key: 'maintenance', label: 'Maintenance visit', hint: 'Routine service or check-up', icon: Wrench, tone: 'bg-blue-50 text-[#881946]' },
   { key: 'quote', label: 'New quotation', hint: 'Solar, AC, CCTV, electrical…', icon: FileText, tone: 'bg-emerald-50 text-emerald-700' },
   { key: 'warranty', label: 'Warranty / fault', hint: 'Problem with work we did', icon: ShieldAlert, tone: 'bg-amber-50 text-amber-700' },
 ];
@@ -48,7 +48,7 @@ export function statusChip(r) {
   if (r.request_status === 'completed') return c('Done', 'bg-emerald-100 text-emerald-700');
   if (onTheWay(r)) return { label: translate('Your technician is on the way'), cls: 'bg-emerald-600 text-white' };
   if (r.request_status === 'in_progress') return c('In progress', 'bg-amber-100 text-amber-800');
-  if (r.request_status === 'scheduled') return c('Scheduled', 'bg-blue-100 text-[#003DA5]');
+  if (r.request_status === 'scheduled') return c('Scheduled', 'bg-blue-100 text-[#881946]');
   if (r.request_status === 'reviewing') return c('Reviewing', 'bg-violet-100 text-violet-700');
   return c('Received', 'bg-slate-100 text-slate-700');
 }
@@ -122,16 +122,16 @@ function RequestCard({ r, onMove, sites = [] }) {
         <ol className="mt-4 flex items-center gap-1" aria-label="Progress">
           {STEPS.map((s, i) => (
             <li key={s.key} className="flex flex-1 flex-col items-center gap-1">
-              <span className={`h-1.5 w-full rounded-full ${i <= at ? 'bg-[#003DA5]' : 'bg-slate-200'}`} />
-              <span className={`text-center text-[10px] leading-tight ${i === at ? 'font-bold text-[#003DA5]' : 'text-slate-400'}`}>{t(s.label)}</span>
+              <span className={`h-1.5 w-full rounded-full ${i <= at ? 'bg-[#881946]' : 'bg-slate-200'}`} />
+              <span className={`text-center text-[10px] leading-tight ${i === at ? 'font-bold text-[#881946]' : 'text-slate-400'}`}>{t(s.label)}</span>
             </li>
           ))}
         </ol>
       )}
       {(r.scheduled_for || r.technician_name || r.client_note) && (
         <div className="mt-3 space-y-1 rounded-xl bg-blue-50 p-3 text-sm text-slate-800">
-          {r.scheduled_for && <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#003DA5]" /> <span>{t('Visit: {date}', { date: '' })}<b>{dayLabel(r.scheduled_for)}</b></span></p>}
-          {r.technician_name && <p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-[#003DA5]" /> <span>{t('Technician: {name}', { name: '' })}<b>{r.technician_name}</b></span></p>}
+          {r.scheduled_for && <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#881946]" /> <span>{t('Visit: {date}', { date: '' })}<b>{dayLabel(r.scheduled_for)}</b></span></p>}
+          {r.technician_name && <p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-[#881946]" /> <span>{t('Technician: {name}', { name: '' })}<b>{r.technician_name}</b></span></p>}
           {r.client_note && <p className="text-slate-700">{r.client_note}</p>}
         </div>
       )}
@@ -147,9 +147,9 @@ function RequestCard({ r, onMove, sites = [] }) {
         </div>
       )}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-        {hasPos(r) && <a href={mapUrl(r.latitude, r.longitude)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-[#003DA5]"><MapPin className="h-4 w-4" />{t('See on map')}</a>}
+        {hasPos(r) && <a href={mapUrl(r.latitude, r.longitude)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-[#881946]"><MapPin className="h-4 w-4" />{t('See on map')}</a>}
         {onMove && moving && r.scheduled_for && !r.reschedule_request && (
-          <button type="button" onClick={() => onMove(r)} className="inline-flex items-center gap-1 text-sm font-semibold text-[#003DA5]"><CalendarClock className="h-4 w-4" />{t('Ask for another day')}</button>
+          <button type="button" onClick={() => onMove(r)} className="inline-flex items-center gap-1 text-sm font-semibold text-[#881946]"><CalendarClock className="h-4 w-4" />{t('Ask for another day')}</button>
         )}
       </div>
     </div>
@@ -336,7 +336,7 @@ function NewRequest() {
             <div className="grid grid-cols-3 gap-2">
               {[['normal', 'Normal'], ['urgent', 'Urgent'], ['emergency', 'Emergency']].map(([v, l]) => (
                 <button key={v} type="button" onClick={() => setF((p) => ({ ...p, urgency: v }))}
-                  className={`rounded-xl border px-2 py-2.5 text-sm font-semibold ${f.urgency === v ? (v === 'normal' ? 'border-[#003DA5] bg-[#003DA5] text-white' : 'border-rose-600 bg-rose-600 text-white') : 'border-border bg-white text-slate-700'}`}>{t(l)}</button>
+                  className={`rounded-xl border px-2 py-2.5 text-sm font-semibold ${f.urgency === v ? (v === 'normal' ? 'border-[#881946] bg-[#881946] text-white' : 'border-rose-600 bg-rose-600 text-white') : 'border-border bg-white text-slate-700'}`}>{t(l)}</button>
               ))}
             </div>
           </Field>
@@ -355,7 +355,7 @@ function NewRequest() {
             <button type="button" onClick={() => setPos(null)} className="ml-auto text-xs font-semibold text-slate-600">{t('Remove')}</button>
           </p>
         ) : !hasPos(chosen) && (
-          <button type="button" onClick={locate} disabled={locating} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold text-[#003DA5]">
+          <button type="button" onClick={locate} disabled={locating} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold text-[#881946]">
             {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />} {locating ? t('Getting your location…') : t('Share my location')}
           </button>
         )}
@@ -385,7 +385,7 @@ function NewRequest() {
             )}
           </div>
         </div>
-        <button type="button" onClick={send} disabled={busy} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white disabled:opacity-60">
+        <button type="button" onClick={send} disabled={busy} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-base font-semibold text-white disabled:opacity-60">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />} {t('Send request')}
         </button>
         {f.urgency === 'emergency' && data.settings.company_phone && (
@@ -434,7 +434,7 @@ export function SiteDialog({ open, onClose, onSaved }) {
         {pos ? (
           <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><MapPin className="h-4 w-4" /> {t('Location added')}<button type="button" onClick={() => setPos(null)} className="ml-auto text-xs font-semibold text-slate-600">{t('Remove')}</button></p>
         ) : (
-          <button type="button" onClick={locate} disabled={locating} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold text-[#003DA5]">
+          <button type="button" onClick={locate} disabled={locating} className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold text-[#881946]">
             {locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />} {locating ? t('Getting your location…') : t('Share my location')}
           </button>
         )}
@@ -465,17 +465,17 @@ function Sites() {
     <section className="space-y-2">
       <div className="flex items-end justify-between gap-3">
         <div><h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{t('My sites')}</h2><p className="text-xs text-muted-foreground">{t('Your places (home, office, branch…). Pick one when you send a request.')}</p></div>
-        {!preview && <button type="button" onClick={() => setAdding(true)} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[#003DA5]"><Plus className="h-4 w-4" />{t('Add a site')}</button>}
+        {!preview && <button type="button" onClick={() => setAdding(true)} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[#881946]"><Plus className="h-4 w-4" />{t('Add a site')}</button>}
       </div>
       {sites.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border bg-white p-5 text-center text-sm text-muted-foreground">{t('No sites yet.')}</p>
       ) : sites.map((s) => (
         <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#003DA5]"><Building2 className="h-5 w-5" /></span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#881946]"><Building2 className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-slate-900">{s.name}</p>
             <p className="truncate text-sm text-muted-foreground">{[s.address, s.contact_name, s.contact_phone].filter(Boolean).join(' · ')}</p>
-            {hasPos(s) && <a href={mapUrl(s.latitude, s.longitude)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#003DA5]"><MapPin className="h-3.5 w-3.5" />{t('See on map')}</a>}
+            {hasPos(s) && <a href={mapUrl(s.latitude, s.longitude)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#881946]"><MapPin className="h-3.5 w-3.5" />{t('See on map')}</a>}
           </div>
           {!preview && <button type="button" onClick={() => remove(s)} aria-label={t('Remove')} className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
         </div>
@@ -500,7 +500,7 @@ function News() {
           <p className="text-xs text-muted-foreground">{dayLabel(n.created)}</p>
           <h2 className="mt-1 font-display text-lg font-bold text-slate-900">{n.title}</h2>
           <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{n.body}</p>
-          {n.link && <a href={n.link} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#003DA5]">{t('Learn more')} <ExternalLink className="h-3.5 w-3.5" /></a>}
+          {n.link && <a href={n.link} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#881946]">{t('Learn more')} <ExternalLink className="h-3.5 w-3.5" /></a>}
         </article>
       ))}
     </div>
@@ -522,7 +522,7 @@ function Equipment() {
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{t('Maintenance plan')}</h2>
           {data.contracts.map((c) => (
             <div key={c.id} className="flex items-center gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#003DA5]"><CalendarDays className="h-5 w-5" /></span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#881946]"><CalendarDays className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.service_type || 'Maintenance'}{c.frequency ? <span className="font-normal text-muted-foreground"> · {c.frequency}</span> : null}</p>
                 <p className="text-sm text-slate-600">{c.next_due_date ? t('Next visit: {date}', { date: dayLabel(c.next_due_date) }) : t('Next visit to be scheduled')}{c.site ? ` · ${c.site}` : ''}</p>
@@ -551,7 +551,7 @@ function Equipment() {
                 {next && <span className={`inline-flex items-center gap-1 ${next < today ? 'font-semibold text-rose-700' : 'text-slate-700'}`}><Clock3 className="h-4 w-4" />{next < today ? t('Service overdue since {date}', { date: dayLabel(next) }) : t('Next service {date}', { date: dayLabel(next) })}</span>}
                 {warranty && <span className={`inline-flex items-center gap-1 ${warranty < today ? 'text-slate-500' : 'text-emerald-700'}`}><ShieldCheck className="h-4 w-4" />{warranty < today ? t('Warranty ended') : t('Warranty until {date}', { date: dayLabel(warranty) })}</span>}
               </div>
-              <Link to={`/portal/requests/new${keep ? `${keep}&` : '?'}kind=${e.status === 'faulty' ? 'callout' : 'maintenance'}`} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#003DA5]">{t(e.status === 'faulty' ? 'Request a repair' : 'Request a service')} <ChevronRight className="h-4 w-4" /></Link>
+              <Link to={`/portal/requests/new${keep ? `${keep}&` : '?'}kind=${e.status === 'faulty' ? 'callout' : 'maintenance'}`} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#881946]">{t(e.status === 'faulty' ? 'Request a repair' : 'Request a service')} <ChevronRight className="h-4 w-4" /></Link>
             </div>
           );
         })}

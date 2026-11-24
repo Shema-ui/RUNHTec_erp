@@ -21,6 +21,26 @@ import ChangePasswordDialog from '@/components/erp/ChangePasswordDialog';
 import { AppDialog } from '@/components/erp/AppInstall';
 import { staffSignInPath } from '@/lib/staffLink';
 import { MODULE_NAV, ADMIN_NAV } from '@/config/navigation';
+
+// Sidebar sections. Items not listed here (such as Dashboard) appear first, ungrouped.
+const MENU_GROUPS = [
+  { title: 'Sales', keys: ['crm', 'clients', 'rfq', 'quotations', 'solar_kit', 'catalog', 'vendors', 'referrals'] },
+  { title: 'Operations', keys: ['projects', 'offers', 'maintenance', 'client_messages', 'announcements'] },
+  { title: 'Finance', keys: ['invoices', 'payments', 'expenses', 'reports'] },
+  { title: 'People & files', keys: ['hr', 'documents', 'notifications', 'settings'] },
+];
+function groupedModuleItems(items) {
+  const byKey = new Map(items.map((i) => [i.key, i]));
+  const used = new Set();
+  const out = [{ title: null, items: [] }];
+  for (const i of items) if (!MENU_GROUPS.some((g) => g.keys.includes(i.key))) { out[0].items.push(i); used.add(i.key); }
+  for (const g of MENU_GROUPS) {
+    const list = g.keys.map((k) => byKey.get(k)).filter(Boolean);
+    if (list.length) out.push({ title: g.title, items: list });
+    list.forEach((i) => used.add(i.key));
+  }
+  return out.filter((g) => g.items.length);
+}
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,8 +112,17 @@ function SidebarContent({ collapsed, user }) {
           Modules
         </p>
       )}
-      {moduleItems.map((item) => (
-        <NavItem key={item.key} item={item} collapsed={collapsed} />
+      {groupedModuleItems(moduleItems).map((group) => (
+        <div key={group.title || 'top'}>
+          {group.title && !collapsed && (
+            <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+              {group.title}
+            </p>
+          )}
+          {group.items.map((item) => (
+            <NavItem key={item.key} item={item} collapsed={collapsed} />
+          ))}
+        </div>
       ))}
 
       {adminItems.length > 0 && (
@@ -148,7 +177,7 @@ export default function PortalLayout({ children, title, subtitle }) {
           collapsed ? 'w-[72px]' : 'w-[248px]'
         }`}
       >
-        <div className="flex h-16 items-center border-b border-white/10 px-4" style={{ background: '#003DA5' }}>
+        <div className="flex h-16 items-center border-b border-white/10 px-4" style={{ background: '#881946' }}>
           <BrandMark collapsed={collapsed} />
         </div>
         <SidebarContent collapsed={collapsed} user={user} />
@@ -181,7 +210,7 @@ export default function PortalLayout({ children, title, subtitle }) {
               transition={{ type: 'tween', duration: 0.22 }}
               className="fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-border md:hidden" style={{ background: '#fafbfc' }}
             >
-              <div className="flex h-16 items-center justify-between border-b border-white/10 px-4" style={{ background: '#003DA5' }}>
+              <div className="flex h-16 items-center justify-between border-b border-white/10 px-4" style={{ background: '#881946' }}>
                 <BrandMark />
                 <button onClick={() => setMobileOpen(false)} className="rounded-md p-1.5 text-white/70 hover:bg-white/10">
                   <X className="h-5 w-5" />

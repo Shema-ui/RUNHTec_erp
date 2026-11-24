@@ -62,7 +62,7 @@ export default function VoiceRecorder({ value, onChange }) {
         </button>
       ) : (
         <button type="button" onClick={start} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 text-sm font-semibold text-slate-700">
-          <Mic className="h-5 w-5 text-[#003DA5]" /> {t('Record a voice note')}
+          <Mic className="h-5 w-5 text-[#881946]" /> {t('Record a voice note')}
         </button>
       )}
       {err && <p className="mt-1.5 text-sm text-rose-700">{err}</p>}

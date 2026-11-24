@@ -35,9 +35,9 @@ export default function PortalEnterPage() {
 
   if (token === 'bye') {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#003DA5] to-[#001f57] px-4">
+      <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#881946] to-[#001f57] px-4">
         <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
-          <div className="mb-6 rounded-xl bg-[#003DA5] px-4 py-3"><BrandMark /></div>
+          <div className="mb-6 rounded-xl bg-[#881946] px-4 py-3"><BrandMark /></div>
           <h1 className="font-display text-xl font-bold">You have left your portal</h1>
           <p className="mt-2 text-sm text-muted-foreground">To come back, open the private link RUNHTec sent you.</p>
         </div>
@@ -46,10 +46,10 @@ export default function PortalEnterPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#003DA5] to-[#001f57] px-4 py-10">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#881946] to-[#001f57] px-4 py-10">
       <Helmet><title>Your project portal | RUNHTec Contractors</title><meta name="robots" content="noindex" /></Helmet>
       <form onSubmit={enter} className="w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl sm:p-9">
-        <div className="mb-6 rounded-xl bg-[#003DA5] px-4 py-3"><BrandMark /></div>
+        <div className="mb-6 rounded-xl bg-[#881946] px-4 py-3"><BrandMark /></div>
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Welcome to your project portal</h1>
         <p className="mt-2 text-sm text-muted-foreground">Follow your project with RUNHTec Contractors: progress, site photos, documents, invoices, and a direct line to our team.</p>
         <label className="mt-6 block text-sm font-medium" htmlFor="portal-name">Your name</label>
@@ -57,7 +57,7 @@ export default function PortalEnterPage() {
           className="mt-1.5 h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:ring-2 focus:ring-primary/30" />
         {error && <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         {slow && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Waking the system up, this can take up to a minute the first time…</p>}
-        <button type="submit" disabled={busy} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-base font-semibold text-white disabled:opacity-60">
+        <button type="submit" disabled={busy} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-base font-semibold text-white disabled:opacity-60">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Open my portal <ArrowRight className="h-5 w-5" /></>}
         </button>
         <p className="mt-4 text-center text-xs text-muted-foreground">Keep this link private, it gives access to your project.</p>

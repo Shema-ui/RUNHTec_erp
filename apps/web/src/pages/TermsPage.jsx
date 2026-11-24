@@ -85,7 +85,7 @@ export default function TermsPage() {
           <h1 className="mt-5 font-display text-2xl font-extrabold text-slate-900">Terms of Use &amp; Privacy Notice</h1>
           <div className="mt-6"><TermsContent /></div>
         </div>
-        <p className="mt-6 text-center text-sm"><Link to="/login" className="font-semibold text-[#003DA5]">Go to sign in</Link></p>
+        <p className="mt-6 text-center text-sm"><Link to="/login" className="font-semibold text-[#881946]">Go to sign in</Link></p>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export default function InstallCard() {
           type="button"
           onClick={() => setOpen(true)}
           aria-expanded="false"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-[#003DA5]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-[#881946]"
         >
           <Download className="h-3.5 w-3.5" /> Download the app
         </button>
@@ -51,7 +51,7 @@ export default function InstallCard() {
           <p className="mt-0.5 text-sm text-slate-600">Free, no app store. It puts an icon on your phone.</p>
 
           <p className="mt-2 text-sm text-slate-800">
-            Link: <a href={APP_URL} className="font-semibold text-[#003DA5] underline break-all">{APP_LINK_TEXT}</a>
+            Link: <a href={APP_URL} className="font-semibold text-[#881946] underline break-all">{APP_LINK_TEXT}</a>
           </p>
 
           {d.inApp ? (
@@ -59,7 +59,7 @@ export default function InstallCard() {
               You opened this inside another app, which can’t install apps. Tap <b>⋯</b> or <b>⋮</b>, then <b>Open in {d.ios ? 'Safari' : 'Chrome'}</b>.
             </p>
           ) : d.android && canPromptInstall() ? (
-            <button type="button" onClick={promptInstall} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#003DA5] text-sm font-semibold text-white shadow-sm">
+            <button type="button" onClick={promptInstall} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#881946] text-sm font-semibold text-white shadow-sm">
               <Download className="h-4 w-4" /> Install My RUNHTec
             </button>
           ) : d.android ? (
@@ -80,7 +80,7 @@ export default function InstallCard() {
                 <li className="flex items-start gap-2"><b>1.</b><span>Tap the <b>Share</b> button <Share className="inline h-4 w-4 align-text-bottom text-[#007AFF]" /> at the <b>bottom</b> of Safari.</span></li>
                 <li className="flex items-start gap-2"><b>2.</b><span>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
               </ol>
-              <p className="mt-3 flex items-center gap-2 text-xs font-medium text-[#003DA5]"><ArrowDown className="h-4 w-4 animate-bounce" /> The Share button is at the bottom of the screen</p>
+              <p className="mt-3 flex items-center gap-2 text-xs font-medium text-[#881946]"><ArrowDown className="h-4 w-4 animate-bounce" /> The Share button is at the bottom of the screen</p>
             </div>
           )}
 

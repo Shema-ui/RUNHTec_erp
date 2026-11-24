@@ -75,7 +75,7 @@ export function QuotesWaiting({ quotes, preview, onDone }) {
                 <span className="block text-sm font-semibold text-slate-900">{q.number} · {formatMoney(q.total, q.currency)}</span>
                 <span className="block text-xs text-slate-600">{t('Waiting for your answer')}{q.valid_until ? ` · ${t('Valid until {date}', { date: dayLabel(q.valid_until) })}` : ''}</span>
               </span>
-              <span className="inline-flex items-center text-sm font-semibold text-[#003DA5]">{t('View')}<ChevronRight className="h-4 w-4" /></span>
+              <span className="inline-flex items-center text-sm font-semibold text-[#881946]">{t('View')}<ChevronRight className="h-4 w-4" /></span>
             </Link>
             {!preview && (
               <div className="mt-3 grid grid-cols-2 gap-2">

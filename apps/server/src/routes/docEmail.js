@@ -114,9 +114,9 @@ function withGreeting(body) {
 
 function toHtml(text) {
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const linked = (s) => esc(s).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" style="color:#003DA5">$1</a>');
+  const linked = (s) => esc(s).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" style="color:#881946">$1</a>');
   const paras = String(text).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${linked(p).replace(/\n/g, '<br>')}</p>`).join('');
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1e293b;max-width:600px">${paras}<hr style="border:none;border-top:3px solid #003DA5;margin:22px 0 8px;width:60px;text-align:left"><p style="margin:0;font-size:12px;color:#64748b">RUNHTec Contractors Ltd · Kigali · Kampala</p></div>`;
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1e293b;max-width:600px">${paras}<hr style="border:none;border-top:3px solid #881946;margin:22px 0 8px;width:60px;text-align:left"><p style="margin:0;font-size:12px;color:#64748b">RUNHTec Contractors Ltd · Kigali · Kampala</p></div>`;
 }
 
 async function loadDoc(type, id, user) {

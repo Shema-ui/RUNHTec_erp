@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
                 <li key={t.id} className="flex items-center gap-3 py-2.5">
                   <input type="checkbox" checked={!!t.done} disabled={!canTick} aria-label={`Mark ${t.title} done`}
                     onChange={() => saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done, done_at: !x.done ? new Date().toISOString() : null, done_by: !x.done ? (user?.name || user?.email || '') : '' } : x)))}
-                    className="h-6 w-6 shrink-0 cursor-pointer accent-[#003DA5] disabled:cursor-not-allowed" />
+                    className="h-6 w-6 shrink-0 cursor-pointer accent-[#881946] disabled:cursor-not-allowed" />
                   {editTask?.id === t.id ? (
                     <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (editTask.title.trim()) saveTasks(tasks.map((x) => (x.id === t.id ? { ...x, title: editTask.title.trim() } : x))); setEditTask(null); }}>
                       <input autoFocus className={inputCls} value={editTask.title} onChange={(e) => setEditTask({ ...editTask, title: e.target.value })} aria-label="Task name" />

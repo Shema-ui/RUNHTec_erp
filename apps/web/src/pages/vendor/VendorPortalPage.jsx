@@ -70,7 +70,7 @@ export default function VendorPortalPage() {
   return (
     <div className="min-h-[100dvh] bg-slate-50">
       <Helmet><title>Your price list | RUNHTec supplier portal</title><meta name="robots" content="noindex" /></Helmet>
-      <header className="sticky top-0 z-30 bg-[#003DA5] text-white shadow">
+      <header className="sticky top-0 z-30 bg-[#881946] text-white shadow">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
           <BrandMark />
           <span className="hidden rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold sm:inline">Supplier portal</span>
@@ -81,10 +81,10 @@ export default function VendorPortalPage() {
 
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-5 md:py-8">
         {error ? <p className="rounded-2xl bg-rose-50 p-6 text-center text-sm text-rose-700">{error}</p> : !data ? (
-          <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#003DA5]" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-[#881946]" /></div>
         ) : (
           <>
-            <section className="rounded-3xl bg-gradient-to-br from-[#003DA5] to-[#0a2a6b] p-6 text-white shadow-lg sm:p-8">
+            <section className="rounded-3xl bg-gradient-to-br from-[#881946] to-[#0a2a6b] p-6 text-white shadow-lg sm:p-8">
               <p className="text-sm text-white/70">Hello{first ? ` ${first}` : ''} 👋</p>
               <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">{data.vendor.name}</h1>
               <p className="mt-1 text-sm text-white/75">Your price list for RUNHTec Contractors. Keep it up to date so we order from you at the right price.</p>
@@ -137,7 +137,7 @@ export default function VendorPortalPage() {
                 )}
               </div>
               <div className="rounded-2xl border border-border bg-white p-5 text-sm shadow-sm">
-                <h2 className="mb-3 inline-flex items-center gap-2 font-display text-base font-bold"><Lock className="h-4 w-4 text-[#003DA5]" /> Private</h2>
+                <h2 className="mb-3 inline-flex items-center gap-2 font-display text-base font-bold"><Lock className="h-4 w-4 text-[#881946]" /> Private</h2>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>• Only the RUNHTec purchasing team sees your prices.</li>
                   <li>• Other suppliers cannot see your list, and you cannot see theirs.</li>

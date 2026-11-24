@@ -44,7 +44,7 @@ export function EmailedNote({ doc }) {
 
 export function EmailDocButton({ onClick }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-1.5 rounded-lg border border-[#003DA5] px-3 py-1.5 text-sm font-semibold text-[#003DA5] hover:bg-blue-50">
+    <button onClick={onClick} className="flex items-center gap-1.5 rounded-lg border border-[#881946] px-3 py-1.5 text-sm font-semibold text-[#881946] hover:bg-blue-50">
       <Mail className="h-4 w-4" /> Email
     </button>
   );
@@ -214,14 +214,14 @@ export function SendDocChooser({ type, id, number, makePdf, onSent, startWithEma
   const common = { type, id, number, makePdf, onSent };
   return (
     <>
-      <button onClick={() => setChooser(true)} className="flex items-center gap-1.5 rounded-lg border border-[#003DA5] px-3 py-1.5 text-sm font-semibold text-[#003DA5] hover:bg-blue-50">
+      <button onClick={() => setChooser(true)} className="flex items-center gap-1.5 rounded-lg border border-[#881946] px-3 py-1.5 text-sm font-semibold text-[#881946] hover:bg-blue-50">
         <Send className="h-4 w-4" /> Send
       </button>
       {chooser && (
         <Modal open onClose={() => setChooser(false)} title={`Send ${label} ${number || ''}`} description="How do you want to send it?">
           <div className="grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={() => { setChooser(false); setEmailOpen(true); }} className="rounded-xl border border-border p-4 text-left hover:border-[#003DA5] hover:bg-blue-50">
-              <span className="flex items-center gap-2 font-semibold"><Mail className="h-5 w-5 text-[#003DA5]" /> By email</span>
+            <button type="button" onClick={() => { setChooser(false); setEmailOpen(true); }} className="rounded-xl border border-border p-4 text-left hover:border-[#881946] hover:bg-blue-50">
+              <span className="flex items-center gap-2 font-semibold"><Mail className="h-5 w-5 text-[#881946]" /> By email</span>
               <span className="mt-1 block text-sm text-muted-foreground">Sent straight from the company email, with the PDF attached. You check the message, then tap Send.</span>
             </button>
             <button type="button" onClick={() => { setChooser(false); setWaOpen(true); }} className="rounded-xl border border-border p-4 text-left hover:border-[#25D366] hover:bg-emerald-50">
