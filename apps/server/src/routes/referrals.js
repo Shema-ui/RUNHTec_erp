@@ -3,6 +3,7 @@ const express = require('express');
 const pool = require('../db');
 const { requireAuth } = require('../auth');
 const { codeFor, balanceOf, INDIVIDUAL_CREDIT, COMPANY_PERCENT, COMPANY_CAP } = require('../referrals');
+const { COMMISSION_PERCENT } = require('../commissions');
 
 const router = express.Router();
 const APP_URL = process.env.APP_URL || 'https://erp.runhteccontractors.si';
@@ -22,6 +23,8 @@ router.get('/me', requireAuth, async (req, res) => {
       code,
       link: `${APP_URL}/join?ref=${code}`,
       balance: await balanceOf(req.user.id),
+      isStaff: req.user.role !== 'client',
+      staffPercent: COMMISSION_PERCENT,
       rules: { individual: INDIVIDUAL_CREDIT, companyPercent: COMPANY_PERCENT * 100, companyCap: COMPANY_CAP },
       referrals,
       ledger,

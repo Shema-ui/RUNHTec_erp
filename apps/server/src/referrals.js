@@ -58,6 +58,8 @@ async function rewardForPayment(payment) {
   const [refs] = await pool.query("SELECT * FROM referrals WHERE referred_client = ? AND status = 'signed_up' LIMIT 1", [payment.client]);
   const ref = refs[0];
   if (!ref) return;
+  const [owner] = await pool.query('SELECT role FROM users WHERE id = ?', [ref.owner_user]);
+  if (!owner[0] || owner[0].role !== 'client') return; // staff are paid commission in cash instead
   const [prior] = await pool.query(
     "SELECT COUNT(*) AS n FROM payments WHERE client = ? AND status = 'completed' AND method <> ? AND id <> ?",
     [payment.client, CREDIT_METHOD, payment.id]

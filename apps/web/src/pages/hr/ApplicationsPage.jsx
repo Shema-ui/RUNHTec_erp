@@ -7,6 +7,7 @@ import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import HrTabs from './HrTabs';
+import ApplicantContact from '@/components/hr/ApplicantContact';
 import {
   Toolbar, SearchBox, FilterSelect, Loading, Empty, Pill, Modal, InfoRow, Stars, Field,
   inputCls, textareaCls, btnPrimary, btnLine, fmtDate,
@@ -218,6 +219,8 @@ function ReviewDialog({ application: a, onClose, onChanged }) {
             <textarea className={textareaCls} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Interview / practical test results, references checked, documents seen…" />
           </Field>
         </div>
+
+        <ApplicantContact application={a} />
 
         {a.status === 'approved' && (
           <div className="space-y-3 rounded-xl border border-border bg-secondary/30 p-4">

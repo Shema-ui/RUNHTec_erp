@@ -30,17 +30,25 @@ export default function ReferralCard() {
         <Gift className="mt-0.5 h-5 w-5 text-[#881946]" />
         <div>
           <h3 className="font-semibold">Refer and earn credit</h3>
-          <p className="text-xs text-muted-foreground">
-            Individuals: {money(data.rules.individual)} credit when someone you refer pays for their first job.
-            Companies: {data.rules.companyPercent}% of their first payment, up to {money(data.rules.companyCap)}.
-            Credit never expires.
-          </p>
+          {data.isStaff ? (
+            <p className="text-xs text-muted-foreground">
+              You earn {data.staffPercent}% of the profit on the first project you bring in. It is paid in cash once the project is closed and the client has paid in full. Your commission is shown in the Commissions section.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Individuals: {money(data.rules.individual)} credit when someone you refer pays for their first job.
+              Companies: {data.rules.companyPercent}% of their first payment, up to {money(data.rules.companyCap)}.
+              Credit never expires.
+            </p>
+          )}
         </div>
       </div>
-      <div className="rounded-xl bg-secondary/40 p-4">
-        <p className="text-xs text-muted-foreground">Your credit balance</p>
-        <p className="text-2xl font-bold">{money(data.balance)}</p>
-      </div>
+      {!data.isStaff && (
+        <div className="rounded-xl bg-secondary/40 p-4">
+          <p className="text-xs text-muted-foreground">Your credit balance</p>
+          <p className="text-2xl font-bold">{money(data.balance)}</p>
+        </div>
+      )}
       <div className="space-y-2">
         <p className="break-all rounded-lg border border-border bg-background px-3 py-2 text-xs">{data.link}</p>
         <div className="flex flex-wrap gap-2">
