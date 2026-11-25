@@ -11,7 +11,10 @@ const ACCENT = '#881946';
 
 const label = { fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: MUTED, marginBottom: '6px' };
 
-export default function InvoicePrintSheet({ inv, cfg, items, currency, companyName, logoSrc, signatureSrc, stampSrc, paidSoFar, balance, fmt }) {
+export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, currency, companyName, logoSrc, signatureSrc, stampSrc, paidSoFar = 0, balance = 0, fmt }) {
+  const isQuote = kind === 'quote';
+  const title = isQuote ? 'QUOTE' : 'INVOICE';
+  const docNumber = isQuote ? inv.number : inv.invoice_number;
   const addressLine = [cfg.company_address, cfg.company_phone, cfg.company_email].filter(Boolean).join('  ·  ');
   const bank = [
     cfg.bank_name && ['Bank', cfg.bank_name],
@@ -22,6 +25,8 @@ export default function InvoicePrintSheet({ inv, cfg, items, currency, companyNa
   ].filter(Boolean);
   const date = inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const due = inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const issued = isQuote && inv.created ? new Date(inv.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : date;
+  const validUntil = isQuote && inv.valid_until ? new Date(inv.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const totalRow = (text, value, strong) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: strong ? '15px' : '13px', fontWeight: strong ? 700 : 400, color: strong ? INK : MUTED, borderTop: strong ? `2px solid ${INK}` : 'none' }}>
       <span>{text}</span><span style={{ color: INK }}>{value}</span>
@@ -38,12 +43,12 @@ export default function InvoicePrintSheet({ inv, cfg, items, currency, companyNa
           {cfg.company_tagline && <div style={{ fontSize: '11px', color: MUTED }}>{cfg.company_tagline}</div>}
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700 }}>Invoice # {inv.invoice_number}</div>
-          <div style={{ fontSize: '12px', color: MUTED }}>{date}</div>
+          <div style={{ fontSize: '15px', fontWeight: 700 }}>{isQuote ? 'Quote' : 'Invoice'} # {docNumber}</div>
+          <div style={{ fontSize: '12px', color: MUTED }}>{issued}</div>
         </div>
       </div>
 
-      <div style={{ fontSize: '34px', fontWeight: 300, margin: '26px 0 22px', color: INK }}>INVOICE</div>
+      <div style={{ fontSize: '34px', fontWeight: 300, margin: '26px 0 22px', color: INK }}>{title}</div>
 
       {/* Bill to and payment */}
       <div style={{ display: 'flex', gap: '40px', marginBottom: '24px' }}>
@@ -55,9 +60,10 @@ export default function InvoicePrintSheet({ inv, cfg, items, currency, companyNa
           {inv.bill_to_phone && <div style={{ color: MUTED }}>{inv.bill_to_phone}</div>}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={label}>Payment</div>
-          <div style={{ color: MUTED }}>Payment terms: <span style={{ color: INK }}>{inv.payment_terms || '—'}</span></div>
-          {due && <div style={{ color: MUTED }}>Due date: <span style={{ color: INK }}>{due}</span></div>}
+          <div style={label}>{isQuote ? 'Details' : 'Payment'}</div>
+          {!isQuote && <div style={{ color: MUTED }}>Payment terms: <span style={{ color: INK }}>{inv.payment_terms || '—'}</span></div>}
+          {!isQuote && due && <div style={{ color: MUTED }}>Due date: <span style={{ color: INK }}>{due}</span></div>}
+          {isQuote && validUntil && <div style={{ color: MUTED }}>Valid until: <span style={{ color: INK }}>{validUntil}</span></div>}
         </div>
       </div>
 
@@ -89,15 +95,15 @@ export default function InvoicePrintSheet({ inv, cfg, items, currency, companyNa
         {Number(inv.discount_amount) > 0 && totalRow('Discount', `-${fmt(inv.discount_amount, currency)}`)}
         {totalRow(`Tax (${inv.tax_rate ?? 0}%)`, fmt(inv.tax_amount || 0, currency))}
         {totalRow('Total', fmt(inv.total, currency), true)}
-        {Number(paidSoFar) > 0 && totalRow('Paid', `-${fmt(paidSoFar, currency)}`)}
-        {Number(paidSoFar) > 0 && totalRow('Balance due', fmt(balance, currency), true)}
+        {!isQuote && Number(paidSoFar) > 0 && totalRow('Paid', `-${fmt(paidSoFar, currency)}`)}
+        {!isQuote && Number(paidSoFar) > 0 && totalRow('Balance due', fmt(balance, currency), true)}
       </div>
 
       {/* Notes, payment, terms */}
       <div style={{ marginTop: '30px', display: 'flex', gap: '40px' }}>
         <div style={{ flex: 1 }}>
           {inv.notes && (<><div style={label}>Notes</div><div style={{ whiteSpace: 'pre-line', marginBottom: '16px' }}>{inv.notes}</div></>)}
-          {inv.payment_instructions && (<><div style={label}>Payment instructions</div><div style={{ whiteSpace: 'pre-line', marginBottom: '16px' }}>{inv.payment_instructions}</div></>)}
+          {!isQuote && inv.payment_instructions && (<><div style={label}>Payment instructions</div><div style={{ whiteSpace: 'pre-line', marginBottom: '16px' }}>{inv.payment_instructions}</div></>)}
           {bank.length > 0 && (
             <>
               <div style={label}>Bank details</div>

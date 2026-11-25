@@ -11,6 +11,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
+import InvoicePrintSheet from '@/components/erp/InvoicePrintSheet';
 import { SendDocChooser, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
 import { QuoteAnswerDialog, answerable } from '@/components/portal/QuoteAnswer';
 import { useLang } from '@/lib/i18n';
@@ -107,7 +108,7 @@ export default function QuotationViewPage() {
         await new Promise((r) => setTimeout(r, 150));
       }
       // Compressed picture, one slice per page (a few hundred KB, same look as the screen).
-      await savePdf(document.getElementById('quote-print'), `${quote?.number || 'quotation'}.pdf`);
+      await savePdf(document.getElementById('quote-clean'), `${quote?.number || 'quotation'}.pdf`);
     } catch (e) {
       alert('PDF generation failed: ' + e.message);
     } finally {
@@ -121,7 +122,7 @@ export default function QuotationViewPage() {
       setLogoEmbed((await toBase64Image(logoUrl)) || logoUrl);
       await new Promise((r) => setTimeout(r, 200));
     }
-    return pdfBase64(document.getElementById('quote-print'));
+    return pdfBase64(document.getElementById('quote-clean'));
   };
   const reloadQuote = () => pb.collection('quotations').getOne(id).then(setQuote).catch(() => {});
 
@@ -197,6 +198,10 @@ export default function QuotationViewPage() {
   return (
     <div className="min-h-[100dvh] bg-slate-100">
       <style>{PRINT_STYLE}</style>
+      {/* The clean A4 sheet the client receives as PDF or email. Off-screen; not shown here. */}
+      <div id="quote-clean" aria-hidden="true" style={{ position: 'fixed', left: '-10000px', top: 0 }}>
+        <InvoicePrintSheet kind="quote" inv={q} cfg={cfg} items={items} currency={currency} companyName={companyName} logoSrc={logoSrc} fmt={fmt} />
+      </div>
       <Helmet>
         <title>{q.number} | RUNHTec Quotation</title>
         <meta name="description" content={`Quotation ${q.number} from ${companyName}`} />
