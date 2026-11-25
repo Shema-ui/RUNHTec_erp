@@ -34,7 +34,7 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
   );
 
   return (
-    <div style={{ width: '794px', boxSizing: 'border-box', background: '#ffffff', color: INK, fontFamily: 'Helvetica, Arial, sans-serif', padding: '44px 56px', fontSize: '13px', lineHeight: 1.5 }}>
+    <div style={{ width: '794px', boxSizing: 'border-box', background: '#ffffff', color: INK, fontFamily: 'Helvetica, Arial, sans-serif', padding: '34px 56px', fontSize: '13px', lineHeight: 1.45 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: `3px solid ${ACCENT}`, paddingBottom: '14px' }}>
         {logoSrc && <img src={logoSrc} alt="" style={{ height: '48px', width: 'auto' }} />}
@@ -48,10 +48,10 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
         </div>
       </div>
 
-      <div style={{ fontSize: '34px', fontWeight: 300, margin: '26px 0 22px', color: INK }}>{title}</div>
+      <div style={{ fontSize: '32px', fontWeight: 300, margin: '18px 0 16px', color: INK }}>{title}</div>
 
       {/* Bill to and payment */}
-      <div style={{ display: 'flex', gap: '40px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '40px', marginBottom: '18px' }}>
         <div style={{ flex: 1 }}>
           <div style={label}>Bill to</div>
           <div style={{ fontWeight: 700 }}>{inv.bill_to_name || '—'}</div>
@@ -100,39 +100,41 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
       </div>
 
       {/* Notes, payment, terms */}
-      <div style={{ marginTop: '30px', display: 'flex', gap: '40px' }}>
+      <div style={{ marginTop: '22px', display: 'flex', gap: '40px' }}>
         <div style={{ flex: 1 }}>
           {inv.notes && (<><div style={label}>Notes</div><div style={{ whiteSpace: 'pre-line', marginBottom: '16px' }}>{inv.notes}</div></>)}
           {!isQuote && inv.payment_instructions && (<><div style={label}>Payment instructions</div><div style={{ whiteSpace: 'pre-line', marginBottom: '16px' }}>{inv.payment_instructions}</div></>)}
           {bank.length > 0 && (
             <>
-              <div style={label}>Bank details</div>
+              <div style={label}>Payment details</div>
               {bank.map(([k, v]) => (<div key={k}><span style={{ color: MUTED }}>{k}: </span>{v}</div>))}
             </>
           )}
         </div>
       </div>
       {inv.terms_conditions && (
-        <div style={{ marginTop: '18px' }}>
+        <div style={{ marginTop: '14px' }}>
           <div style={label}>Terms</div>
           <div style={{ whiteSpace: 'pre-line', color: MUTED, fontSize: '12px' }}>{inv.terms_conditions}</div>
         </div>
       )}
 
       {/* Signature */}
-      {(cfg.signature_name || signatureSrc) && (
-        <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ width: '240px', textAlign: 'center' }}>
-            {signatureSrc && <img src={signatureSrc} alt="" style={{ height: '50px', width: 'auto' }} />}
-            <div style={{ borderTop: `1px solid ${INK}`, paddingTop: '4px', fontWeight: 700 }}>{cfg.signature_name || ''}</div>
+      {(cfg.signature_name || signatureSrc || stampSrc) && (
+        <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ position: 'relative', width: '260px', textAlign: 'center', paddingTop: '6px' }}>
+            {signatureSrc && <img src={signatureSrc} alt="" style={{ height: '50px', width: 'auto', display: 'block', margin: '0 auto' }} />}
+            {stampSrc && (
+              <img src={stampSrc} alt="" style={{ position: 'absolute', height: '84px', width: 'auto', left: '50%', top: '-6px', transform: 'translateX(-50%) rotate(-8deg)', opacity: 0.9, pointerEvents: 'none' }} />
+            )}
+            <div style={{ borderTop: `1px solid ${INK}`, marginTop: '4px', paddingTop: '4px', fontWeight: 700 }}>{cfg.signature_name || ''}</div>
             {cfg.signature_position && <div style={{ color: MUTED, fontSize: '12px' }}>{cfg.signature_position}</div>}
-            {stampSrc && <img src={stampSrc} alt="" style={{ height: '70px', width: 'auto', marginTop: '6px' }} />}
           </div>
         </div>
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: '30px', borderTop: `1px solid ${RULE}`, paddingTop: '10px', fontSize: '11px', color: MUTED, textAlign: 'center' }}>
+      <div style={{ marginTop: '20px', borderTop: `1px solid ${RULE}`, paddingTop: '8px', fontSize: '11px', color: MUTED, textAlign: 'center' }}>
         {[companyName, cfg.company_registration_number && `Reg. No: ${cfg.company_registration_number}`, addressLine, cfg.company_website].filter(Boolean).join('  ·  ')}
         {cfg.invoice_footer_text && <div style={{ marginTop: '4px' }}>{cfg.invoice_footer_text}</div>}
       </div>
