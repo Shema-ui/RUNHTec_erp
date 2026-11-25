@@ -64,12 +64,34 @@ function breakPoints(el) {
   return [...ys].sort((a, b) => a - b);
 }
 
+let pageBreaks = [];
+
 // The document as a compressed picture (JPEG), one A4 slice per page, with
 // page breaks placed between rows so no line of text is cut in half.
+// A4 page width at 96 dpi. The document is laid out at exactly this width, so
+// nothing on the right can be cut off, whatever the width of the screen view.
+const A4_PX = 794;
+
 async function picturePdf(el, jsPDF) {
   const { default: html2canvas } = await import('html2canvas');
   const scale = 2; // sharp when printed, still small
-  const canvas = await html2canvas(el, { scale, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', imageTimeout: 15000, logging: false });
+  // Lay a copy out at A4 width off-screen and capture that copy.
+  const holder = document.createElement('div');
+  holder.style.cssText = `position:fixed;left:-10000px;top:0;width:${A4_PX}px;background:#ffffff;`;
+  const copy = el.cloneNode(true);
+  copy.style.width = `${A4_PX}px`;
+  copy.style.maxWidth = 'none';
+  copy.style.margin = '0';
+  copy.style.boxSizing = 'border-box';
+  holder.appendChild(copy);
+  document.body.appendChild(holder);
+  let canvas;
+  try {
+    canvas = await html2canvas(copy, { scale, width: A4_PX, windowWidth: A4_PX, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', imageTimeout: 15000, logging: false });
+    pageBreaks = breakPoints(copy);
+  } finally {
+    holder.remove();
+  }
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -77,7 +99,7 @@ async function picturePdf(el, jsPDF) {
   const gapMm = 10; // white space at the top of page 2, 3…
   const pageCssFor = (pg) => Math.floor(cssW * ((pageH - (pg > 0 ? gapMm : 0)) / pageW)); // usable page height in CSS px
   const totalCss = canvas.height / scale;
-  const points = breakPoints(el);
+  const points = pageBreaks;
   let top = 0; let page = 0;
   while (top < totalCss - 1) {
     const pageCss = pageCssFor(page);
