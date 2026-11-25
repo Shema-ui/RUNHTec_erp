@@ -11,6 +11,7 @@ import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
 import { toBase64Image, savePdf, pdfBase64 } from '@/lib/pdfExport';
+import InvoicePrintSheet from '@/components/erp/InvoicePrintSheet';
 import { SendDocChooser, EmailedNote, autoEmail, autoEmailToast } from '@/components/erp/EmailDoc';
 import { useToast } from '@/hooks/use-toast';
 
@@ -137,7 +138,7 @@ export default function InvoiceViewPage() {
       }
 
       // Compressed picture, one slice per page (a few hundred KB, same look as the screen).
-      await savePdf(document.getElementById('invoice-print'), `${invoice?.invoice_number || 'invoice'}.pdf`);
+      await savePdf(document.getElementById('invoice-clean'), `${invoice?.invoice_number || 'invoice'}.pdf`);
     } catch (e) {
       alert('PDF generation failed: ' + e.message);
     } finally {
@@ -156,7 +157,7 @@ export default function InvoiceViewPage() {
       setEmbeds({ logo: logo || logoUrl, signature: signature || signatureUrl, stamp: stamp || stampUrl });
       await new Promise((r) => setTimeout(r, 200));
     }
-    return pdfBase64(document.getElementById('invoice-print'));
+    return pdfBase64(document.getElementById('invoice-clean'));
   };
   const reloadInvoice = () => pb.collection('invoices').getOne(id).then(setInvoice).catch(() => {});
 
@@ -207,9 +208,14 @@ export default function InvoiceViewPage() {
 
   const cardLabel = { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '10px' };
 
+  const balanceDue = Math.max(0, (Number(inv.total) || 0) - (Number(paidSoFar) || 0));
   return (
     <div className="min-h-[100dvh] bg-slate-100">
       <style>{PRINT_STYLE}</style>
+      {/* The clean A4 sheet the client receives as PDF or email. Off-screen; not shown here. */}
+      <div id="invoice-clean" aria-hidden="true" style={{ position: 'fixed', left: '-10000px', top: 0 }}>
+        <InvoicePrintSheet inv={inv} cfg={cfg} items={items} currency={currency} companyName={companyName} logoSrc={logoSrc} signatureSrc={signatureSrc} stampSrc={stampSrc} paidSoFar={paidSoFar} balance={balanceDue} fmt={fmt} />
+      </div>
       <Helmet>
         <title>{inv.invoice_number} | RUNHTec Invoice</title>
         <meta name="description" content={`Invoice ${inv.invoice_number} from ${companyName}`} />
