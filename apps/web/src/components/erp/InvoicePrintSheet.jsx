@@ -122,13 +122,15 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
       {/* Signature */}
       {(cfg.signature_name || signatureSrc || stampSrc) && (
         <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'relative', width: '260px', textAlign: 'center', paddingTop: '6px' }}>
-            {signatureSrc && <img src={signatureSrc} alt="" style={{ height: '50px', width: 'auto', display: 'block', margin: '0 auto' }} />}
-            {stampSrc && (
-              <img src={stampSrc} alt="" style={{ position: 'absolute', height: '84px', width: 'auto', left: '50%', top: '-6px', transform: 'translateX(-50%) rotate(-8deg)', opacity: 0.9, pointerEvents: 'none' }} />
+          <div style={{ position: 'relative', width: '260px', height: '112px', textAlign: 'center' }}>
+            {signatureSrc && (
+              <img src={signatureSrc} alt="" style={{ position: 'absolute', left: '50%', top: '4px', transform: 'translateX(-50%)', height: '56px', width: 'auto', zIndex: 1 }} />
             )}
-            <div style={{ borderTop: `1px solid ${INK}`, marginTop: '4px', paddingTop: '4px', fontWeight: 700 }}>{cfg.signature_name || ''}</div>
-            {cfg.signature_position && <div style={{ color: MUTED, fontSize: '12px' }}>{cfg.signature_position}</div>}
+            {stampSrc && (
+              <img src={stampSrc} alt="" style={{ position: 'absolute', left: '50%', top: '-4px', transform: 'translateX(-30%) rotate(-8deg)', height: '96px', width: 'auto', opacity: 0.85, zIndex: 2, pointerEvents: 'none' }} />
+            )}
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, borderTop: `1px solid ${INK}`, paddingTop: '4px', fontWeight: 700 }}>{cfg.signature_name || ''}</div>
+            {cfg.signature_position && <div style={{ position: 'absolute', left: 0, right: 0, bottom: '-16px', color: MUTED, fontSize: '12px' }}>{cfg.signature_position}</div>}
           </div>
         </div>
       )}
