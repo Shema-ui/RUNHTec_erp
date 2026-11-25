@@ -279,6 +279,9 @@ export default function InvoiceViewPage() {
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
         {showCosts && <InternalProfitCard doc={invoice} editTo={`/invoices/${id}/edit`}
               extra={invoice?.project ? <p><Link className="font-medium text-primary hover:underline" to={`/projects/${invoice.project}`}>Open the project</Link> to see the real costs logged so far.</p> : null} />}
+        <div className="no-print mb-4 rounded-xl border border-border bg-white p-4 shadow-sm">
+          <PaymentBar label="Payment progress" total={invoice.total} paid={paidSoFar} currency={invoice.currency} />
+        </div>
         <div className="overflow-x-auto rounded-2xl bg-white shadow-xl">
           <InvoicePrintSheet inv={inv} cfg={cfg} items={items} currency={currency} companyName={companyName} logoSrc={logoSrc} signatureSrc={signatureSrc} stampSrc={stampSrc} paidSoFar={paidSoFar} balance={balanceDue} fmt={fmt} />
         </div>
