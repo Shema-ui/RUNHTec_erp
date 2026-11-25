@@ -312,9 +312,12 @@ export default function QuotationViewPage() {
       {/* A4 Quotation */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
         {showCosts && <InternalProfitCard doc={q} editTo={`/quotations/${id}/edit`} />}
+        <div className="overflow-x-auto rounded-2xl bg-white shadow-xl">
+          <InvoicePrintSheet kind="quote" inv={q} cfg={cfg} items={items} currency={currency} companyName={companyName} logoSrc={logoSrc} fmt={fmt} />
+        </div>
         <div
           id="quote-print"
-          className="rounded-2xl bg-white shadow-xl"
+          className="hidden"
           style={{ fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif", fontSize: '13px', lineHeight: '1.5', color: '#1e293b' }}
         >
           {/* Header */}
