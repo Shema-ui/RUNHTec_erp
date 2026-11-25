@@ -28,8 +28,8 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
   const issued = isQuote && inv.created ? new Date(inv.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : date;
   const validUntil = isQuote && inv.valid_until ? new Date(inv.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const totalRow = (text, value, strong) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: strong ? '15px' : '13px', fontWeight: strong ? 700 : 400, color: strong ? INK : MUTED, borderTop: strong ? `2px solid ${INK}` : 'none' }}>
-      <span>{text}</span><span style={{ color: INK }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: strong ? '15px' : '13px', fontWeight: strong ? 700 : 400, color: strong ? ACCENT : MUTED, borderTop: strong ? `2px solid ${ACCENT}` : 'none' }}>
+      <span>{text}</span><span style={{ color: strong ? ACCENT : INK }}>{value}</span>
     </div>
   );
 
@@ -48,7 +48,7 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
         </div>
       </div>
 
-      <div style={{ fontSize: '32px', fontWeight: 300, margin: '18px 0 16px', color: INK }}>{title}</div>
+      <div style={{ fontSize: '32px', fontWeight: 300, margin: '18px 0 16px', color: ACCENT }}>{title}</div>
 
       {/* Bill to and payment */}
       <div style={{ display: 'flex', gap: '40px', marginBottom: '18px' }}>
@@ -70,11 +70,11 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
       {/* Items */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
-          <tr style={{ background: TINT }}>
-            <th style={{ textAlign: 'left', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: MUTED }}>Item</th>
-            <th style={{ textAlign: 'center', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: MUTED, width: '80px' }}>Qty</th>
-            <th style={{ textAlign: 'right', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: MUTED, width: '130px' }}>Rate</th>
-            <th style={{ textAlign: 'right', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: MUTED, width: '140px' }}>Amount</th>
+          <tr style={{ background: ACCENT }}>
+            <th style={{ textAlign: 'left', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff' }}>Item</th>
+            <th style={{ textAlign: 'center', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', width: '80px' }}>Qty</th>
+            <th style={{ textAlign: 'right', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', width: '130px' }}>Rate</th>
+            <th style={{ textAlign: 'right', padding: '9px 12px', fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ffffff', width: '140px' }}>Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -136,7 +136,7 @@ export default function InvoicePrintSheet({ kind = 'invoice', inv, cfg, items, c
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: '20px', borderTop: `1px solid ${RULE}`, paddingTop: '8px', fontSize: '11px', color: MUTED, textAlign: 'center' }}>
+      <div style={{ marginTop: '20px', background: ACCENT, color: '#ffffff', borderRadius: '6px', padding: '10px 14px', fontSize: '11px', textAlign: 'center', lineHeight: 1.5 }}>
         {[companyName, cfg.company_registration_number && `Reg. No: ${cfg.company_registration_number}`, addressLine, cfg.company_website].filter(Boolean).join('  ·  ')}
         {cfg.invoice_footer_text && <div style={{ marginTop: '4px' }}>{cfg.invoice_footer_text}</div>}
       </div>
