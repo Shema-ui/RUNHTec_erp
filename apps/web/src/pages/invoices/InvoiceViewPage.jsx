@@ -37,8 +37,8 @@ function fmt(n, currency = DEFAULT_CURRENCY) {
 const PRINT_STYLE = `
 @media print {
   body * { visibility: hidden !important; }
-  #invoice-print, #invoice-print * { visibility: visible !important; }
-  #invoice-print { position: fixed; left: 0; top: 0; width: 210mm; background: white; }
+  #invoice-clean, #invoice-clean * { visibility: visible !important; }
+  #invoice-clean { position: fixed !important; left: 0 !important; top: 0 !important; width: 210mm; background: white; }
   .no-print { display: none !important; }
   @page { size: A4; margin: 0; }
 }
