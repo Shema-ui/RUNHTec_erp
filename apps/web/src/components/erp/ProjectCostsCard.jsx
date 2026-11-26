@@ -198,7 +198,7 @@ export function LogDayDialog({ open, onClose, project, team, costs, onSaved }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} wide title="Log a work day" description="Tick who worked on site. Wages are added to the project’s costs at their daily rate.">
+    <Modal open={open} onClose={onClose} wide title="Log a work day" description="Tick who worked on site and enter what each person was paid for the day. It is recorded as a project expense.">
       <div className="space-y-4">
         <Field label="Date worked"><input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         <div className="overflow-x-auto">
