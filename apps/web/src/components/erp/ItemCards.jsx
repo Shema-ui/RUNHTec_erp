@@ -41,9 +41,6 @@ export default function ItemCards({ items, updateItem, removeItem, pickCatalogIt
               <input {...numProps} className={`${big} border-amber-300 bg-amber-50/60 text-right`} value={item.cost ?? 0} onChange={(e) => updateItem(idx, 'cost', e.target.value)} aria-label={`Buying price, item ${idx + 1}`} />
               <div className="mt-1 flex justify-between gap-2 text-[11px]">
                 <span className="truncate text-muted-foreground">{item.cost_source ? `🚚 ${item.cost_source}` : ''}</span>
-                {Number(item.cost) > 0 && Number(item.unit_price) > 0 && (
-                  <span className={Number(item.unit_price) > Number(item.cost) ? 'text-emerald-700' : 'text-rose-600'}>{Math.round(((Number(item.unit_price) - Number(item.cost)) / Number(item.unit_price)) * 100)}% margin</span>
-                )}
               </div>
             </div>
           )}

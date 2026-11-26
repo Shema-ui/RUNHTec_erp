@@ -578,12 +578,6 @@ export default function SettingsPage() {
               <button type="button" onClick={() => setRates((list) => [...list, { value: rid(), label: '', rate: 0 }])} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"><Plus className="h-4 w-4" /> Add role</button>
             )}
           </div>
-          <div className="mt-5 max-w-xs">
-            <Field label="Default safety margin (%)" hint="Extra added on wages + transport in new quote estimates, for days or trips you can't predict.">
-              <input type="number" min="0" max="100" className={inputCls} value={form.default_contingency} readOnly={!isSuperAdmin}
-                onChange={(e) => isSuperAdmin && setField('default_contingency', e.target.value)} />
-            </Field>
-          </div>
         </SectionCard>
 
         <SectionCard icon={Truck} title="Vendor prices on quotations" description="When you type an item on a quotation or invoice, matching items from the vendors' price lists are suggested with their buying price and your selling price (buying price + markup). Internal only — clients only ever see your selling price.">
