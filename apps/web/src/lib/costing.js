@@ -9,12 +9,12 @@ export const canSeeCosts = (user) => COST_ROLES.includes(user?.role);
 export const canRecordCosts = (user) => ['super_admin', 'admin', 'accountant', 'project_manager'].includes(user?.role);
 
 
-// Daily wages per role. These are only the starting values — the Super Admin
-// changes them in Settings → Technician wages, and the saved list replaces this one.
+// Roles for logging work. No daily rates are kept here: the amount paid for each
+// day is entered when it is logged, and it is recorded as a project expense.
 export const DEFAULT_LABOUR_ROLES = [
-  { value: 'lead', label: 'Lead technician', rate: 20000 },
-  { value: 'technician', label: 'Technician', rate: 15000 },
-  { value: 'helper', label: 'Assistant technician', rate: 12000 },
+  { value: 'lead', label: 'Lead technician', rate: 0 },
+  { value: 'technician', label: 'Technician', rate: 0 },
+  { value: 'helper', label: 'Assistant technician', rate: 0 },
 ];
 export const LABOUR_ROLES = DEFAULT_LABOUR_ROLES.map((r) => ({ ...r }));
 export const COST_SETTINGS = { contingency: 10 };
@@ -23,8 +23,6 @@ export const labourRole = (v) => LABOUR_ROLES.find((r) => r.value === v)
   || (v ? { value: v, label: 'Worker', rate: 0 } : LABOUR_ROLES[0] || DEFAULT_LABOUR_ROLES[0]);
 
 export function applyCostSettings(rec) {
-  const list = Array.isArray(rec?.labour_rates) ? rec.labour_rates.filter((r) => r && r.value && r.label) : null;
-  if (list && list.length) LABOUR_ROLES.splice(0, LABOUR_ROLES.length, ...list.map((r) => ({ value: r.value, label: r.label, rate: Number(r.rate) || 0 })));
   if (rec && rec.default_contingency !== undefined && rec.default_contingency !== null && rec.default_contingency !== '') COST_SETTINGS.contingency = Number(rec.default_contingency) || 0;
 }
 

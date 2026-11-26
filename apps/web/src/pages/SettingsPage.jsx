@@ -5,7 +5,7 @@ import { Save, Loader2, Building2, CreditCard, Info, PenLine, Upload, X, Image a
 import { CURRENCIES } from '@/lib/money';
 import { resetVendorOffers } from '@/lib/vendorPricing';
 import { SOLAR_KIT_DEFAULTS, EXTRA_PER, solarKitFrom } from '@/lib/solarKit';
-import { DEFAULT_LABOUR_ROLES, applyCostSettings, rid } from '@/lib/costing';
+import { applyCostSettings, rid } from '@/lib/costing';
 import pb from '@/lib/pocketbaseClient';
 import PortalLayout from '@/layouts/PortalLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -209,7 +209,6 @@ export default function SettingsPage() {
     vendor_markup: 30,
   });
   const [backingUp, setBackingUp] = useState(false);
-  const [rates, setRates] = useState(DEFAULT_LABOUR_ROLES.map((r) => ({ ...r })));
   // Exchange rates: how many RWF one unit of each currency is worth.
   const [fx, setFx] = useState({});
   const [kit, setKit] = useState(SOLAR_KIT_DEFAULTS);
@@ -247,7 +246,6 @@ export default function SettingsPage() {
             default_contingency: rec.default_contingency ?? 10,
             vendor_markup: rec.vendor_markup ?? 30,
           }));
-          if (Array.isArray(rec.labour_rates) && rec.labour_rates.length) setRates(rec.labour_rates.map((r) => ({ ...r })));
           let x = rec.exchange_rates; if (typeof x === 'string') { try { x = JSON.parse(x); } catch { x = {}; } }
           setKit(solarKitFrom(rec.solar_kit));
           if (x && typeof x === 'object') setFx(Object.fromEntries(Object.entries(x).map(([k, v]) => [k, String(v)])));
@@ -267,8 +265,6 @@ export default function SettingsPage() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, typeof v === 'boolean' ? String(v) : v));
-      const cleanRates = rates.filter((r) => String(r.label || '').trim()).map((r) => ({ value: r.value || rid(), label: String(r.label).trim(), rate: Number(r.rate) || 0 }));
-      fd.append('labour_rates', JSON.stringify(cleanRates));
       const cleanFx = Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, Number(String(v).replace(/[\s,]/g, ''))]).filter(([, v]) => v > 0));
       fd.append('exchange_rates', JSON.stringify(cleanFx));
       const numOr = (v, d) => (Number.isFinite(Number(v)) && String(v).trim() !== '' ? Number(v) : d);
@@ -557,26 +553,6 @@ export default function SettingsPage() {
                 onRemove={() => setStamp({ url: null, file: null, remove: true })}
               />
             </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard icon={HardHat} title="Technician wages & job costing" description="Daily rates used when estimating quotes and logging work days. Internal only — never shown to clients. Changing a rate affects new estimates and new work days, not ones already saved.">
-          <div className="space-y-2">
-            {rates.map((r, i) => (
-              <div key={r.value || i} className="grid grid-cols-[minmax(0,1fr)_140px_36px] items-center gap-2">
-                <input className={inputCls} value={r.label} readOnly={!isSuperAdmin} aria-label="Role name"
-                  onChange={(e) => setRates((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="e.g. Welder" />
-                <input type="number" min="0" className={`${inputCls} text-right`} value={r.rate} readOnly={!isSuperAdmin} aria-label="Rate per day"
-                  onChange={(e) => setRates((list) => list.map((x, j) => (j === i ? { ...x, rate: e.target.value } : x)))} />
-                {isSuperAdmin && rates.length > 1 ? (
-                  <button type="button" onClick={() => setRates((list) => list.filter((_, j) => j !== i))} aria-label="Remove role" className="rounded p-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
-                ) : <span />}
-              </div>
-            ))}
-            <p className="text-xs text-muted-foreground">Role name · rate per day ({form.currency})</p>
-            {isSuperAdmin && (
-              <button type="button" onClick={() => setRates((list) => [...list, { value: rid(), label: '', rate: 0 }])} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"><Plus className="h-4 w-4" /> Add role</button>
-            )}
           </div>
         </SectionCard>
 
