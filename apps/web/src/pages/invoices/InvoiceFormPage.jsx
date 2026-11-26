@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { nextDocNumber } from '@/lib/numbering';
-import CostingPanel from '@/components/erp/CostingPanel';
 import CatalogItemInput from '@/components/erp/CatalogItemInput';
 import ItemCards, { TotalsInputs } from '@/components/erp/ItemCards';
 import NewClientDialog from '@/components/crm/NewClientDialog';
@@ -584,9 +583,6 @@ export default function InvoiceFormPage() {
           </div>
         </div>
 
-        {showCosts && (
-          <CostingPanel items={items} costing={costing} onChange={setCosting} subtotal={subtotal} discount={discountAmount} currency={form.currency} />
-        )}
 
         {/* Notes & Additional */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

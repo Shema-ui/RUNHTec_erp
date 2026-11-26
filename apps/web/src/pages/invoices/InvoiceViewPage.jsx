@@ -5,8 +5,6 @@ import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Edit2, Printer, ChevronLeft, Loader2, Download } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/context/AuthContext';
-import { InternalProfitCard } from '@/components/erp/CostingPanel';
-import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { deleteInvoicePayments } from '@/lib/cleanup';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_TAX_RATE } from '@/lib/money';
@@ -61,7 +59,6 @@ export default function InvoiceViewPage() {
   const printRef = useRef(null);
   const { user } = useAuth();
   const isClientView = user?.role === 'client';
-  const showCosts = canSeeCosts(user);
   const { toast } = useToast();
   const canEmail = ['super_admin', 'admin', 'accountant'].includes(user?.role);
   const [params, setParams] = useSearchParams();
@@ -277,8 +274,6 @@ export default function InvoiceViewPage() {
 
       {/* A4 Invoice */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
-        {showCosts && <InternalProfitCard doc={invoice} editTo={`/invoices/${id}/edit`}
-              extra={invoice?.project ? <p><Link className="font-medium text-primary hover:underline" to={`/projects/${invoice.project}`}>Open the project</Link> to see the real costs logged so far.</p> : null} />}
         <div className="no-print mb-4 rounded-xl border border-border bg-white p-4 shadow-sm">
           <PaymentBar label="Payment progress" total={invoice.total} paid={paidSoFar} currency={invoice.currency} />
         </div>

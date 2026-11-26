@@ -186,7 +186,10 @@ export default function ProjectDetailPage() {
           </Card>
 
           <SitePhotosCard project={p} canAdd={canPhoto} />
-          {showCosts && <ProjectCostsCard project={p} team={team} />}
+          {showCosts && <ProjectCostsCard project={p} team={team} fullyPaid={invoices.length > 0 && invoices.every((inv) => {
+            const paid = payments.filter((x) => x.invoice === inv.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+            return paid >= (Number(inv.total) || 0) - 0.5;
+          })} />}
           {isLeadHere && <SiteLogCard project={p} team={team} />}
 
           <Card title="Team (per-project contractors)" action={canTeam && <button className={btnLine} onClick={() => setEngaging({})}><Plus className="h-4 w-4" /> Engage contractor</button>}>
