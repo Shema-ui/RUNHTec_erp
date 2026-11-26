@@ -59,6 +59,7 @@ const { announceOpenProject } = require('./projectOffers');
 const { announceApplicationStatus } = require('./applicationEmails');
 const { spendForPayment, rewardForPayment, CREDIT_METHOD } = require('../referrals');
 const { commissionsHook } = require('../commissions');
+const { syncInvoicePayments } = require('../invoicePayments');
 
 const router = express.Router();
 
@@ -490,6 +491,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
         await rewardForPayment(rows[0]).catch((e) => console.error('referral reward failed:', e.message));
       }
     }
+    if (req.collectionName === 'payments') await syncInvoicePayments(rows[0].invoice).catch((e) => console.error('invoice status sync failed:', e.message));
     if (req.collectionName === 'quotations' && rows[0].status === 'accepted') await activateLead(rows[0].client);
     if (req.collectionName === 'project_photos' && Number(rows[0].shared)) await alertClientPhotos(rows[0]);
     if (req.collectionName === 'client_messages') await notifyClient(rows[0].client, 'message', `New message from ${rows[0].sender_name}: ${String(rows[0].body).slice(0, 120)}`, '/portal/messages');
@@ -615,6 +617,10 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
       await syncProjectValue(rows[0].project);
       if (before.project && before.project !== rows[0].project) await syncProjectValue(before.project);
     }
+    if (req.collectionName === 'payments') {
+      await syncInvoicePayments(rows[0].invoice).catch((e) => console.error('invoice status sync failed:', e.message));
+      if (before.invoice && before.invoice !== rows[0].invoice) await syncInvoicePayments(before.invoice).catch((e) => console.error('invoice status sync failed:', e.message));
+    }
     if (req.collectionName === 'job_applications') await announceApplicationStatus(before, rows[0]);
     if (req.collectionName === 'projects') {
       await alertNewTeam(before, rows[0], req.user);
@@ -657,6 +663,7 @@ router.delete('/:name/records/:id', collectionMiddleware, requireAuth, async (re
       await removeQuoteForInvoice(req.params.id);
       await syncProjectValue(record.project);
     }
+    if (req.collectionName === 'payments' && record.invoice) await syncInvoicePayments(record.invoice).catch((e) => console.error('invoice status sync failed:', e.message));
     // A removed vendor takes its price list and its portal login with it.
     if (req.collectionName === 'vendors') {
       await pool.query('DELETE FROM vendor_items WHERE vendor = ?', [req.params.id]);
