@@ -8,7 +8,7 @@ import { Card, StatCard, Loading, todayISO, btnLine } from '@/components/erp/kit
 import { formatMoney, DEFAULT_CURRENCY } from '@/lib/money';
 import { PROJECT_STATUSES, SERVICE_CATEGORIES } from '@/lib/projects';
 import { Link } from 'react-router-dom';
-import { computeCosting, marginTone, fixedFeeCosts } from '@/lib/costing';
+import { marginTone, fixedFeeCosts } from '@/lib/costing';
 import { splitExpenses, downloadCsv } from '@/lib/finance';
 
 const C = DEFAULT_CURRENCY;
@@ -85,10 +85,7 @@ export default function ReportsPage() {
     const receivedBy = {};
     d.invoices.forEach((i) => { if (i.project) receivedBy[i.project] = (receivedBy[i.project] || 0) + (paidByInv[i.id] || 0); });
     const profit = d.projects.filter((p) => p.status !== 'cancelled').map((p) => {
-      const q = quoteById[p.quotation];
-      const plan = q ? computeCosting({ items: Array.isArray(q.items) ? q.items : [], costing: q.costing, subtotal: q.subtotal, discount: q.discount_amount }) : null;
-      const revenue = Number(p.value || 0) || (plan ? plan.revenue : 0);
-      const planned = plan ? plan.totalCost : Number(p.cost_budget || 0);
+      const revenue = Number(p.value || 0);
       const split = splitExpenses(costsBy[p.id] || []);
       // Fixed-fee contractors from the Team section count as wages.
       const fixed = fixedFeeCosts(d.assignments.filter((a) => a.project === p.id)).total;
@@ -96,9 +93,9 @@ export default function ReportsPage() {
       split.total += fixed;
       const received = receivedBy[p.id] || 0;
       return {
-        id: p.id, code: p.code || '', title: p.title, status: p.status, revenue, planned,
+        id: p.id, code: p.code || '', title: p.title, status: p.status, revenue,
         materials: split.materials, wages: split.wages, other: split.other, spent: split.total, unpaid: split.unpaid,
-        received, plannedProfit: planned ? revenue - planned : null,
+        received,
         profit: revenue - split.total, margin: revenue ? ((revenue - split.total) / revenue) * 100 : 0,
         cashProfit: received - split.total,
       };

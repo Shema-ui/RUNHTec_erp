@@ -179,9 +179,6 @@ export default function ProjectFormPage() {
                 </select>
               </Field>
               <Field label="Progress %" hint="Updates automatically from the task list"><input type="number" min="0" max="100" className={inputCls} value={form.progress} onChange={(e) => set('progress', e.target.value)} /></Field>
-              {showCosts && !form.quotation && (
-                <Field label="Planned cost 🔒" hint="Internal. Used when there is no quotation costing"><input type="number" min="0" className={inputCls} value={form.cost_budget} onChange={(e) => set('cost_budget', e.target.value)} /></Field>
-              )}
               <Field label="Completed on"><input type="date" className={inputCls} value={form.completed_date || ''} onChange={(e) => set('completed_date', e.target.value)} /></Field>
             </div>
           </Card>

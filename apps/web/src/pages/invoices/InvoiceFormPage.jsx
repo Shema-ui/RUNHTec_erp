@@ -513,11 +513,6 @@ export default function InvoiceFormPage() {
                           placeholder="0"
                         />
                         {item.cost_source && <p className="mt-0.5 truncate text-right text-[10px] text-muted-foreground" title={item.cost_source}>🚚 {item.cost_source}</p>}
-                        {Number(item.cost) > 0 && Number(item.unit_price) > 0 && (
-                          <p className={`mt-0.5 text-right text-[11px] ${Number(item.unit_price) > Number(item.cost) ? 'text-emerald-700' : 'text-rose-600'}`}>
-                            {Math.round(((Number(item.unit_price) - Number(item.cost)) / Number(item.unit_price)) * 100)}% margin
-                          </p>
-                        )}
                       </td>
                     )}
                     <td className="py-2 pl-1.5 text-right font-medium text-foreground">

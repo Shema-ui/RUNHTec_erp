@@ -7,7 +7,7 @@ import { Card, Modal, Field, inputCls, btnPrimary, btnLine, fmtDate, todayISO, t
 import { InternalBadge } from '@/components/erp/CostingPanel';
 import { formatMoney } from '@/lib/money';
 import {
-  LABOUR_ROLES, COST_CATEGORIES, labourRole, costCategoryLabel, computeCosting, summarizeActual, marginTone, canRecordCosts, fixedFeeCosts,
+  LABOUR_ROLES, COST_CATEGORIES, labourRole, costCategoryLabel, summarizeActual, marginTone, canRecordCosts, fixedFeeCosts,
 } from '@/lib/costing';
 
 const n = (v) => Number(v) || 0;

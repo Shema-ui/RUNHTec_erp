@@ -12,11 +12,10 @@ import {
   Toolbar, SearchBox, FilterSelect, Loading, Empty, StatCard, Modal, Field, inputCls, textareaCls, btnPrimary, btnLine, fmtDate,
 } from '@/components/erp/kit';
 import { formatMoney, CURRENCIES, DEFAULT_CURRENCY } from '@/lib/money';
-import { canSeeCosts, marginTone } from '@/lib/costing';
+import { canSeeCosts } from '@/lib/costing';
 import { CATALOG_CATEGORIES, UNITS, catalogCategoryLabel, canEditCatalog, resetCatalogCache } from '@/lib/catalog';
 
 const n = (v) => Number(v) || 0;
-const marginOf = (i) => (n(i.selling_price) > 0 && n(i.buying_price) > 0 ? ((n(i.selling_price) - n(i.buying_price)) / n(i.selling_price)) * 100 : null);
 
 export default function CatalogPage() {
   const { user } = useAuth();
@@ -92,13 +91,11 @@ export default function CatalogPage() {
                 <th className="px-4 py-3">Item</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Unit</th>
                 <th className="px-4 py-3 text-right">Our price</th>
                 {showCost && <th className="px-4 py-3 text-right text-amber-700">Buying price 🔒</th>}
-                {showCost && <th className="px-4 py-3 text-right">Margin</th>}
                 {canEdit && <th className="w-24 px-2 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((i) => {
-                const m = marginOf(i);
                 return (
                   <tr key={i.id} className={Number(i.active) === 0 ? 'opacity-50' : ''}>
                     <td className="px-4 py-3">
@@ -109,7 +106,6 @@ export default function CatalogPage() {
                     <td className="px-4 py-3">{i.unit || '—'}</td>
                     <td className="px-4 py-3 text-right font-semibold">{formatMoney(i.selling_price, i.currency)}</td>
                     {showCost && <td className="px-4 py-3 text-right">{n(i.buying_price) ? formatMoney(i.buying_price, i.currency) : <span className="text-amber-700">not set</span>}</td>}
-                    {showCost && <td className={`px-4 py-3 text-right font-semibold ${m === null ? 'text-muted-foreground' : marginTone(m)}`}>{m === null ? '—' : `${m.toFixed(0)}%`}</td>}
                     {canEdit && (
                       <td className="whitespace-nowrap px-2 py-3 text-right">
                         <button onClick={() => setEditing(i)} aria-label={`Edit ${i.name}`} className="mr-1 inline-flex rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-secondary hover:text-primary"><Pencil className="h-4 w-4" /></button>
@@ -189,7 +185,6 @@ function ItemDialog({ item, onClose, onSaved, showCost }) {
           </Field>
           {showCost && <Field label="Buying price 🔒" hint="Internal — never shown to clients"><input type="number" min="0" className={`${inputCls} border-amber-300 bg-amber-50/60`} value={f.buying_price} onChange={(e) => set('buying_price', e.target.value)} /></Field>}
           {showCost && <Field label="Supplier 🔒"><input className={inputCls} value={f.supplier} onChange={(e) => set('supplier', e.target.value)} /></Field>}
-          {showCost && m !== null && <p className={`text-sm font-semibold sm:col-span-2 lg:col-span-4 ${marginTone(m)}`}>Margin: {formatMoney(n(f.selling_price) - n(f.buying_price), f.currency)} per {f.unit || 'unit'} ({m.toFixed(1)}%)</p>}
         </div>
 
         <Field label="Internal notes (optional)"><input className={inputCls} value={f.notes} onChange={(e) => set('notes', e.target.value)} placeholder="e.g. Price valid until end of December" /></Field>
