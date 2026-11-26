@@ -246,3 +246,4 @@ router.post('/decide/:id', requireAuth, wrap(async (req, res) => {
 
 module.exports = router;
 module.exports.announceOpenProject = announceOpenProject;
+module.exports.recipientsFor = recipientsFor;

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { canAccessModule, needsProfile, isClient, isVendor } from '@/lib/permissions';
+import { canAccessModule, needsProfile, needsRegistration, isClient, isVendor } from '@/lib/permissions';
+
+// While registration is open, a new staff member may use these pages only. Projects and clients stay closed.
+const REGISTRATION_OPEN = [/^\/onboarding(\/|$)/, /^\/my-profile(\/|$)/, /^\/dashboard(\/|$)/, /^\/notifications(\/|$)/, /^\/settings(\/|$)/];
 import { staffSignInPath } from '@/lib/staffLink';
 
 // Pages a client login may open: the portal, and the quote/invoice documents it links to.
@@ -33,6 +36,7 @@ export function RequireAuth({ children }) {
   if (isClient(user)) return CLIENT_PATHS.some((re) => re.test(location.pathname)) ? children : <Navigate to="/portal" replace />;
   // First thing a new staff member sees: their profile. Everything else opens once it's done.
   if (needsProfile(user) && location.pathname !== '/my-profile') return <Navigate to="/my-profile" replace />;
+  if (needsRegistration(user) && !REGISTRATION_OPEN.some((re) => re.test(location.pathname))) return <Navigate to="/onboarding" replace />;
   return children;
 }
 

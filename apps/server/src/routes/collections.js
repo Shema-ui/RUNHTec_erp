@@ -11,6 +11,7 @@ const { ensureQuoteForInvoice, syncQuoteFromInvoice, removeQuoteForInvoice } = r
 const { markOverdueInvoices, nextNumber } = require('../jobs');
 const { notifyUsers, notifyClient, notifyRoles } = require('../notify');
 const clientScope = require('../clientScope');
+const staffScope = require('../staffScope');
 const { linkDocumentClient } = require('../clientAuto');
 const { syncProjectValue, hasInvoices } = require('../projectValue');
 
@@ -110,6 +111,12 @@ function stripCosts(collectionName, record) {
     });
   }
   return out;
+}
+
+// Record as sent back after a write: field workers get the same cut-down view they read.
+function publicFor(req, name, record) {
+  const pub = toPublic(name, record, req.user);
+  return staffScope.isField(req.user) ? staffScope.cleanForField(name, pub, { user: req.user }) : pub;
 }
 
 function toPublic(collectionName, record, user) {
@@ -309,9 +316,14 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
     const [rows] = await pool.query(`SELECT * FROM \`${def.table}\` WHERE ${whereSql} ${sortSql} ${limitSql}`, params);
 
     let items;
+    // Field workers see only what is scoped to them (their projects, sites and photos).
+    const fieldScoped = staffScope.isField(req.user) && staffScope.SCOPED.has(req.collectionName);
+    const fieldCtx = fieldScoped ? await staffScope.fieldContext(req.user) : null;
     if (req.user.role === 'client') {
       const ctx = await clientScope.clientContext(req.user);
       items = rows.map(deserializeRow).filter((record) => clientScope.visible(req.collectionName, record, req.user, ctx));
+    } else if (fieldScoped) {
+      items = rows.map(deserializeRow).filter((record) => staffScope.visibleToField(req.collectionName, record, fieldCtx));
     } else {
       items = rows.map(deserializeRow).filter((record) => def.rules.list(req.user, record));
     }
@@ -323,7 +335,9 @@ router.get('/:name/records', collectionMiddleware, requireAuth, async (req, res)
     res.json({
       items: items.map((item) => {
         const pub = toPublic(req.collectionName, item, req.user);
-        return req.user.role === 'client' ? clientScope.clean(req.collectionName, pub) : pub;
+        if (req.user.role === 'client') return clientScope.clean(req.collectionName, pub);
+        if (staffScope.isField(req.user)) return staffScope.cleanForField(req.collectionName, pub, { user: req.user });
+        return pub;
       }),
       page,
       perPage,
@@ -348,8 +362,15 @@ router.get('/:name/records/:id', collectionMiddleware, requireAuth, async (req, 
       if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
       return res.json(clientScope.clean(req.collectionName, toPublic(req.collectionName, record, req.user)));
     }
+    if (staffScope.isField(req.user) && staffScope.SCOPED.has(req.collectionName)) {
+      const fieldCtx = await staffScope.fieldContext(req.user);
+      if (!staffScope.visibleToField(req.collectionName, record, fieldCtx)) return res.status(404).json({ message: 'Not found.' });
+      if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
+      return res.json(staffScope.cleanForField(req.collectionName, toPublic(req.collectionName, record, req.user), { user: req.user }));
+    }
     if (!def.rules.view(req.user, record)) return res.status(404).json({ message: 'Not found.' });
     if (req.query.expand) record = await expandRecord(def, record, req.query.expand);
+    if (staffScope.isField(req.user)) return res.json(staffScope.cleanForField(req.collectionName, toPublic(req.collectionName, record, req.user), { user: req.user }));
     res.json(toPublic(req.collectionName, record, req.user));
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -499,7 +520,7 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     if (req.collectionName === 'project_assignments') await putContractorOnSite(rows[0], req.user);
     const record = deserializeRow(rows[0]);
     await writeAuditEntry({ actor: req.user, action: 'Created', collectionName: req.collectionName, record });
-    res.status(200).json(toPublic(req.collectionName, record, req.user));
+    res.status(200).json(publicFor(req, req.collectionName, record));
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ message: 'A record with that unique value already exists.' });
     res.status(400).json({ message: err.message });
@@ -642,7 +663,7 @@ router.patch('/:name/records/:id', collectionMiddleware, requireAuth, upload.any
     const after = deserializeRow(rows[0]);
     const changes = summarizeChanges(def.watchedFields, before, after);
     await writeAuditEntry({ actor: req.user, action: 'Updated', collectionName: req.collectionName, record: after, changes });
-    res.json(toPublic(req.collectionName, after, req.user));
+    res.json(publicFor(req, req.collectionName, after));
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

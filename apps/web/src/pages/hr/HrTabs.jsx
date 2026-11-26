@@ -8,6 +8,7 @@ const TABS = [
   { to: '/hr/applications', label: 'Applications' },
   { to: '/hr/contractors', label: 'Contractor register' },
   { to: '/hr/engagements', label: 'Project engagements' },
+  { to: '/hr/onboarding', label: 'Staff onboarding' },
 ];
 
 export default function HrTabs({ showModel = false }) {

@@ -116,6 +116,11 @@ export function needsProfile(user) {
   return Boolean(user) && !['super_admin', 'client', 'vendor'].includes(user.role) && Number(user.profile_completed) !== 1;
 }
 
+// Staff who have a profile but have not yet signed the agreement and been signed off by HR.
+export function needsRegistration(user) {
+  return Boolean(user) && !['super_admin', 'admin', 'client', 'vendor'].includes(user.role) && Number(user.registration_complete) === 0;
+}
+
 export const isClient = (user) => user?.role === 'client';
 export const isVendor = (user) => user?.role === 'vendor';
 // Roles shown when creating staff accounts (clients get access from their client profile).
