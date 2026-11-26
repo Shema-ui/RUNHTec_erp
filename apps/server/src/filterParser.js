@@ -7,7 +7,7 @@
 
 function tokenize(filter) {
   const tokens = [];
-  const re = /\s*(&&|\|\||!=|>=|<=|=|>|<|\(|\)|'(?:[^'\\]|\\.)*'|[A-Za-z_][A-Za-z0-9_.]*|-?\d+(\.\d+)?|true|false)\s*/y;
+  const re = /\s*(&&|\|\||!=|>=|<=|=|>|<|\(|\)|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[A-Za-z_][A-Za-z0-9_.]*|-?\d+(\.\d+)?|true|false)\s*/y;
   let pos = 0;
   while (pos < filter.length) {
     re.lastIndex = pos;
@@ -35,6 +35,10 @@ function parseFilter(filter, allowedFields) {
     if (raw === 'false') return false;
     if (raw.startsWith("'") && raw.endsWith("'")) {
       return raw.slice(1, -1).replace(/\\'/g, "'");
+    }
+    // PocketBase-style double quotes are accepted too: status = "completed"
+    if (raw.startsWith('"') && raw.endsWith('"')) {
+      return raw.slice(1, -1).replace(/\\"/g, '"');
     }
     if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
     throw new Error(`Invalid filter value: ${raw}`);
