@@ -73,6 +73,8 @@ async function runMigrations() {
     await ensureColumn(conn, 'users', 'tokens_valid_after', 'DATETIME NULL');
     await ensureColumn(conn, 'users', 'temp_password_expires', 'DATETIME NULL');
     await ensureColumn(conn, 'users', 'department', "VARCHAR(40) DEFAULT ''");
+    // Existing accounts count as registered. New applicants are set to 0 when their account is created.
+    await ensureColumn(conn, 'users', 'registration_complete', 'TINYINT(1) NOT NULL DEFAULT 1');
     await ensureEnumValue(conn, 'users', 'role', 'hr',
       "ENUM('super_admin','sales','project_manager','accountant','technician','hr') NOT NULL DEFAULT 'sales'");
     await ensureEnumValue(conn, 'users', 'role', 'lead_technician',
@@ -195,6 +197,26 @@ async function runMigrations() {
 
     // Phone/desktop notifications (web push): each device that turned them on,
     // and the server's own key pair (created automatically, see webpush.js).
+    await conn.query(`CREATE TABLE IF NOT EXISTS staff_contracts (
+      id VARCHAR(40) PRIMARY KEY,
+      user VARCHAR(40) NOT NULL,
+      title VARCHAR(255) DEFAULT '',
+      body MEDIUMTEXT,
+      version VARCHAR(40) DEFAULT '',
+      status VARCHAR(20) NOT NULL DEFAULT 'issued',
+      signed_name VARCHAR(200) DEFAULT '',
+      signature MEDIUMTEXT,
+      signed_at DATETIME NULL,
+      signed_ip VARCHAR(64) DEFAULT '',
+      document_hash VARCHAR(64) DEFAULT '',
+      review_notes TEXT,
+      reviewed_by VARCHAR(40) DEFAULT '',
+      reviewed_by_name VARCHAR(200) DEFAULT '',
+      reviewed_at DATETIME NULL,
+      created DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_staff_contracts_user (user)
+    )`);
     await conn.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
       id VARCHAR(20) PRIMARY KEY,
       user VARCHAR(20) NOT NULL,

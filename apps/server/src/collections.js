@@ -13,7 +13,12 @@
 // user management, activity log or company settings changes.
 const any = (user, roles) => Boolean(user) && (user.role === 'super_admin' || user.role === 'admin' || roles.includes(user.role));
 
-const AUTHED = () => true;
+// A staff member who has not finished registration (profile, signed agreement, HR sign-off)
+// may see nothing from the data collections. Existing accounts are registered by default.
+const READY = (user) => Boolean(user) && Number(user.registration_complete) !== 0;
+const AUTHED = (user) => READY(user);
+const OFFICE = (user) => any(user, ['sales', 'project_manager', 'accountant', 'hr']);
+const SALES_READ = (user) => any(user, ['sales', 'project_manager', 'accountant']);
 const SALES_WRITE = (user) => any(user, ['sales']);
 const PM_WRITE = (user) => any(user, ['project_manager']);
 const PM_TECH_WRITE = (user) => any(user, ['project_manager', 'technician', 'lead_technician']);
@@ -38,13 +43,13 @@ const collections = {
     fields: ['id', 'client_id', 'company_name', 'trading_name', 'industry', 'registration_number', 'vat_number', 'website', 'logo', 'status', 'categories', 'services', 'potential_value', 'country', 'province', 'district', 'city', 'sector', 'street', 'building_name', 'office_number_addr', 'gps_coordinates', 'account_manager', 'created', 'updated'],
     relations: { account_manager: 'users' },
     fileFields: ['logo'],
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: OFFICE, view: OFFICE, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_contacts: {
     table: 'client_contacts',
     fields: ['id', 'client', 'full_name', 'position', 'mobile', 'office', 'whatsapp', 'email', 'is_primary', 'created', 'updated'],
     relations: { client: 'clients' },
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: OFFICE, view: OFFICE, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_activities: {
     table: 'client_activities',
@@ -52,32 +57,32 @@ const collections = {
     relations: { client: 'clients', actor: 'users' },
     // Calls, meetings and site visits logged by staff — editable so typos
     // can be fixed. The system-wide Activity Log (activity_logs) stays locked.
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_followups: {
     table: 'client_followups',
     fields: ['id', 'client', 'type', 'title', 'description', 'due_date', 'assigned_to', 'status', 'priority', 'created', 'updated'],
     relations: { client: 'clients', assigned_to: 'users' },
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_notes: {
     table: 'client_notes',
     fields: ['id', 'client', 'title', 'body', 'category', 'priority', 'author', 'author_name', 'created', 'updated'],
     relations: { client: 'clients', author: 'users' },
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   client_documents: {
     table: 'client_documents',
     fields: ['id', 'client', 'title', 'doc_type', 'file', 'uploaded_by', 'uploaded_by_name', 'created', 'updated'],
     relations: { client: 'clients', uploaded_by: 'users' },
     fileFields: ['file'],
-    rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && SALES_WRITE(u) },
+    rules: { list: OFFICE, view: OFFICE, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && SALES_WRITE(u) },
   },
   sales_opportunities: {
     table: 'sales_opportunities',
     fields: ['id', 'client', 'title', 'stage', 'value', 'description', 'expected_close', 'assigned_to', 'created', 'updated'],
     relations: { client: 'clients', assigned_to: 'users' },
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
   },
   rfqs: {
     table: 'rfqs',
@@ -85,7 +90,7 @@ const collections = {
     relations: { client: 'clients', site: 'client_sites' },
     fileFields: [], // `attachments` is a multi-file JSON array of file ids, handled separately from single fileFields
     // Project managers schedule service visits too.
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: (u) => any(u, ['sales', 'project_manager']), delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: (u) => any(u, ['sales', 'project_manager']), delete: SALES_WRITE },
     watchedFields: ['status', 'request_status', 'scheduled_for', 'technician_name'],
   },
   // A client's sites (home, office, branch…). Clients add their own in the app.
@@ -93,13 +98,13 @@ const collections = {
     table: 'client_sites',
     fields: ['id', 'client', 'name', 'address', 'latitude', 'longitude', 'contact_name', 'contact_phone', 'notes', 'created', 'updated'],
     relations: { client: 'clients' },
-    rules: { list: AUTHED, view: AUTHED, create: (u) => any(u, ['sales', 'project_manager']), update: (u) => any(u, ['sales', 'project_manager']), delete: (u) => any(u, ['sales', 'project_manager']) },
+    rules: { list: OFFICE, view: OFFICE, create: (u) => any(u, ['sales', 'project_manager']), update: (u) => any(u, ['sales', 'project_manager']), delete: (u) => any(u, ['sales', 'project_manager']) },
   },
   quotations: {
     table: 'quotations',
     fields: ['id', 'business', 'rfq', 'client', 'number', 'items', 'subtotal', 'tax_rate', 'tax_amount', 'discount_amount', 'total', 'currency', 'notes', 'terms_conditions', 'status', 'valid_until', 'signed_at', 'signed_by_name', 'bill_to_name', 'bill_to_company', 'bill_to_address', 'bill_to_email', 'bill_to_phone', 'costing', 'source_invoice', 'client_response_note', 'responded_at', 'emailed_at', 'emailed_to', 'created', 'updated'],
     relations: { rfq: 'rfqs', client: 'clients' },
-    rules: { list: AUTHED, view: AUTHED, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
+    rules: { list: SALES_READ, view: SALES_READ, create: SALES_WRITE, update: SALES_WRITE, delete: SALES_WRITE },
     watchedFields: ['status', 'total'],
   },
   projects: {
@@ -107,8 +112,8 @@ const collections = {
     fields: ['id', 'code', 'quotation', 'client', 'title', 'status', 'assigned_technicians', 'tasks', 'site_address', 'start_date', 'due_date', 'description', 'project_manager', 'service_category', 'value', 'currency', 'progress', 'priority', 'completed_date', 'notes', 'cost_budget', 'lead_technician', 'handover_confirmed_at', 'handover_confirmed_by', 'handover_note', 'offers_open', 'offer_deadline', 'positions_needed', 'offer_skills', 'offer_location', 'offer_summary', 'created', 'updated'],
     relations: { quotation: 'quotations', client: 'clients', project_manager: 'users', lead_technician: 'users' },
     rules: {
-      list: AUTHED,
-      view: AUTHED,
+      list: OFFICE,
+      view: OFFICE,
       // Sales can hand an accepted quotation over as a new project.
       create: (user) => any(user, ['project_manager', 'sales']),
       // Technicians may update only a project they're assigned to —
@@ -125,8 +130,8 @@ const collections = {
     fields: ['id', 'client', 'service_type', 'frequency', 'next_due_date', 'active', 'assigned_technician', 'contract_value', 'currency', 'start_date', 'end_date', 'contractor', 'site', 'notes', 'created', 'updated'],
     relations: { client: 'clients', assigned_technician: 'users', contractor: 'contractors' },
     rules: {
-      list: AUTHED,
-      view: AUTHED,
+      list: SALES_READ,
+      view: SALES_READ,
       create: PM_WRITE,
       update: (user, record) => PM_WRITE(user) || (isTech(user) && record?.assigned_technician === user.id),
       delete: PM_WRITE,
@@ -136,7 +141,7 @@ const collections = {
     table: 'equipment',
     fields: ['id', 'client', 'equipment_id', 'name', 'category', 'manufacturer', 'brand', 'model_number', 'serial_number', 'capacity', 'voltage', 'power_rating', 'installation_date', 'warranty_expiry', 'commissioning_date', 'asset_location', 'building', 'floor', 'room', 'gps_coordinates', 'condition', 'status', 'service_interval', 'next_service_date', 'assigned_technician', 'photos', 'remarks', 'created', 'updated'],
     relations: { client: 'clients' },
-    rules: { list: AUTHED, view: AUTHED, create: PM_TECH_WRITE, update: PM_TECH_WRITE, delete: PM_WRITE },
+    rules: { list: OFFICE, view: OFFICE, create: PM_TECH_WRITE, update: PM_TECH_WRITE, delete: PM_WRITE },
   },
   // HR: independent contractors engaged per project (not employees).
   contractors: {
@@ -168,14 +173,14 @@ const collections = {
     table: 'employees',
     fields: ['id', 'user', 'role', 'phone', 'skills', 'active', 'created', 'updated'],
     relations: { user: 'users' },
-    rules: { list: AUTHED, view: AUTHED, create: PM_WRITE, update: PM_WRITE, delete: PM_WRITE },
+    rules: { list: (u, r) => PEOPLE_READ(u) || (READY(u) && r?.user === u?.id), view: (u, r) => PEOPLE_READ(u) || (READY(u) && r?.user === u?.id), create: PM_WRITE, update: PM_WRITE, delete: PM_WRITE },
   },
   documents: {
     table: 'documents',
     fields: ['id', 'title', 'client', 'project', 'type', 'file', 'notes', 'uploaded_by_name', 'share_with_client', 'created'],
     relations: { client: 'clients', project: 'projects' },
     fileFields: ['file'],
-    rules: { list: AUTHED, view: AUTHED, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
+    rules: { list: OFFICE, view: OFFICE, create: CAN_UPLOAD, update: CAN_UPLOAD, delete: (u) => CAN_UPLOAD(u) && PM_WRITE(u) },
   },
   // Price list used to fill quotations and invoices. Everyone signed in can
   // look items up; Super Admin, Administrators and Sales maintain it. The
@@ -226,8 +231,8 @@ const collections = {
     relations: { project: 'projects', uploaded_by: 'users' },
     fileFields: ['photo'],
     rules: {
-      list: AUTHED,
-      view: AUTHED,
+      list: OFFICE,
+      view: OFFICE,
       create: (u) => PM_TECH_WRITE(u),
       update: (u, r) => PM_WRITE(u) || r?.uploaded_by === u?.id,
       delete: (u, r) => PM_WRITE(u) || r?.uploaded_by === u?.id,
@@ -240,7 +245,7 @@ const collections = {
     fileFields: ['photo', 'id_document'],
     ownerField: 'user',
     ownerAdmin: PEOPLE_ADMIN,
-    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: AUTHED, update: OWN_OR_ADMIN, delete: PEOPLE_ADMIN },
+    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: (u) => Boolean(u), update: OWN_OR_ADMIN, delete: PEOPLE_ADMIN },
   },
   staff_documents: {
     table: 'staff_documents',
@@ -249,7 +254,7 @@ const collections = {
     fileFields: ['file'],
     ownerField: 'user',
     ownerAdmin: PEOPLE_ADMIN,
-    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: AUTHED, update: OWN_OR_ADMIN, delete: OWN_OR_ADMIN },
+    rules: { list: OWN_OR_ADMIN, view: OWN_OR_ADMIN, create: (u) => Boolean(u), update: OWN_OR_ADMIN, delete: OWN_OR_ADMIN },
   },
   invoices: {
     table: 'invoices',
@@ -291,7 +296,7 @@ const collections = {
       // Scoped to the owner, matching PocketBase's `user = @request.auth.id` rule.
       list: (user, record) => user?.role === 'super_admin' || record?.user === user?.id,
       view: (user, record) => user?.role === 'super_admin' || record?.user === user?.id,
-      create: AUTHED,
+      create: (u) => Boolean(u),
       update: (user, record) => user?.role === 'super_admin' || record?.user === user?.id,
       delete: (user) => user?.role === 'super_admin',
     },
@@ -301,7 +306,7 @@ const collections = {
     fields: ['id', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_name', 'company_tagline', 'company_registration_number', 'logo', 'signature', 'stamp', 'signature_name', 'signature_position', 'show_signature', 'show_stamp', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'labour_rates', 'default_contingency', 'whatsapp_number', 'vendor_markup', 'exchange_rates', 'solar_kit', 'quote_email_subject', 'quote_email_body', 'invoice_email_subject', 'invoice_email_body', 'created', 'updated'],
     relations: {},
     fileFields: ['logo', 'signature', 'stamp'],
-    rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
+    rules: { list: (u) => Boolean(u), view: (u) => Boolean(u), create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
     watchedFields: ['bank_name', 'account_number', 'show_signature', 'show_stamp'],
   },
   // Orvio's profile: the same branding fields as company_settings, used for documents tagged business = 'orvio'.
@@ -310,21 +315,21 @@ const collections = {
     fields: ['id', 'code', 'company_name', 'company_tagline', 'company_address', 'company_phone', 'company_email', 'company_website', 'company_registration_number', 'logo', 'bank_name', 'account_name', 'account_number', 'branch_code', 'swift_code', 'currency', 'invoice_footer_text', 'default_terms_conditions', 'default_payment_instructions', 'quote_prefix', 'invoice_prefix', 'created', 'updated'],
     relations: {},
     fileFields: ['logo'],
-    rules: { list: AUTHED, view: AUTHED, create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
+    rules: { list: (u) => Boolean(u), view: (u) => Boolean(u), create: (u) => u?.role === 'super_admin', update: (u) => u?.role === 'super_admin', delete: () => false },
   },
   activity_logs: {
     table: 'activity_logs',
     fields: ['id', 'actor', 'actor_name', 'action', 'detail', 'created'],
     relations: { actor: 'users' },
-    rules: { list: (u) => u?.role === 'super_admin', view: (u) => u?.role === 'super_admin', create: AUTHED, update: () => false, delete: () => false },
+    rules: { list: (u) => u?.role === 'super_admin', view: (u) => u?.role === 'super_admin', create: (u) => Boolean(u), update: () => false, delete: () => false },
   },
   users: {
     table: 'users',
-    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'can_upload_documents', 'client', 'vendor', 'created', 'updated'],
+    fields: ['id', 'email', 'name', 'job_title', 'department', 'phone', 'role', 'status', 'profile_completed', 'registration_complete', 'can_upload_documents', 'client', 'vendor', 'created', 'updated'],
     relations: {},
     rules: {
-      list: AUTHED,
-      view: AUTHED,
+      list: (u, r) => READY(u) || r?.id === u?.id,
+      view: (u, r) => READY(u) || r?.id === u?.id,
       create: (u) => u?.role === 'super_admin',
       update: (u) => u?.role === 'super_admin',
       // A Super Admin can remove any account except their own (so there is always one left).

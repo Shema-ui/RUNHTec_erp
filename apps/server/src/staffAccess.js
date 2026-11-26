@@ -30,7 +30,7 @@ async function ensureStaffAccount(app) {
   const id = genId();
   const hash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
   await pool.query(
-    "INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES (?, ?, ?, ?, ?, 'technician', 'active')",
+    "INSERT INTO users (id, email, password_hash, name, phone, role, status, registration_complete) VALUES (?, ?, ?, ?, ?, 'technician', 'active', 0)",
     [id, email, hash, app.full_name || '', app.phone || '']
   );
   const [created] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);

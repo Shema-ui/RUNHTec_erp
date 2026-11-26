@@ -60,6 +60,8 @@ import ContractorFormPage from '@/pages/hr/ContractorFormPage';
 import ContractorProfilePage from '@/pages/hr/ContractorProfilePage';
 import EngagementsPage from '@/pages/hr/EngagementsPage';
 import EngagementLetterPage from '@/pages/hr/EngagementLetterPage';
+import OnboardingReviewPage from '@/pages/hr/OnboardingReviewPage';
+import OnboardingPage from '@/pages/OnboardingPage';
 import DocumentsPage from '@/pages/ops/DocumentsPage';
 import NotificationsPage from '@/pages/ops/NotificationsPage';
 import PaymentsPage from '@/pages/ops/PaymentsPage';
@@ -159,6 +161,8 @@ function App() {
           <Route path="/hr/contractors/:id" element={<Protected moduleKey="hr"><ContractorProfilePage /></Protected>} />
           <Route path="/hr/contractors/:id/edit" element={<Protected moduleKey="hr"><ContractorFormPage /></Protected>} />
           <Route path="/hr/engagements" element={<Protected moduleKey="hr"><EngagementsPage /></Protected>} />
+          <Route path="/hr/onboarding" element={<RequireAuth><RequireRole roles={['super_admin', 'admin', 'hr', 'project_manager']}><OnboardingReviewPage /></RequireRole></RequireAuth>} />
+          <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
           <Route path="/hr/engagements/:id/letter" element={<Protected moduleKey="hr"><EngagementLetterPage /></Protected>} />
           <Route path="/employees" element={<Navigate to="/hr" replace />} />
           <Route path="/documents" element={<Protected moduleKey="documents"><DocumentsPage /></Protected>} />

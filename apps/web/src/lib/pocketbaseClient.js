@@ -202,6 +202,15 @@ const pb = {
     if (res?.record) authStore.save(authStore.token, res.record);
     return res;
   },
+  // Staff registration: agreement, signature and HR review (see routes/onboarding.js).
+  onboarding: {
+    me: () => request('/api/onboarding/me'),
+    contract: (userId) => request(`/api/onboarding/contract${userId ? `?user=${encodeURIComponent(userId)}` : ''}`),
+    sign: (body) => request('/api/onboarding/sign', { method: 'POST', body }),
+    queue: () => request('/api/onboarding/queue'),
+    review: (body) => request('/api/onboarding/review', { method: 'POST', body }),
+    complete: (user) => request('/api/onboarding/complete', { method: 'POST', body: { user } }),
+  },
   files: {
     // Matches the PocketBase SDK's pb.files.getURL(record, filename) shape.
     // `filename` here is actually a files.id from the new backend — the
