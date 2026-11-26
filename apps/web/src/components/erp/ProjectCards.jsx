@@ -27,7 +27,7 @@ export default function ProjectCards() {
   };
 
   return (
-    <section className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <section id="project-cards" className="mt-8 scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-bold text-foreground">My project cards</h2>
