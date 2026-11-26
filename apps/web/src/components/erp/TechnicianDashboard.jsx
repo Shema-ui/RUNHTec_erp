@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderKanban, CheckCircle2, ListChecks, Camera, Wrench, CalendarDays, MapPin, CalendarCheck, ChevronRight } from 'lucide-react';
+import { FolderKanban, CheckCircle2, ListChecks, Camera, Wrench, CalendarDays, MapPin, CalendarCheck, ChevronRight, Briefcase } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { Pill, fmtDate, todayISO } from '@/components/erp/kit';
 import { projectStatusInfo } from '@/lib/projects';
@@ -46,6 +46,8 @@ function ProjectRow({ p, me }) {
 // What a Technician / Lead Technician sees on their dashboard: only their own work.
 export default function TechnicianDashboard({ user }) {
   const [data, setData] = useState(null);
+  const [cardCount, setCardCount] = useState(null);
+  useEffect(() => { pb.workHistory.me().then((r) => setCardCount((r.items || []).length)).catch(() => setCardCount(0)); }, []);
   const isLead = user?.role === 'lead_technician';
 
   useEffect(() => {
@@ -129,6 +131,17 @@ export default function TechnicianDashboard({ user }) {
           </ul>
         </section>
       )}
+
+      <Link to="/my-profile#project-cards" className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 active:scale-[0.99]">
+        <span className="flex items-center gap-4">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Briefcase className="h-5 w-5" /></span>
+          <span>
+            <span className="block font-display text-base font-bold text-foreground">My project cards</span>
+            <span className="block text-sm text-muted-foreground">{cardCount === null ? 'Loading…' : cardCount === 0 ? 'Your jobs will be kept here as you work on them' : `${cardCount} ${cardCount === 1 ? 'job' : 'jobs'} on your record. Tap to open all of them.`}</span>
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+      </Link>
 
       {v.done.length > 0 && (
         <section>
