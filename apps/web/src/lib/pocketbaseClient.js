@@ -202,6 +202,8 @@ const pb = {
     if (res?.record) authStore.save(authStore.token, res.record);
     return res;
   },
+  // A worker's project cards (every job they are on).
+  workHistory: { me: () => request('/api/work-history/me') },
   // Staff registration: agreement, signature and HR review (see routes/onboarding.js).
   onboarding: {
     me: () => request('/api/onboarding/me'),

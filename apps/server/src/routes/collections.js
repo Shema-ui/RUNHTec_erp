@@ -377,6 +377,13 @@ router.get('/:name/records/:id', collectionMiddleware, requireAuth, async (req, 
   }
 });
 
+// True when a project row has nobody assigned yet (assigned_technicians is stored as JSON text).
+function teamIsEmpty(p) {
+  let team = p.assigned_technicians;
+  if (typeof team === 'string') { try { team = JSON.parse(team); } catch (_) { team = []; } }
+  return !(Array.isArray(team) && team.length) && !p.lead_technician;
+}
+
 // POST /api/collections/:name/records
 router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), async (req, res) => {
   const def = req.collectionDef;
@@ -502,6 +509,11 @@ router.post('/:name/records', collectionMiddleware, requireAuth, upload.any(), a
     }
     if (req.collectionName === 'invoices') await syncProjectValue(rows[0].project);
     if (req.collectionName === 'projects') { await alertNewTeam(null, rows[0], req.user); await activateLead(rows[0].client); }
+    // A new job with no team yet is posted for offers straight away, so matching workers hear about it.
+    if (req.collectionName === 'projects' && !Number(rows[0].offers_open) && !['done', 'cancelled'].includes(rows[0].status) && teamIsEmpty(rows[0])) {
+      await pool.query('UPDATE projects SET offers_open = 1 WHERE id = ?', [rows[0].id]);
+      rows[0].offers_open = 1;
+    }
     if (req.collectionName === 'projects' && Number(rows[0].offers_open)) await announceOpenProject(rows[0]).catch(() => {});
     await commissionsHook(req.collectionName, rows[0]).catch((e) => console.error('commission refresh failed:', e.message));
     if (req.collectionName === 'payments' && rows[0].status === 'completed') {
