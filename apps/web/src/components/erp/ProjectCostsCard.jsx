@@ -24,7 +24,7 @@ function Bar({ used, plan }) {
   );
 }
 
-export default function ProjectCostsCard({ project, team }) {
+export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const canRecord = canRecordCosts(user);
@@ -58,12 +58,8 @@ export default function ProjectCostsCard({ project, team }) {
     { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used${fees.total ? ` · includes ${formatMoney(fees.total, currency)} fixed contractor fees from Team` : ''}` },
     { label: 'Transport & other', plan: plan ? plan.expenses + plan.contingency : undefined, used: otherActual },
   ];
-  // Expected final cost: for each part, what we planned — or what we've already spent if that's more.
-  const expectedCost = plan ? rows.reduce((t, r) => t + Math.max(n(r.plan), r.used), 0) : (planned ? Math.max(planned, actual.total) : null);
-  const expected = expectedCost === null ? null : revenue - expectedCost;
-  const showFinal = done || expected === null;
-  const headline = showFinal ? profitNow : expected;
-  const headlineMargin = revenue > 0 ? (headline / revenue) * 100 : 0;
+  // Final profit is only confirmed once the project is closed and every invoice is paid in full.
+  const profitConfirmed = done && Boolean(fullyPaid);
 
   const togglePaid = async (c) => {
     setCosts((list) => list.map((x) => (x.id === c.id ? { ...x, paid: !c.paid } : x)));
@@ -95,12 +91,14 @@ export default function ProjectCostsCard({ project, team }) {
         <Mini label="Client pays (excl. VAT)" value={formatMoney(revenue, currency)} />
         <Mini label="Planned cost" value={planned ? formatMoney(planned, currency) : 'Not set'} note={plan ? 'From the quotation costing' : 'Set it on the quotation or project'} />
         <Mini label="Spent so far" value={formatMoney(actual.total, currency)} note={actual.unpaid ? `${formatMoney(actual.unpaid, currency)} not yet paid out` : 'All paid'} />
-        <Mini label={done ? 'Final profit' : showFinal ? 'Profit so far' : 'Expected profit'} value={formatMoney(headline, currency)} note={`${headlineMargin.toFixed(1)}% of the price`} cls={marginTone(headlineMargin)} />
+        {profitConfirmed
+          ? <Mini label="Final profit" value={formatMoney(profitNow, currency)} note={`${(revenue > 0 ? (profitNow / revenue) * 100 : 0).toFixed(1)}% of the price · confirmed`} cls={marginTone(revenue > 0 ? (profitNow / revenue) * 100 : 0)} />
+          : <Mini label="Final profit" value="Not yet" note="Confirmed when the project is closed and all payments are in" />}
       </div>
 
-      {!showFinal && (
+      {!profitConfirmed && (
         <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-          <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Expected profit uses the plan for anything not spent yet. Log wages each day and add materials, fuel and other spending as you pay — when the project is marked Done this becomes the final profit.
+          <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Log wages and expenses as work happens. The final profit is confirmed only after the project is marked Done and every invoice is fully paid.
         </p>
       )}
       {planned > 0 && actual.total > planned && (
