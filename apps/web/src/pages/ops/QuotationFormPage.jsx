@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient';
 import { nextDocNumber } from '@/lib/numbering';
-import CostingPanel from '@/components/erp/CostingPanel';
 import CatalogItemInput from '@/components/erp/CatalogItemInput';
 import ItemCards, { TotalsInputs } from '@/components/erp/ItemCards';
 import NewClientDialog from '@/components/crm/NewClientDialog';
@@ -204,7 +203,6 @@ export default function QuotationFormPage() {
       tax_amount: taxAmount,
       discount_amount: discountAmount,
       total,
-      ...(showCosts ? { costing } : {}),
     };
     try {
       let saved;
@@ -497,10 +495,6 @@ export default function QuotationFormPage() {
             </div>
           </div>
         </div>
-
-        {showCosts && (
-          <CostingPanel items={items} costing={costing} onChange={setCosting} subtotal={subtotal} discount={discountAmount} currency={form.currency} />
-        )}
 
         {/* Notes & Terms */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

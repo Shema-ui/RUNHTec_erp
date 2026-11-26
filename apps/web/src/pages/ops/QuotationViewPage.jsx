@@ -5,7 +5,6 @@ import { Edit2, Printer, ChevronLeft, Loader2, Download, ArrowRight, ReceiptText
 import { useAuth } from '@/context/AuthContext';
 import { canAccessModule } from '@/lib/permissions';
 import pb from '@/lib/pocketbaseClient';
-import { InternalProfitCard } from '@/components/erp/CostingPanel';
 import { canSeeCosts } from '@/lib/costing';
 import SuperDelete from '@/components/erp/SuperDelete';
 import { useToast } from '@/hooks/use-toast';
@@ -311,7 +310,6 @@ export default function QuotationViewPage() {
 
       {/* A4 Quotation */}
       <div className="mx-auto max-w-4xl overflow-x-auto px-2 py-4 sm:px-4 sm:py-8">
-        {showCosts && <InternalProfitCard doc={q} editTo={`/quotations/${id}/edit`} />}
         <div className="overflow-x-auto rounded-2xl bg-white shadow-xl">
           <InvoicePrintSheet kind="quote" inv={q} cfg={cfg} items={items} currency={currency} companyName={companyName} logoSrc={logoSrc} fmt={fmt} />
         </div>

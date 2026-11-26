@@ -12,18 +12,6 @@ import {
 
 const n = (v) => Number(v) || 0;
 
-function Bar({ used, plan }) {
-  if (!plan) return null;
-  const pct = Math.round((used / plan) * 100);
-  const tone = pct > 100 ? 'bg-rose-500' : pct > 85 ? 'bg-amber-500' : 'bg-emerald-500';
-  return (
-    <div className="mt-1 flex items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary"><div className={`h-full ${tone}`} style={{ width: `${Math.min(100, pct)}%` }} /></div>
-      <span className={`w-12 text-right text-[11px] font-semibold ${pct > 100 ? 'text-rose-600' : 'text-muted-foreground'}`}>{pct}%</span>
-    </div>
-  );
-}
-
 export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -37,12 +25,8 @@ export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
     .then(setCosts).catch(() => setCosts([]));
   useEffect(() => { load(); }, [project.id]);
 
-  const quote = project.expand?.quotation;
-  const plan = useMemo(() => (quote
-    ? computeCosting({ items: Array.isArray(quote.items) ? quote.items : [], costing: quote.costing, subtotal: quote.subtotal, discount: quote.discount_amount })
-    : null), [quote]);
-  const revenue = n(project.value) || (plan ? plan.revenue : 0);
-  const planned = plan ? plan.totalCost : n(project.cost_budget);
+  // Everything here comes from recorded income and expenses; no estimates or projections.
+  const revenue = n(project.value);
   const fees = useMemo(() => fixedFeeCosts(team || []), [team]);
   const actual = useMemo(() => {
     const a = summarizeActual(costs || []);
@@ -53,11 +37,6 @@ export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
   const profitNow = revenue - actual.total;
   const done = project.status === 'done';
 
-  const rows = [
-    { label: 'Materials & equipment', plan: plan?.materials, used: actual.by.materials || 0, note: 'Add materials you buy with “Add expense” → Materials' },
-    { label: 'Technician wages', plan: plan?.labour, used: actual.by.labour || 0, note: `${actual.labourDays} of ${plan?.labourDays ?? '—'} person-days used${fees.total ? ` · includes ${formatMoney(fees.total, currency)} fixed contractor fees from Team` : ''}` },
-    { label: 'Transport & other', plan: plan ? plan.expenses + plan.contingency : undefined, used: otherActual },
-  ];
   // Final profit is only confirmed once the project is closed and every invoice is paid in full.
   const profitConfirmed = done && Boolean(fullyPaid);
 
@@ -89,7 +68,6 @@ export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Mini label="Client pays (excl. VAT)" value={formatMoney(revenue, currency)} />
-        <Mini label="Planned cost" value={planned ? formatMoney(planned, currency) : 'Not set'} note={plan ? 'From the quotation costing' : 'Set it on the quotation or project'} />
         <Mini label="Spent so far" value={formatMoney(actual.total, currency)} note={actual.unpaid ? `${formatMoney(actual.unpaid, currency)} not yet paid out` : 'All paid'} />
         {profitConfirmed
           ? <Mini label="Final profit" value={formatMoney(profitNow, currency)} note={`${(revenue > 0 ? (profitNow / revenue) * 100 : 0).toFixed(1)}% of the price · confirmed`} cls={marginTone(revenue > 0 ? (profitNow / revenue) * 100 : 0)} />
@@ -101,22 +79,6 @@ export default function ProjectCostsCard({ project, team, fullyPaid = false }) {
           <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Log wages and expenses as work happens. The final profit is confirmed only after the project is marked Done and every invoice is fully paid.
         </p>
       )}
-      {planned > 0 && actual.total > planned && (
-        <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-rose-700"><AlertTriangle className="h-4 w-4" /> Spending is {formatMoney(actual.total - planned, currency)} over the plan.</p>
-      )}
-
-      {plan && (
-        <div className="mt-4 space-y-3">
-          {rows.map((r) => (
-            <div key={r.label} className="text-sm">
-              <div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{r.label}</span><span className="text-muted-foreground">{formatMoney(r.used, currency)} of {formatMoney(r.plan || 0, currency)}</span></div>
-              <Bar used={r.used} plan={r.plan} />
-              {r.note && <p className="text-[11px] text-muted-foreground">{r.note}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="mt-5">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cost log</h4>
         {fees.list.length > 0 && (
