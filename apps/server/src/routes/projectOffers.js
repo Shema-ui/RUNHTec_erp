@@ -78,7 +78,8 @@ function matches(projectSkills, profile) {
 }
 
 async function staffUsers() {
-  const [rows] = await pool.query("SELECT id, name, email FROM users WHERE status = 'active' AND role NOT IN ('client', 'vendor')");
+  // Only field workers who have finished registration are invited to offer for jobs.
+  const [rows] = await pool.query("SELECT id, name, email FROM users WHERE status = 'active' AND role IN ('technician', 'lead_technician') AND registration_complete <> 0");
   return rows;
 }
 
@@ -96,7 +97,7 @@ function openProjectEmail(p, name) {
   return renderEmail({
     greeting: `Dear ${name || 'colleague'},`,
     paragraphs: [
-      `A new project is open for offers: ${p.title}.`,
+      `A new job has been posted: ${p.title}.`,
       'Please let us know whether you are interested and available. Your reply is recorded in the ERP under Project Offers.',
       ...(p.offer_summary ? [p.offer_summary] : []),
     ],
@@ -118,15 +119,13 @@ async function announceOpenProject(p) {
     await pool.query("INSERT IGNORE INTO project_offers (id, project, user, status) VALUES (?, ?, ?, 'invited')", [genId(), p.id, u.id]);
   }
   if (!fresh.length) return 0;
-  await notifyUsers(fresh.map((u) => u.id), 'project', `New project open for offers: “${p.title}”. Tap to offer your services.`, '/offers');
-  if (emailEnabled()) {
-    for (const u of fresh) {
-      if (!u.email) continue;
+  // The in-app notice and the email say the same thing; the email carries the full job details.
+  await notifyUsers(fresh.map((u) => u.id), 'project', `New job posted: “${p.title}”. Tap to tell us if you can offer your services.`, '/offers', {
+    email: (u) => {
       const m = openProjectEmail(p, u.name);
-      sendEmail({ to: u.email, subject: `Project open for offers: ${p.title}`, text: m.text, html: m.html })
-        .catch((err) => console.error('Offer email failed:', err.message));
-    }
-  }
+      return { subject: `New job posted: ${p.title}`, text: m.text, html: m.html };
+    },
+  });
   return fresh.length;
 }
 

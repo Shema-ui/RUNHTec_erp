@@ -89,6 +89,7 @@ async function main() {
   app.use('/api/commissions', require('./routes/commissions'));
   app.use('/api/applicant-contact', require('./routes/applicantContact'));
   app.use('/api/onboarding', require('./routes/onboarding'));
+  app.use('/api/work-history', require('./routes/workHistory'));
 
   app.use((req, res) => res.status(404).json({ message: 'Not found.' }));
   // eslint-disable-next-line no-unused-vars
